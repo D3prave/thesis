@@ -1,0 +1,135 @@
+\chapter{Semantic Entropy}
+
+This chapter defines the method that the thesis will implement first: discrete
+semantic entropy over sampled answers. The aim is to keep the first reproduction
+small enough to verify while preserving the central idea of semantic entropy:
+uncertainty should be measured over meanings, not over surface strings
+\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. Full
+probability-weighted semantic entropy, kernel variants, and probe-based
+approximations are treated as later extensions unless the baseline experiment is
+already stable.
+
+\section{Sampling Setup}
+
+For each question or prompt \(x\), the model is sampled \(M\) times under a
+fixed decoding configuration. The resulting answers are
+\[
+  Y(x) = \{y_1, y_2, \ldots, y_M\}.
+\]
+The first pilot will use \(M=4\) for debugging and \(M=10\) for the first
+meaningful comparison. These values are not intended as final claims about the
+best sample size. They are chosen to expose the pipeline to multiple possible
+answers while keeping early local runs and later Slurm jobs affordable.
+
+The method separates generation from evaluation. The generation step produces
+candidate answers; the uncertainty step groups those answers by meaning and
+assigns an entropy score; the correctness step labels whether the selected or
+majority answer is correct for the benchmark. This separation matters because
+semantic entropy estimates uncertainty over semantic alternatives, not factual
+truth directly \cite{semantic_entropy_nature_2024}.
+
+\section{Semantic Clustering by Entailment}
+
+The core operation is a semantic equivalence test between two answers. Exact
+string matching is too strict, because two paraphrases can express the same
+answer. Token-level similarity is also unreliable, because small wording changes
+can alter the fact being asserted. Following the semantic entropy framing, two
+answers should be assigned to the same cluster when they are equivalent in the
+context of the prompt \cite{kuhn_semantic_uncertainty_2023,
+semantic_entropy_nature_2024}.
+
+The pilot will approximate equivalence with bidirectional entailment. For
+answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails \(y_j\) and
+whether \(y_j\) entails \(y_i\), conditioned on the prompt \(x\). If both
+directions hold, the answers are treated as the same semantic answer. Natural
+Language Inference is a practical backend for this decision because it provides
+the entailment, contradiction, and neutral labels needed by the clustering rule
+\cite{williams_multinli_2018}. A DeBERTa NLI model is the preferred first local
+backend because it is strong enough for a pilot while avoiding dependence on a
+proprietary judge \cite{he_deberta_2021}.
+
+This rule is an approximation rather than a definition of truth. It may split
+answers that differ only in harmless detail, and it may merge answers that hide
+important factual differences. These errors should be recorded as part of the
+method's limitations, especially for numeric answers, partial answers, and
+answers whose meaning depends on omitted context.
+
+\section{Discrete Semantic Entropy}
+
+After clustering, let \(C(x)=\{c_1,\ldots,c_K\}\) be the set of semantic clusters
+observed among the \(M\) sampled answers. Let \(n_k\) be the number of sampled
+answers assigned to cluster \(c_k\). The empirical probability of cluster \(c_k\)
+is
+\[
+  \hat{p}_k = \frac{n_k}{M}.
+\]
+The discrete semantic entropy score is then
+\[
+  \widehat{H}_{\mathrm{sem}}(x)
+  = - \sum_{k=1}^{K} \hat{p}_k \log \hat{p}_k .
+\]
+A low score means the samples mostly agree on one semantic answer. A high score
+means the samples are spread across several meanings, which is the situation the
+method treats as evidence of semantic uncertainty. The pilot will report this
+cluster-frequency entropy first. More exact semantic entropy variants that use
+model probabilities can be added later, after the discrete version and its
+failure cases are understood \cite{semantic_entropy_nature_2024,
+kossen_semantic_uncertainty_code_2024}.
+
+The main baseline is naive entropy or diversity over answer strings. That
+baseline tests whether semantic clustering adds value beyond observing that
+sampled outputs differ lexically. SelfCheckGPT-style consistency and P(True)
+are useful later comparisons, but they should not delay the first discrete
+semantic entropy implementation \cite{manakul_selfcheckgpt_2023,
+kadavath_language_models_know_2022}.
+
+\section{Pilot Pipeline}
+
+The planned pilot has six conceptual steps:
+
+\begin{enumerate}
+  \item select a short-answer benchmark item from TriviaQA or SVAMP
+    \cite{joshi_triviaqa_2017,patel_svamp_2021};
+  \item sample \(M\) answers from a small local model, then later from a 7B
+    instruct or chat model;
+  \item normalize only obvious formatting differences, such as surrounding
+    whitespace and simple answer prefixes;
+  \item cluster answers using bidirectional entailment;
+  \item compute naive answer-diversity entropy and discrete semantic entropy;
+  \item attach a correctness label and evaluate whether uncertainty predicts
+    incorrect answers.
+\end{enumerate}
+
+Each output record should contain the prompt, sampled answers, cluster
+assignments, entropy score, method name, decoding configuration, entailment
+backend, and correctness label. The intended record format is JSONL, with one
+record per prompt. This is a storage contract for later implementation, not a
+claim that the experiment has already been run.
+
+\section{Evaluation Use}
+
+The entropy score will be used as a ranking signal for selective prediction. If
+semantic entropy is useful, examples with higher entropy should be more likely
+to be incorrect or unsafe to answer directly. The first evaluation will compare
+uncertainty scores with correctness labels using AUROC, AURAC, and
+rejection-accuracy curves. This is more aligned with the thesis goal than raw
+accuracy alone, because the practical question is whether uncertain answers can
+be abstained from or routed to a more expensive verification process
+\cite{semantic_entropy_nature_2024,kalai_why_language_models_hallucinate_2025}.
+
+\section{Scope of Later Extensions}
+
+Several extensions are relevant but should remain outside the first
+implementation. Kernel Language Entropy relaxes hard semantic clusters into a
+kernel-based entropy measure \cite{nikitin_kernel_language_entropy_2024}.
+Semantic Energy and Semantic Volume provide alternative ways to score semantic
+dispersion \cite{ma_semantic_energy_2025,li_semantic_volume_2025}. Adaptive
+Bayesian semantic entropy targets the sample-efficiency problem
+\cite{sun_adaptive_bayesian_semantic_entropy_2026}. Semantic Entropy Probes move
+the method toward hidden-state prediction and can reduce multi-sample inference
+costs, but they require a stable baseline before they are useful in this thesis
+\cite{kossen_semantic_entropy_probes_2024}.
+
+The first research contribution should therefore be conservative: reproduce the
+discrete version cleanly, document where entailment clustering succeeds or
+fails, and only then decide whether an extension is worth implementing.

@@ -1,0 +1,14 @@
+# Local thesis build configuration.
+# The default is pdflatex because the current template was uploaded with
+# PdfLaTeX-oriented settings. To switch to LuaLaTeX later, replace the
+# $pdflatex command and set $pdf_mode = 4.
+
+$pdf_mode = 1;
+$pdflatex = 'pdflatex -interaction=nonstopmode -halt-on-error %O %S';
+$bibtex_use = 2;
+
+# Let thesis/main.tex find the local kaobook class and style files.
+$ENV{'TEXINPUTS'} = './styles//:' . ($ENV{'TEXINPUTS'} // '');
+
+# Keep generated artifacts next to main.tex for simple local cleanup.
+$out_dir = '.';

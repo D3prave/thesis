@@ -1,0 +1,72 @@
+\makeatletter
+\def\input@path{{styles/}}
+\makeatother
+
+\documentclass[
+  a4paper,
+  fontsize=10pt,
+  twoside=true,
+  numbers=noenddot,
+  fontmethod=tex
+]{kaobook}
+
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{kaobiblio}
+
+\addbibresource{main.bib}
+\graphicspath{{figures/}{logos/}}
+\newcommand{\myfooter}{}
+
+\makenoidxglossaries
+\input{frontmatter/glossary.tex}
+
+\titlehead{%
+\begin{center}
+  \includegraphics[height=1.4cm]{KU_Logo.png}
+  \quad
+  \includegraphics[height=1.6cm]{MIDS_Logo_en.pdf}
+\end{center}
+}
+
+\subject{Bachelor thesis}
+\title[Semantic entropy hallucination detection]{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
+\subtitle{TODO: Add German title if required by the program}
+\author[TODO]{TODO: Author name}
+\date{\today}
+
+\publishers{%
+\textsc{TODO: Examiner and affiliation}
+}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\input{frontmatter/abstract.tex}
+\tableofcontents
+\printnoidxglossary[title=Glossary]
+
+\mainmatter
+
+\input{chapters/01_introduction.tex}
+\input{chapters/02_background.tex}
+\input{chapters/03_semantic_entropy.tex}
+\input{chapters/04_experimental_design.tex}
+\input{chapters/05_hpc_and_implementation.tex}
+\input{chapters/06_results.tex}
+\input{chapters/07_semantic_entropy_probes.tex}
+\input{chapters/08_discussion.tex}
+\input{chapters/09_conclusion.tex}
+
+\appendix
+\input{appendices/appendix.tex}
+
+\backmatter
+
+\nocite{semantic_entropy_nature_2024}
+\printbibliography[heading=bibintoc]
+
+\end{document}

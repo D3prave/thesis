@@ -1,0 +1,159 @@
+\chapter{Background}
+
+Large language models can produce fluent answers that are not supported by the
+facts of the task. This problem is usually discussed under the broad label of
+``hallucination'', but the term covers several different failure mechanisms:
+unfaithfulness to source material, unsupported factual claims, mistakes caused
+by missing knowledge, systematic reasoning failures, and responses encouraged by
+evaluation incentives that reward guessing \cite{ji_hallucination_survey_2023,
+huang_llm_hallucination_survey_2023,maynez_faithfulness_factuality_2020,
+kalai_why_language_models_hallucinate_2025}.
+This thesis uses the broad term where it is useful, but focuses on a narrower
+target: detecting when an answer is unreliable because the model is uncertain
+about the answer's meaning.
+
+\section{Hallucinations and Confabulations}
+
+The semantic entropy paper narrows the target to \emph{confabulations}: fluent
+answers that are both wrong and arbitrary, where arbitrary means sensitive to
+irrelevant variation such as the random seed used for generation
+\cite{semantic_entropy_nature_2024}. This distinction is important. A model may
+also be consistently wrong because its training data contains a misconception,
+because the problem requires reasoning it cannot perform, or because it is
+incentivized to provide an answer even when abstention would be more appropriate.
+Semantic entropy is not designed to solve all of these cases. It is a detector
+for semantic instability across alternative generations.
+
+This narrower framing leads to the central hypothesis used in the thesis. If the
+model knows the answer, stochastic samples should vary mostly in wording while
+preserving the same meaning. If the model is confabulating, samples should split
+across multiple meanings. Measuring uncertainty over meanings rather than over
+surface strings should therefore be more informative for free-form question
+answering \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+The limitation is equally important: uncertainty-based detection can miss
+high-certainty hallucinations and systematic errors
+\cite{simhi_choke_2025,ma_semantic_energy_2025}.
+
+\section{Uncertainty in Free-Form Generation}
+
+Uncertainty estimation is straightforward to define for a classifier with a
+fixed label set, but language generation has an open-ended output space. Many
+different strings can express the same proposition, and very similar strings can
+express different facts. As a result, sequence-level entropy or token-level
+variation can be misleading for natural language answers
+\cite{baan_uncertainty_nlg_2023,kuhn_semantic_uncertainty_2023}. The thesis
+therefore separates three levels of variation:
+
+\begin{enumerate}
+  \item lexical variation: different token sequences or paraphrases;
+  \item semantic variation: different meanings or propositions;
+  \item factual correctness: whether the meaning is correct for the task.
+\end{enumerate}
+
+Semantic entropy operates at the second level. It estimates uncertainty over
+semantic answers, not truth directly. Correctness evaluation is a separate step
+that compares a selected answer with the reference or with a judge
+\cite{semantic_entropy_nature_2024}. Recent surveys place this kind of method
+within uncertainty quantification for LLMs, alongside calibration, verbalized
+confidence, internal-state methods, and other sampling-based estimators
+\cite{shorinwa_uq_llm_survey_2024,liu_uq_confidence_calibration_survey_2025}.
+
+\section{Confidence, Calibration, and Abstention}
+
+The practical reason to estimate uncertainty is not only to assign a score to an
+answer, but to decide what should happen next: answer, abstain, route to
+retrieval, ask for human review, or run a more expensive verification procedure.
+This makes selective prediction and rejection-based evaluation natural for the
+thesis. Accuracy alone is not enough, because many benchmarks reward a lucky
+guess more than an honest admission of uncertainty
+\cite{kalai_why_language_models_hallucinate_2025}. Rejection-accuracy curves and
+AURAC are better aligned with the question of whether uncertain answers can be
+filtered out. Related work also studies whether semantic entropy can be used to
+fine-tune models to abstain, but this thesis treats that as a mitigation
+direction rather than the first target \cite{tjandra_abstain_semantic_entropy_2024}.
+
+Several baselines approach this problem without semantic clustering. P(True)
+asks a model to judge whether its own answer is true, testing verbalized
+self-knowledge rather than sample diversity \cite{kadavath_language_models_know_2022}.
+SelfCheckGPT instead samples multiple responses and checks whether they remain
+consistent, without relying on external databases or access to model
+probabilities \cite{manakul_selfcheckgpt_2023}. Semantic entropy is closest in
+spirit to these sampling-based methods, but it explicitly aggregates samples
+into semantic clusters before computing an entropy score
+\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+
+\section{Semantic Equivalence and Entailment}
+
+The key operational step is deciding when two sampled answers should count as
+the same answer. Semantic entropy uses semantic equivalence rather than exact
+string equality. In the original method, two answers are grouped together when
+they entail each other in the context of the question
+\cite{semantic_entropy_nature_2024}. This bidirectional entailment criterion is
+a practical approximation to equality of meaning.
+
+Natural Language Inference provides a local way to implement this approximation:
+given two sentences, an NLI model predicts whether one entails, contradicts, or
+is neutral with respect to the other \cite{williams_multinli_2018}. A DeBERTa
+model fine-tuned for NLI is a plausible first backend because it avoids
+dependence on proprietary judge models while still using a strong language
+understanding architecture \cite{he_deberta_2021}. The approximation remains
+imperfect. It can be too fine-grained when answers differ in irrelevant
+precision, and too coarse when subtle factual distinctions are missed. These
+limitations need to be carried into the experimental design.
+
+\section{Extensions and Related Methods}
+
+Several recent methods extend or challenge hard-cluster semantic entropy. Kernel
+Language Entropy replaces hard equivalence classes with semantic similarity
+kernels and a von Neumann entropy objective
+\cite{nikitin_kernel_language_entropy_2024}. Semantic Energy combines semantic
+clustering with an energy-style score over model logits
+\cite{ma_semantic_energy_2025}. Semantic Volume measures dispersion in semantic
+space and is relevant to both ambiguous inputs and uncertain responses
+\cite{li_semantic_volume_2025}. Adaptive Bayesian semantic entropy addresses the
+cost of estimating semantic entropy with many samples
+\cite{sun_adaptive_bayesian_semantic_entropy_2026}, while semantically diverse
+generation asks whether samples can be made more informative for uncertainty
+estimation \cite{aichberger_semantically_diverse_generation_2025}. These methods
+belong in the background as alternatives and extensions; their algorithmic
+details belong in the method chapter only if they become baselines.
+
+Another line of work uses internal model states. Prior probing work suggests
+that hidden activations can contain information about truthfulness or
+hallucination risk \cite{burns_latent_knowledge_2023,azaria_internal_state_lying_2023,
+chen_inside_2024}. Semantic Entropy Probes use this idea to approximate semantic
+entropy from a single generation's hidden states, reducing the test-time cost of
+multi-sample semantic entropy \cite{kossen_semantic_entropy_probes_2024}.
+Neuron-level hallucination work is relevant to the broader discussion, but it
+shifts the problem from black-box uncertainty estimation toward white-box
+interpretability and intervention \cite{gao_h_neurons_2025}.
+
+\section{Evaluation Setting}
+
+The first experimental setting should be sentence-length question answering
+rather than paragraph-length biography verification. This keeps the pipeline
+focused on sampling answers, clustering meanings, scoring uncertainty, and
+measuring whether uncertainty predicts incorrect answers. TriviaQA provides an
+open-domain question answering benchmark \cite{joshi_triviaqa_2017}, while
+SVAMP provides math word problems where equivalent numeric answers and concise
+reasoning matter \cite{patel_svamp_2021}. SQuAD, BioASQ, and NQ-Open are useful
+later expansions because they appear in the broader semantic entropy evaluation
+setting \cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,lee_nq_open_2019}.
+TruthfulQA is relevant to the broader truthfulness problem, but it is not the
+first pilot benchmark because the initial experiment is meant to isolate
+semantic clustering on short-answer tasks \cite{lin_truthfulqa_2022}.
+If the experiments use LLaMA 2 or Mistral models, their model reports should be
+cited as part of the implementation context \cite{touvron_llama2_2023,
+jiang_mistral_2023}. The released semantic uncertainty codebase is also useful
+for checking implementation decisions against the original reproduction
+material \cite{kossen_semantic_uncertainty_code_2024}.
+
+\section{Research Gap}
+
+The background motivates semantic entropy as a middle ground between cheap
+surface-level uncertainty signals and expensive factual verification. Its value
+depends on a clear separation between generation, semantic clustering, entropy
+scoring, correctness labeling, and selective-prediction metrics. The thesis
+therefore starts with a small, reproducible implementation of discrete semantic
+entropy before considering more ambitious extensions such as Semantic Entropy
+Probes or kernel-based variants.
