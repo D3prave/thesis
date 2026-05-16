@@ -1,3 +1,72 @@
 \chapter{Introduction}
 
-TODO: Motivate hallucination detection for large language models and state the thesis research question.
+Large language models can answer open-ended questions fluently even when the
+answer is unsupported or wrong. This makes hallucination detection a practical
+problem rather than only a benchmark problem: a useful system should not merely
+produce an answer, but should also indicate when that answer is unreliable. The
+central difficulty is that free-form language has many valid surface forms. Two
+sampled answers may use different words while expressing the same meaning, and
+two similar-looking answers may make incompatible claims.
+
+This thesis studies semantic entropy as a detector for this kind of unreliability.
+The core idea is to measure uncertainty over meanings rather than over strings.
+If repeated samples from a model mostly express the same answer, the model may
+be uncertain only about phrasing. If the samples split across different semantic
+answers, the model is semantically uncertain and the answer should be treated as
+riskier \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+
+\section{Research Aim}
+
+The main research question is whether semantic entropy provides a better signal
+for hallucination risk and selective abstention than surface-form uncertainty.
+The first target is deliberately narrow: short-answer question answering where
+sampled answers can be clustered by meaning and compared with reference answers.
+The thesis therefore focuses on confabulation-like failures, where the model's
+answer varies semantically across samples. It does not claim that semantic
+entropy detects every hallucination, especially high-confidence systematic
+errors \cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
+
+\section{Two-Phase Study}
+
+The study is organized in two phases. Phase 1 is a constrained pilot that can be
+debugged locally and on TinyGPU resources. It will use small local models first,
+then 7B--8B instruct or chat models, and will evaluate discrete semantic entropy
+on TriviaQA and SVAMP. The purpose of Phase 1 is to make the full pipeline
+auditable: sample answers, normalize them, cluster them by bidirectional
+entailment, compute uncertainty scores, attach correctness labels, and write
+machine-readable records.
+
+Phase 2 repeats the same measurement plan at larger scale on NHR@FAU resources.
+Alex is planned for scaled inference, larger sweeps, and stronger semantic
+clustering runs. Helma is reserved for 70B+ models and high-compute extensions
+such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and
+Semantic Volume. The key constraint is continuity: Phase 2 should test whether
+the Phase 1 finding survives stronger models and better judges, not replace the
+research question with a different one.
+
+\section{Contributions}
+
+The intended contributions are:
+
+\begin{enumerate}
+  \item a concise reproduction-oriented formulation of discrete semantic entropy
+    for short-answer hallucination detection;
+  \item a two-phase experimental design that separates local validation from
+    high-compute HPC runs;
+  \item an auditable output schema for sampled answers, semantic clusters,
+    entropy scores, and correctness labels;
+  \item a selective-prediction evaluation using AUROC, AURAC, and
+    rejection-accuracy curves;
+  \item a scoped plan for Phase 2 extensions once the discrete baseline is
+    stable.
+\end{enumerate}
+
+\section{Thesis Structure}
+
+Chapter 2 reviews hallucination, uncertainty estimation, semantic equivalence,
+and related semantic uncertainty methods. Chapter 3 defines the discrete
+semantic entropy method used as the first baseline. Chapter 4 turns the method
+into a two-phase experimental design. Chapter 5 describes the local
+implementation boundary and the HPC execution plan. Later chapters will report
+results, discuss Semantic Entropy Probes and other extensions, and summarize the
+limitations of the approach.
