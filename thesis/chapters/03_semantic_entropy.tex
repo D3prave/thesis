@@ -7,7 +7,9 @@ uncertainty should be measured over meanings, not over surface strings
 \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. Full
 probability-weighted semantic entropy, kernel variants, and probe-based
 approximations are treated as later extensions unless the baseline experiment is
-already stable.
+already stable. Chapter 4 turns these method choices into an experiment plan,
+and Chapter 5 describes how that plan will be executed locally and on HPC
+systems.
 
 \section{Sampling Setup}
 
@@ -19,7 +21,7 @@ fixed decoding configuration. The resulting answers are
 The first pilot will use \(M=4\) for debugging and \(M=10\) for the first
 meaningful comparison. These values are not intended as final claims about the
 best sample size. They are chosen to expose the pipeline to multiple possible
-answers while keeping early local runs and later Slurm jobs affordable.
+answers while keeping early and scaled runs affordable.
 
 The method separates generation from evaluation. The generation step produces
 candidate answers; the uncertainty step groups those answers by meaning and
@@ -83,15 +85,13 @@ are useful later comparisons, but they should not delay the first discrete
 semantic entropy implementation \cite{manakul_selfcheckgpt_2023,
 kadavath_language_models_know_2022}.
 
-\section{Pilot Pipeline}
+\section{Method Interface}
 
-The planned pilot has six conceptual steps:
+The method requires five conceptual inputs and outputs:
 
 \begin{enumerate}
-  \item select a short-answer benchmark item from TriviaQA or SVAMP
-    \cite{joshi_triviaqa_2017,patel_svamp_2021};
-  \item sample \(M\) answers from a small local model, then later from a 7B
-    instruct or chat model;
+  \item receive a benchmark prompt and \(M\) sampled answers under a fixed
+    decoding configuration;
   \item normalize only obvious formatting differences, such as surrounding
     whitespace and simple answer prefixes;
   \item cluster answers using bidirectional entailment;
@@ -102,19 +102,17 @@ The planned pilot has six conceptual steps:
 
 Each output record should contain the prompt, sampled answers, cluster
 assignments, entropy score, method name, decoding configuration, entailment
-backend, and correctness label. The intended record format is JSONL, with one
-record per prompt. This is a storage contract for later implementation, not a
-claim that the experiment has already been run.
+backend, and correctness label. Chapter 4 defines the concrete JSONL schema and
+the datasets and model tiers that will instantiate this interface.
 
 \section{Evaluation Use}
 
 The entropy score will be used as a ranking signal for selective prediction. If
 semantic entropy is useful, examples with higher entropy should be more likely
-to be incorrect or unsafe to answer directly. The first evaluation will compare
-uncertainty scores with correctness labels using AUROC, AURAC, and
-rejection-accuracy curves. This is more aligned with the thesis goal than raw
-accuracy alone, because the practical question is whether uncertain answers can
-be abstained from or routed to a more expensive verification process
+to be incorrect or unsafe to answer directly. Chapter 4 specifies the evaluation
+metrics. At the method level, the important point is that uncertainty is useful
+only if it helps decide when a model should answer, abstain, or route the prompt
+to a more expensive verification process
 \cite{semantic_entropy_nature_2024,kalai_why_language_models_hallucinate_2025}.
 
 \section{Scope of Later Extensions}

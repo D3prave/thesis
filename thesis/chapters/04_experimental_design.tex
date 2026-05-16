@@ -6,7 +6,9 @@ uncertainty. The design is split into two phases. Phase 1 keeps the experiment
 small enough to debug locally or on TinyGPU resources. Phase 2 scales the same
 measurement plan to NHR@FAU resources, with Alex used for large inference and
 clustering runs and Helma reserved for 70B+ models and final high-compute
-extensions.
+extensions. Chapter 3 defines the semantic entropy method itself; this chapter
+defines the measurement contract; Chapter 5 covers execution, Slurm discipline,
+storage, and reproducibility logging.
 
 \section{Research Question}
 
@@ -154,8 +156,7 @@ to make generation, clustering, scoring, and evaluation auditable:
 \end{verbatim}
 
 Large raw generations, model caches, checkpoints, and full intermediate outputs
-should stay outside git. Only small summary tables, final figures, and compact
-diagnostic examples should be committed.
+are handled by the storage and reproducibility policy in Chapter 5.
 
 \section{Validation Checks}
 
@@ -172,10 +173,9 @@ Every Phase 1 run must pass basic structural checks before any HPC scaling:
   \item a small manual audit confirms that several clusters are reasonable.
 \end{enumerate}
 
-Phase 2 adds HPC checks: record Slurm job IDs, cluster name, GPU type, GPU
-memory, runtime, command, output path, and any failures. No large model should
-be run on login nodes. Hugging Face caches and generated outputs should be kept
-in project or work storage, not in home directories.
+Phase 2 must satisfy the same structural checks at larger scale. The additional
+HPC checks for Slurm jobs, cache locations, output paths, GPU metadata, and
+failure logging are implementation concerns covered in Chapter 5.
 
 \section{Evaluation Metrics}
 
