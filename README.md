@@ -2,7 +2,9 @@
 
 This repository contains thesis source, planning notes, and the first scaffold for experiments on hallucination detection with semantic entropy. The initial goal is a buildable LaTeX thesis project plus a clean place for future research code.
 
-Current research direction: reproduce a small, sentence-length semantic entropy pipeline first, then decide whether Semantic Entropy Probes or other efficient variants are realistic extensions.
+Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware or TinyGPU. Phase 2 scales the same design on NHR@FAU Alex and Helma for 70B+ models and high-compute extensions such as Kernel Language Entropy and Semantic Entropy Probes.
+
+Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 2--4 have first drafts, and no Python experiment pipeline has been implemented yet.
 
 ## Repository Layout
 
@@ -31,13 +33,22 @@ Current local toolchain: Homebrew TeX Live 2026 provides `latexmk`, `pdflatex`, 
 
 ## Planned Experiment Workflow
 
-1. Read and summarize the semantic entropy paper and related uncertainty-estimation literature.
-2. Run a small pilot on TriviaQA and SVAMP.
-3. Sample multiple answers per prompt with `M = 4` and `M = 10`.
-4. Compare naive entropy, discrete semantic entropy, and later full semantic entropy.
-5. Cluster sampled answers with a local NLI model first.
-6. Evaluate AUROC, AURAC, and rejection-accuracy curves.
-7. Scale carefully on HPC with Slurm after debug jobs pass locally.
+Phase 1: local and TinyGPU pilot
+
+1. Use TriviaQA and SVAMP as the first datasets.
+2. Run a small local model first, then a 7B/8B instruct or chat model.
+3. Sample `M = 4` answers for smoke tests and `M = 10` for the first meaningful comparison.
+4. Compare surface-form uncertainty, naive answer diversity, and discrete semantic entropy.
+5. Cluster sampled answers with a local NLI backend before using larger judges.
+6. Evaluate AUROC, AURAC, rejection-accuracy curves, and raw accuracy as context.
+
+Phase 2: NHR@FAU HPC scaling
+
+1. Use Alex for scaled inference and robust NLI clustering on A100-class GPUs.
+2. Use Helma for 70B+ models, high-cost semantic judges, Semantic Entropy Probes, and Kernel Language Entropy on H100/H200-class GPUs.
+3. Optionally expand from TriviaQA/SVAMP to SQuAD, BioASQ, and NQ-Open.
+4. Keep Slurm job IDs, commands, GPU type, runtime, memory, and output paths with every run.
+5. Keep large model caches, raw outputs, checkpoints, and downloaded datasets out of git.
 
 ## Research Corpus
 

@@ -1,3 +1,193 @@
 \chapter{Experimental Design}
 
-TODO: Define datasets, models, sampling settings, clustering, correctness labels, and evaluation metrics.
+This chapter defines the experiment plan used to evaluate whether semantic
+entropy provides a better hallucination and abstention signal than surface-form
+uncertainty. The design is split into two phases. Phase 1 keeps the experiment
+small enough to debug locally or on TinyGPU resources. Phase 2 scales the same
+measurement plan to NHR@FAU resources, with Alex used for large inference and
+clustering runs and Helma reserved for 70B+ models and final high-compute
+extensions.
+
+\section{Research Question}
+
+The main question is whether uncertainty over semantic answers identifies
+incorrect or unreliable generations better than uncertainty over sampled strings.
+The target phenomenon is semantic uncertainty or confabulation, not every form
+of hallucination. This follows the distinction made in the semantic entropy
+literature: a model can be wrong because it is semantically uncertain, but it can
+also be confidently and systematically wrong \cite{semantic_entropy_nature_2024,
+kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
+
+\section{Datasets}
+
+The first datasets are TriviaQA and SVAMP. TriviaQA provides open-domain
+question answering examples with short factual answers
+\cite{joshi_triviaqa_2017}. SVAMP provides math word problems where answer
+normalization and semantic equivalence matter, especially for numeric or
+near-numeric answers \cite{patel_svamp_2021}. These datasets are small enough to
+support repeated sampling during Phase 1 while still testing two different
+failure modes: factual recall and structured arithmetic reasoning.
+
+Phase 2 may add SQuAD, BioASQ, and NQ-Open after the core pipeline is stable,
+because these datasets broaden the evaluation setting beyond the first pilot
+\cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,lee_nq_open_2019}.
+TruthfulQA is relevant to broader truthfulness, but it is not part of the first
+pipeline because the initial design is meant to isolate semantic clustering on
+short-answer tasks \cite{lin_truthfulqa_2022}.
+
+\section{Model Tiers}
+
+\subsection{Phase 1: Local and TinyGPU Models}
+
+Phase 1 uses a small local model first, then a 7B--8B instruct or chat model
+when the output schema and metrics are stable. The goal is not to maximize model
+quality, but to verify generation, answer normalization, entailment clustering,
+entropy scoring, and correctness labeling end to end. TinyGPU resources can be
+used for single-GPU debug jobs on older GPUs such as V100 or RTX 3080 class
+hardware. Candidate model families include Mistral-7B or LLaMA-family models,
+depending on availability and licensing \cite{jiang_mistral_2023,
+touvron_llama2_2023}.
+
+The Phase 1 entailment backend should be a local NLI model. A DeBERTa model
+fine-tuned on NLI is the preferred first backend because it is practical to run
+locally and can use the entailment, contradiction, and neutral labels needed for
+bidirectional semantic clustering \cite{he_deberta_2021,williams_multinli_2018}.
+
+\subsection{Phase 2: Alex and Helma HPC Runs}
+
+Phase 2 repeats the same protocol at larger scale. Alex should be used for
+larger batched inference, more complete dataset sweeps, and robust NLI
+clustering on A100-class GPUs. Helma should be reserved for the final
+high-compute runs: 70B+ generation models, large judge models for semantic
+equivalence, Semantic Entropy Probes, and high-cost entropy variants. The
+important constraint is that the Phase 2 run should not introduce a new research
+question; it should test whether the Phase 1 findings survive stronger models,
+larger batches, and better semantic judges.
+
+\section{Sampling Settings}
+
+For each prompt \(x\), the model produces \(M\) sampled answers. Phase 1 uses
+\(M=4\) for smoke tests and \(M=10\) for the first meaningful comparison. Phase 2
+keeps \(M=10\) as the default and may add a higher-sample setting only if
+runtime and GPU allocation make it practical. The decoding configuration should
+be logged for every run.
+
+The default generation setting is temperature \(T=0.7\), top-\(p=0.95\), and a
+short maximum answer length appropriate for sentence-length question answering.
+Phase 1 should keep decoding fixed unless a run is explicitly marked as a
+sensitivity check. Phase 2 may compare \(T=0.3\), \(T=0.7\), and \(T=1.0\) to
+test whether semantic entropy remains useful under lower- and higher-diversity
+sampling.
+
+\section{Baselines and Methods}
+
+The minimum baseline is surface-form uncertainty. This includes naive entropy
+or diversity over exact or lightly normalized answer strings. It answers a
+simple question: does semantic clustering help beyond observing that sampled
+outputs differ lexically?
+
+The core method is discrete semantic entropy. Samples are clustered by
+bidirectional entailment, and entropy is computed over cluster frequencies
+\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This is the
+first method that should be implemented and evaluated. Full probability-weighted
+semantic entropy should be treated as a later baseline once the discrete version
+is working and the output records are stable. The released semantic uncertainty
+codebase is useful as a reference point for implementation decisions
+\cite{kossen_semantic_uncertainty_code_2024}.
+
+Secondary Phase 1 baselines may include SelfCheckGPT-style sampling consistency
+and P(True), but only after the naive and discrete semantic entropy scores are
+available \cite{manakul_selfcheckgpt_2023,kadavath_language_models_know_2022}.
+These baselines should not block the first reproduction.
+
+\section{Advanced Metrics and Extensions}
+
+Phase 2 includes higher-cost comparison methods and extensions. Kernel Language
+Entropy replaces hard semantic clusters with a kernel-based entropy objective
+\cite{nikitin_kernel_language_entropy_2024}. Semantic Energy and Semantic
+Volume provide alternative scores for semantic dispersion
+\cite{ma_semantic_energy_2025,li_semantic_volume_2025}. Adaptive Bayesian
+semantic entropy is relevant if sample cost becomes the dominant bottleneck
+\cite{sun_adaptive_bayesian_semantic_entropy_2026}. Semantic Entropy Probes are
+reserved for the final HPC extension because they require hidden-state access
+and probe training \cite{kossen_semantic_entropy_probes_2024}.
+
+These methods are not required for the Phase 1 claim. They are included to test
+whether the basic semantic entropy result remains competitive when compared
+against stronger semantic uncertainty estimators on Alex and Helma.
+
+\section{Output Schema}
+
+Each run should write JSONL with one record per prompt. The schema is intended
+to make generation, clustering, scoring, and evaluation auditable:
+
+\begin{verbatim}
+{
+  "run_id": "string",
+  "phase": "phase1_local_or_tinygpu",
+  "cluster": "local|tinygpu|alex|helma",
+  "prompt_id": "string",
+  "dataset": "triviaqa",
+  "split": "validation",
+  "prompt": "string",
+  "reference_answers": ["string"],
+  "model": "string",
+  "model_tier": "small|7b_8b|70b_plus",
+  "decoding": {
+    "num_samples": 10,
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_new_tokens": 64,
+    "seed": 0
+  },
+  "sampled_answers": ["string"],
+  "normalized_answers": ["string"],
+  "semantic_clusters": [0, 0, 1],
+  "cluster_representatives": ["string"],
+  "scores": {
+    "surface_entropy": 0.0,
+    "discrete_semantic_entropy": 0.0
+  },
+  "entailment_backend": "string",
+  "correctness_label": true
+}
+\end{verbatim}
+
+Large raw generations, model caches, checkpoints, and full intermediate outputs
+should stay outside git. Only small summary tables, final figures, and compact
+diagnostic examples should be committed.
+
+\section{Validation Checks}
+
+Every Phase 1 run must pass basic structural checks before any HPC scaling:
+
+\begin{enumerate}
+  \item every prompt has exactly \(M\) sampled answers;
+  \item every sampled answer has a normalized form;
+  \item every answer receives a semantic cluster identifier;
+  \item entropy scores are finite and non-negative;
+  \item correctness labels are present for all evaluated prompts;
+  \item decoding settings, model names, NLI backend, dataset split, and random
+    seeds are recorded;
+  \item a small manual audit confirms that several clusters are reasonable.
+\end{enumerate}
+
+Phase 2 adds HPC checks: record Slurm job IDs, cluster name, GPU type, GPU
+memory, runtime, command, output path, and any failures. No large model should
+be run on login nodes. Hugging Face caches and generated outputs should be kept
+in project or work storage, not in home directories.
+
+\section{Evaluation Metrics}
+
+The main evaluation is selective prediction. Each uncertainty score ranks
+examples from most to least uncertain. The thesis will report AUROC, AURAC, and
+rejection-accuracy curves to measure whether high-uncertainty examples are more
+likely to be incorrect. Raw answer accuracy is still useful as context, but it
+is not sufficient because the practical goal is to decide when a model should
+answer, abstain, or route the prompt to a more expensive verification procedure
+\cite{semantic_entropy_nature_2024}.
+
+The expected final comparison is therefore staged. Phase 1 should establish a
+working baseline result on TriviaQA and SVAMP. Phase 2 should test whether the
+same ranking behavior persists with larger models, stronger semantic judges, and
+advanced semantic uncertainty estimators.
