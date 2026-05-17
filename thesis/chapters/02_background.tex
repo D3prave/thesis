@@ -91,42 +91,38 @@ they entail each other in the context of the question
 \cite{semantic_entropy_nature_2024}. This bidirectional entailment criterion is
 a practical approximation to equality of meaning.
 
-Natural Language Inference provides a local way to implement this approximation:
-given two sentences, an NLI model predicts whether one entails, contradicts, or
-is neutral with respect to the other \cite{williams_multinli_2018}. A DeBERTa
-model fine-tuned for NLI is a plausible first backend because it avoids
-dependence on proprietary judge models while still using a strong language
-understanding architecture \cite{he_deberta_2021}. The approximation remains
-imperfect. It can be too fine-grained when answers differ in irrelevant
-precision, and too coarse when subtle factual distinctions are missed. These
-limitations need to be carried into the experimental design.
+Natural Language Inference provides a local way to approximate this relation:
+an NLI model estimates entailment, contradiction, or neutrality between two
+sentences \cite{williams_multinli_2018}. DeBERTa-style NLI models are relevant
+because they provide a practical local backend for this decision
+\cite{he_deberta_2021}. The background point is that semantic equivalence is an
+approximation. The exact bidirectional-entailment rule and pilot backend choice
+belong in Chapter 3.
 
 \section{Extensions and Related Methods}
 
 Several recent methods extend or challenge hard-cluster semantic entropy. Kernel
-Language Entropy replaces hard equivalence classes with semantic similarity
-kernels and a von Neumann entropy objective
-\cite{nikitin_kernel_language_entropy_2024}. Semantic Energy combines semantic
-clustering with an energy-style score over model logits
-\cite{ma_semantic_energy_2025}. Semantic Volume measures dispersion in semantic
-space and is relevant to both ambiguous inputs and uncertain responses
-\cite{li_semantic_volume_2025}. Adaptive Bayesian semantic entropy addresses the
-cost of estimating semantic entropy with many samples
-\cite{sun_adaptive_bayesian_semantic_entropy_2026}, while semantically diverse
-generation asks whether samples can be made more informative for uncertainty
-estimation \cite{aichberger_semantically_diverse_generation_2025}. These methods
-belong in the background as alternatives and extensions; their algorithmic
-details belong in the method chapter only if they become baselines.
+Language Entropy, Semantic Energy, Semantic Volume, adaptive Bayesian semantic
+entropy, and semantically diverse generation all ask whether semantic
+uncertainty can be estimated more flexibly, more efficiently, or with better
+representations. Kernel, energy, and volume-based methods are the main
+high-compute comparators \cite{nikitin_kernel_language_entropy_2024,
+ma_semantic_energy_2025,li_semantic_volume_2025}. Adaptive and diversity-driven
+sampling methods are relevant to the cost of estimating uncertainty
+\cite{sun_adaptive_bayesian_semantic_entropy_2026,
+aichberger_semantically_diverse_generation_2025}. Their operational role in
+this thesis is limited to the Phase 2 boundary in Chapter 7 unless one becomes
+a validated baseline.
 
 Another line of work uses internal model states. Prior probing work suggests
 that hidden activations can contain information about truthfulness or
 hallucination risk \cite{burns_latent_knowledge_2023,azaria_internal_state_lying_2023,
-chen_inside_2024}. Semantic Entropy Probes use this idea to approximate semantic
-entropy from a single generation's hidden states, reducing the test-time cost of
-multi-sample semantic entropy \cite{kossen_semantic_entropy_probes_2024}.
-Neuron-level hallucination work is relevant to the broader discussion, but it
-shifts the problem from black-box uncertainty estimation toward white-box
-interpretability and intervention \cite{gao_h_neurons_2025}.
+chen_inside_2024}. This line motivates Semantic Entropy Probes, but the probe
+setup is not part of the background argument. It is handled as a Phase 2
+extension in Chapter 7 \cite{kossen_semantic_entropy_probes_2024}. Neuron-level
+hallucination work is relevant to the broader discussion, but it shifts the
+problem from black-box uncertainty estimation toward white-box interpretability
+and intervention \cite{gao_h_neurons_2025}.
 
 \section{Evaluation Setting}
 
