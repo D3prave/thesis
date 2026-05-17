@@ -12,10 +12,14 @@ dependencies = []
 [project.scripts]
 semantic-entropy-normalize-fixture = "semantic_entropy.fixtures:main"
 semantic-entropy-metrics-jsonl = "semantic_entropy.metrics:main"
+semantic-entropy-plot-curves = "semantic_entropy.plotting:main"
 semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+plot = [
+    "matplotlib>=3.8",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
