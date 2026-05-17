@@ -50,6 +50,51 @@ Phase 2: NHR@FAU HPC scaling
 4. Keep Slurm job IDs, commands, GPU type, runtime, memory, and output paths with every run.
 5. Keep large model caches, raw outputs, checkpoints, and downloaded datasets out of git.
 
+## Smoke Commands
+
+All commands below write to `/tmp` so they do not create tracked result files.
+The all-correct fixture exercises scoring, metrics export, table export, and
+plotting end to end. Its curves are expected to be flat and AUROC is expected
+to be `null`, because both records are correct.
+
+```sh
+rm -rf /tmp/se_smoke_metrics /tmp/se_smoke_tables /tmp/se_smoke_figures
+
+PYTHONPATH=src python3 -m semantic_entropy.cli \
+  tests/fixtures/synthetic_unscored.jsonl \
+  /tmp/se_smoke_scored.jsonl
+
+PYTHONPATH=src python3 -m semantic_entropy.metrics \
+  /tmp/se_smoke_scored.jsonl \
+  --output-dir /tmp/se_smoke_metrics \
+  --table-dir /tmp/se_smoke_tables \
+  --table-basename smoke_metric_summary
+
+uv run --extra plot python -m semantic_entropy.plotting \
+  /tmp/se_smoke_metrics/rejection_accuracy_curves.csv \
+  --output-dir /tmp/se_smoke_figures \
+  --basename smoke_rejection_accuracy
+```
+
+The mixed-correctness fixture is already scored. Use it when the goal is a
+visually meaningful metrics/plot sanity check with non-flat rejection-accuracy
+curves.
+
+```sh
+rm -rf /tmp/se_mixed_metrics /tmp/se_mixed_tables /tmp/se_mixed_figures
+
+PYTHONPATH=src python3 -m semantic_entropy.metrics \
+  tests/fixtures/synthetic_mixed_scored.jsonl \
+  --output-dir /tmp/se_mixed_metrics \
+  --table-dir /tmp/se_mixed_tables \
+  --table-basename mixed_metric_summary
+
+uv run --extra plot python -m semantic_entropy.plotting \
+  /tmp/se_mixed_metrics/rejection_accuracy_curves.csv \
+  --output-dir /tmp/se_mixed_figures \
+  --basename mixed_rejection_accuracy
+```
+
 ## Research Corpus
 
 - Primary note: `docs/reading_notes/nature_semantic_entropy.md`.
