@@ -27,6 +27,7 @@ DEFAULT_SCORE_ORDER = (
     "surface_entropy",
     "discrete_semantic_entropy",
 )
+MetricTableRow = dict[str, float | int | str | None]
 
 
 def raw_accuracy(correctness_labels: Sequence[bool]) -> float:
@@ -167,6 +168,44 @@ def rejection_curve_rows(
     return rows
 
 
+def metric_summary_rows(summary: Mapping[str, Any]) -> list[MetricTableRow]:
+    """Return tabular rows comparing score-field metrics."""
+
+    score_metrics = summary["score_metrics"]
+    return [
+        {
+            "score_field": score_field,
+            "num_records": summary["num_records"],
+            "raw_accuracy": summary["raw_accuracy"],
+            "positive_class": summary["positive_class"],
+            "auroc": metrics["auroc"],
+            "aurac": metrics["aurac"],
+        }
+        for score_field, metrics in score_metrics.items()
+    ]
+
+
+def write_metric_summary_table(
+    summary: Mapping[str, Any],
+    output_dir: Path = Path("results/tables"),
+    basename: str = "metric_summary",
+) -> dict[str, str]:
+    """Write AUROC/AURAC score comparisons as small JSON and CSV tables."""
+
+    rows = metric_summary_rows(summary)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    artifacts = {
+        "summary_table_json": str(output_dir / f"{basename}.json"),
+        "summary_table_csv": str(output_dir / f"{basename}.csv"),
+    }
+    Path(artifacts["summary_table_json"]).write_text(
+        json.dumps({"score_metrics": rows}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _write_summary_table_csv(Path(artifacts["summary_table_csv"]), rows)
+    return artifacts
+
+
 def write_metric_artifacts(
     records: Sequence[Mapping[str, Any]],
     output_dir: Path,
@@ -219,18 +258,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="Optional results directory for summary JSON and curve CSV/JSON artifacts.",
     )
+    parser.add_argument(
+        "--table-dir",
+        type=Path,
+        help="Optional results/tables directory for AUROC/AURAC summary table artifacts.",
+    )
+    parser.add_argument(
+        "--table-basename",
+        default="metric_summary",
+        help="Output filename stem for summary table JSON and CSV artifacts.",
+    )
     args = parser.parse_args(argv)
 
     try:
         records = _load_records(args.input_jsonl)
         summary = summarize_records(records, args.score_fields)
+        artifacts: dict[str, str] = {}
         if args.output_dir is not None:
-            summary["artifacts"] = write_metric_artifacts(
-                records,
-                args.output_dir,
-                args.score_fields,
-                summary=summary,
+            artifacts.update(
+                write_metric_artifacts(
+                    records,
+                    args.output_dir,
+                    args.score_fields,
+                    summary=summary,
+                )
             )
+        if args.table_dir is not None:
+            artifacts.update(
+                write_metric_summary_table(
+                    summary,
+                    args.table_dir,
+                    basename=args.table_basename,
+                )
+            )
+        if artifacts:
+            summary["artifacts"] = artifacts
     except (OSError, SchemaError, ValueError) as error:
         parser.exit(status=1, message=f"error: {error}\n")
 
@@ -313,6 +375,30 @@ def _write_curve_csv(
         writer = csv.DictWriter(output_file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _write_summary_table_csv(
+    output_path: Path,
+    rows: Sequence[Mapping[str, float | int | str | None]],
+) -> None:
+    fieldnames = [
+        "score_field",
+        "num_records",
+        "raw_accuracy",
+        "positive_class",
+        "auroc",
+        "aurac",
+    ]
+    with output_path.open("w", encoding="utf-8", newline="") as output_file:
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    field: "" if row[field] is None else row[field]
+                    for field in fieldnames
+                }
+            )
 
 
 def _validate_labels_and_scores(
