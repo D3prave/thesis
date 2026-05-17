@@ -53,3 +53,5 @@ outputs/
 checkpoints/
 models/
 
+!data/raw/triviaqa_stub.jsonl
+!data/raw/svamp_stub.jsonl
