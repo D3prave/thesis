@@ -1,11 +1,12 @@
 \chapter{Semantic Entropy}
 
-This chapter defines the method that the thesis will implement first: discrete
-semantic entropy over sampled answers. The aim is to preserve the central idea
-of semantic entropy while keeping the first reproduction small enough to verify:
-uncertainty should be measured over meanings, not over surface strings
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This
-chapter stays at the method level. Chapter 4 turns the method into an
+This chapter defines the method that the thesis implements first: discrete
+semantic entropy over sampled answers. The aim is to preserve the central
+idea of semantic entropy --- that uncertainty should be measured over
+meanings rather than over surface strings --- while keeping the first
+reproduction small enough to verify
+\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. The
+discussion stays at the method level. Chapter 4 turns the method into an
 experiment plan, and Chapter 7 keeps probability-weighted variants, kernel
 methods, and probe-based approximations outside the main baseline until the
 discrete pipeline is stable.
@@ -17,50 +18,52 @@ fixed decoding configuration. The resulting answers are
 \[
   Y(x) = \{y_1, y_2, \ldots, y_M\}.
 \]
-The value of \(M\) controls the trade-off between statistical resolution and
-compute cost. Larger \(M\) can reveal more semantic alternatives, but it also
-requires more generation and more semantic comparisons. Chapter 4 specifies the
-pilot values used for debugging and evaluation.
+The choice of \(M\) controls the trade-off between statistical resolution
+and compute cost: larger values can reveal more semantic alternatives, but
+they also require more generation and more pairwise semantic comparisons.
+Chapter 4 fixes the pilot values used for debugging and for evaluation.
 
-The method separates generation from evaluation. The generation step produces
-candidate answers; the uncertainty step groups those answers by meaning and
-assigns an entropy score; the correctness step labels whether the evaluated
-answer record is correct for the benchmark. This separation matters because
-semantic entropy estimates uncertainty over semantic alternatives, not factual
-truth directly \cite{semantic_entropy_nature_2024}.
+The method separates generation from evaluation. The generation step
+produces candidate answers; the uncertainty step groups those answers by
+meaning and assigns an entropy score; the correctness step labels whether
+the evaluated answer record is correct for the benchmark. This separation
+matters because semantic entropy estimates uncertainty over semantic
+alternatives, not factual truth directly
+\cite{semantic_entropy_nature_2024}.
 
 \section{Semantic Clustering by Entailment}
 
-The core operation is a semantic equivalence test between two answers. Exact
-string matching is too strict, because two paraphrases can express the same
-answer. Token-level similarity is also unreliable, because small wording changes
-can alter the fact being asserted. Following the semantic entropy framing, two
-answers should be assigned to the same cluster when they are equivalent in the
-context of the prompt \cite{kuhn_semantic_uncertainty_2023,
+The core operation is a semantic equivalence test between two answers.
+Exact string matching is too strict, because two paraphrases can express
+the same answer. Token-level similarity is also unreliable, because small
+wording changes can alter the fact being asserted. Following the semantic
+entropy framing, two answers belong to the same cluster when they are
+equivalent in the context of the prompt \cite{kuhn_semantic_uncertainty_2023,
 semantic_entropy_nature_2024}.
 
-The baseline will approximate equivalence with bidirectional entailment. For
-answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails \(y_j\) and
-whether \(y_j\) entails \(y_i\), conditioned on the prompt \(x\). If both
-directions hold, the answers are treated as the same semantic answer. Natural
-Language Inference is a practical backend for this decision because it provides
-the entailment, contradiction, and neutral labels needed by the clustering rule
-\cite{williams_multinli_2018}. A DeBERTa NLI model is the preferred first local
-backend because it is strong enough for a pilot while avoiding dependence on a
-proprietary judge \cite{he_deberta_2021}.
+The baseline approximates equivalence with bidirectional entailment. For
+answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails
+\(y_j\) and whether \(y_j\) entails \(y_i\), conditioned on the prompt
+\(x\). If both directions hold, the answers are treated as the same
+semantic answer. Natural Language Inference is a practical backend for this
+decision because it produces the entailment, contradiction, and neutral
+labels needed by the clustering rule \cite{williams_multinli_2018}. A
+DeBERTa NLI model is the preferred first local backend, because it is
+strong enough for a pilot while avoiding dependence on a proprietary judge
+\cite{he_deberta_2021}.
 
-This rule is an approximation rather than a definition of truth. It may split
-answers that differ only in harmless detail, and it may merge answers that hide
-important factual differences. These errors should be recorded as part of the
-method's limitations, especially for numeric answers, partial answers, and
-answers whose meaning depends on omitted context.
+This rule is an approximation rather than a definition of truth. It may
+split answers that differ only in harmless detail, and it may merge answers
+that hide important factual differences. These errors are recorded as part
+of the method's limitations, especially for numeric answers, partial
+answers, and answers whose meaning depends on omitted context.
 
 \section{Discrete Semantic Entropy}
 
 After clustering, let \(C(x)=\{c_1,\ldots,c_K\}\) be the set of semantic
-clusters observed among the \(M\) sampled answers, where \(1 \le K \le M\). Let
-\(n_k\) be the number of sampled answers assigned to cluster \(c_k\). The
-empirical probability of cluster \(c_k\) is
+clusters observed among the \(M\) sampled answers, where \(1 \le K \le M\),
+and let \(n_k\) denote the number of sampled answers assigned to cluster
+\(c_k\). The empirical probability of cluster \(c_k\) is
 \[
   \hat{p}_k = \frac{n_k}{M}.
 \]
@@ -69,20 +72,22 @@ The discrete semantic entropy score is then
   \widehat{H}_{\mathrm{sem}}(x)
   = - \sum_{k=1}^{K} \hat{p}_k \log \hat{p}_k .
 \]
-A low score means the samples mostly agree on one semantic answer. A high score
-means the samples are spread across several meanings, which is the situation the
-method treats as evidence of semantic uncertainty. Only observed clusters are
-included in the sum, and the choice of logarithm base changes the scale but not
-the ordering. The thesis reports this cluster-frequency entropy first. More
-exact semantic entropy variants that use model probabilities remain out of
-scope until the discrete version and its failure cases are understood
+A low score indicates that the samples mostly agree on one semantic
+answer. A high score indicates that the samples spread across several
+meanings, which the method treats as evidence of semantic uncertainty.
+Only observed clusters enter the sum, and the choice of logarithm base
+affects only the scale, not the ordering. The thesis reports this
+cluster-frequency entropy first; more exact semantic-entropy variants that
+use model probabilities remain out of scope until the discrete version and
+its failure cases are understood
 \cite{semantic_entropy_nature_2024,kossen_semantic_uncertainty_code_2024}.
 
-The main baseline is naive entropy or diversity over answer strings. That
-baseline tests whether semantic clustering adds value beyond observing that
-sampled outputs differ lexically. SelfCheckGPT-style consistency and P(True)
-are useful later comparisons, but they should not delay the first discrete
-semantic entropy implementation \cite{manakul_selfcheckgpt_2023,
+The principal baseline is naive entropy, or diversity, over answer
+strings. This baseline isolates the question of whether semantic clustering
+adds value beyond observing that sampled outputs differ lexically.
+SelfCheckGPT-style consistency and P(True) are useful later comparisons,
+but they should not delay the first discrete semantic entropy
+implementation \cite{manakul_selfcheckgpt_2023,
 kadavath_language_models_know_2022}.
 
 \section{Method Contract}
@@ -95,9 +100,10 @@ The method contract is intentionally minimal:
   \item normalize only obvious formatting differences, such as surrounding
     whitespace and simple answer prefixes;
   \item cluster answers using bidirectional entailment;
-  \item compute naive answer-diversity entropy and discrete semantic entropy;
-  \item attach a correctness label and evaluate whether uncertainty predicts
-    incorrect answers.
+  \item compute naive answer-diversity entropy and discrete semantic
+    entropy;
+  \item attach a correctness label and evaluate whether uncertainty
+    predicts incorrect answers.
 \end{enumerate}
 
 Chapter 4 defines the concrete JSONL schema, datasets, model tiers, and
@@ -105,23 +111,26 @@ validation checks that instantiate this contract.
 
 \section{Evaluation Use}
 
-The entropy score will be used as a ranking signal for selective prediction. If
-semantic entropy is useful, examples with higher entropy should be more likely
-to be incorrect or unsafe to answer directly. Chapter 4 specifies the evaluation
-metrics. At the method level, the important point is that uncertainty is useful
-only if it helps decide when a model should answer, abstain, or route the prompt
-to a more expensive verification process
-\cite{semantic_entropy_nature_2024,kalai_why_language_models_hallucinate_2025}.
+The entropy score is used as a ranking signal for selective prediction. If
+semantic entropy is informative, examples with higher entropy should be
+more likely to be incorrect or unsafe to answer directly. The concrete
+evaluation metrics are specified in Chapter 4. At the method level, the
+relevant point is that uncertainty is useful only when it helps decide
+whether a model should answer, abstain, or route the prompt to a more
+expensive verification process \cite{semantic_entropy_nature_2024,
+kalai_why_language_models_hallucinate_2025}.
 
 \section{Scope of Later Extensions}
 
-Several extensions are relevant but outside the first implementation. Kernel
-Language Entropy, Semantic Energy, Semantic Volume, adaptive Bayesian semantic
-entropy, and Semantic Entropy Probes all change either the entropy estimator,
-the representation of semantic similarity, the sampling budget, or the required
-model access \cite{nikitin_kernel_language_entropy_2024,ma_semantic_energy_2025,
+Several extensions are relevant but lie outside the first implementation.
+Kernel Language Entropy, Semantic Energy, Semantic Volume, adaptive
+Bayesian semantic entropy, and Semantic Entropy Probes each change either
+the entropy estimator, the representation of semantic similarity, the
+sampling budget, or the required model access
+\cite{nikitin_kernel_language_entropy_2024,ma_semantic_energy_2025,
 li_semantic_volume_2025,sun_adaptive_bayesian_semantic_entropy_2026,
 kossen_semantic_entropy_probes_2024}. Chapter 7 treats these as Phase 2
-extensions. The first research contribution should remain conservative:
-implement the discrete version cleanly, document where entailment clustering
-succeeds or fails, and only then decide whether an extension is worth running.
+extensions. The first research contribution remains deliberately
+conservative: implement the discrete version cleanly, document where
+entailment clustering succeeds and where it fails, and only then decide
+whether a given extension is worth running.
