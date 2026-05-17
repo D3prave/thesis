@@ -9,6 +9,9 @@ description = "Minimal research scaffold for semantic entropy thesis experiments
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
+
 [project.optional-dependencies]
 test = ["pytest>=8"]
 
