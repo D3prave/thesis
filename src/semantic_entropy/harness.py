@@ -74,7 +74,7 @@ from semantic_entropy.datasets import (
     load_svamp_records,
     load_triviaqa_records,
 )
-from semantic_entropy.normalization import normalize_answers
+from semantic_entropy.eval_normalize import normalize_answers_for_dataset
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import score_record
 
@@ -267,7 +267,8 @@ def sample_record(record: dict[str, Any], model_fn: ModelFn) -> dict[str, Any]:
             f"model_fn returned {len(sampled)} answers; expected {num_samples}"
         )
 
-    normalized = normalize_answers(sampled)
+    dataset: str = record.get("dataset", "")
+    normalized = normalize_answers_for_dataset(sampled, dataset)
     cluster_ids, representatives = exact_match_cluster(normalized)
 
     return {
@@ -303,7 +304,8 @@ def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
         A shallow copy of *record* with ``correctness_label`` set to a
         ``bool``.
     """
-    normalized_refs = set(normalize_answers(record["reference_answers"]))
+    dataset: str = record.get("dataset", "")
+    normalized_refs = set(normalize_answers_for_dataset(record["reference_answers"], dataset))
     correct = any(ans in normalized_refs for ans in record["normalized_answers"])
     return {**record, "correctness_label": correct}
 

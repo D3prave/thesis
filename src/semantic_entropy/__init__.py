@@ -1,7 +1,8 @@
 """Public interface for the semantic-entropy thesis pilot.
 
 The package implements the Phase 1 discrete semantic-entropy baseline of the
-thesis: synthetic answer normalization, structural validation of the shared
+thesis: synthetic answer normalization, dataset-faithful evaluation
+normalization for TriviaQA and SVAMP, structural validation of the shared
 JSONL record schema, two uncertainty estimators -- surface-form entropy and
 discrete semantic entropy -- a naive raw sampled-answer entropy, a
 dataset-ingestion layer for TriviaQA and SVAMP stubs, exact-match clustering
@@ -25,6 +26,15 @@ from semantic_entropy.datasets import (
     load_svamp_records,
     load_triviaqa_records,
 )
+from semantic_entropy.eval_normalize import (
+    KNOWN_DATASETS,
+    SVAMP_DATASET,
+    TRIVIAQA_DATASET,
+    normalize_answer_for_dataset,
+    normalize_answers_for_dataset,
+    normalize_svamp_answer,
+    normalize_triviaqa_answer,
+)
 from semantic_entropy.harness import (
     ModelFn,
     RunConfig,
@@ -45,11 +55,14 @@ from semantic_entropy.scoring import (
 
 __all__ = [
     "DatasetError",
+    "KNOWN_DATASETS",
     "ModelFn",
     "PromptItem",
     "RunConfig",
     "SchemaError",
+    "SVAMP_DATASET",
     "SVAMP_STUB_PATH",
+    "TRIVIAQA_DATASET",
     "TRIVIAQA_STUB_PATH",
     "check_cluster_consistency",
     "check_jsonl_cluster_consistency",
@@ -62,7 +75,11 @@ __all__ = [
     "make_presampling_record",
     "naive_sample_entropy",
     "normalize_answer",
+    "normalize_answer_for_dataset",
     "normalize_answers",
+    "normalize_answers_for_dataset",
+    "normalize_svamp_answer",
+    "normalize_triviaqa_answer",
     "run_pipeline",
     "sample_record",
     "score_record",
