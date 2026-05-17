@@ -287,7 +287,7 @@ def make_nli_fn(
     def _nli_fn(premise: str, hypothesis: str) -> str:
         result = _pipe(f"{premise} [SEP] {hypothesis}")[0]
         label = result["label"].lower()
-        # Normalise to the three canonical constants
+        # Normalize to the three canonical constants
         if "entail" in label:
             return NLI_ENTAILMENT
         if "contradict" in label:
