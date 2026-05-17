@@ -16,16 +16,16 @@ to the ``--model-module`` / ``--entailment-module`` flags of
     # Phase 1 HPC: 7B/8B on a single GPU
     semantic-entropy-run-pipeline \\
         --model-module semantic_entropy.adapters:make_phase1_model \\
-        --model mistralai/Mistral-7B-Instruct-v0.2 \\
+        --model mistralai/Mistral-7B-Instruct-v0.3 \\
         --dataset triviaqa \\
-        --cluster tinygpu \\
+        --cluster alex \\
         results/phase1/tqa_scored.jsonl
 
     # Phase 2 HPC: add NLI clustering
     semantic-entropy-run-pipeline \\
         --model-module semantic_entropy.adapters:make_phase1_model \\
         --entailment-module semantic_entropy.adapters:make_nli \\
-        --model mistralai/Mistral-7B-Instruct-v0.2 \\
+        --model mistralai/Mistral-7B-Instruct-v0.3 \\
         --dataset triviaqa \\
         --cluster alex \\
         results/phase2/tqa_nli_scored.jsonl
@@ -108,7 +108,7 @@ def make_phase1_model() -> ModelFn:
     """Create a ModelFn for Phase 1 HPC jobs (single GPU, 7B/8B models).
 
     Reads ``SE_MODEL_NAME`` for the model ID.  Falls back to
-    ``mistralai/Mistral-7B-Instruct-v0.2``.
+    ``mistralai/Mistral-7B-Instruct-v0.3``.
 
     Returns:
         A :data:`ModelFn` backed by a HuggingFace text-generation pipeline
@@ -116,7 +116,7 @@ def make_phase1_model() -> ModelFn:
         supported hardware).
     """
     model_name = os.environ.get(
-        "SE_MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.2"
+        "SE_MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3"
     )
     return make_hf_model(
         model_name,

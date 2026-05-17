@@ -25,7 +25,7 @@ the thesis and provides two concrete implementations:
 
        from semantic_entropy.models import make_hf_model
        model_fn = make_hf_model(
-           "mistralai/Mistral-7B-Instruct-v0.2",
+           "mistralai/Mistral-7B-Instruct-v0.3",
            temperature=0.7, top_p=0.95, max_new_tokens=64,
        )
        run_pipeline(items, config, model_fn, output_path)
@@ -114,7 +114,7 @@ def make_hf_model(
 
     Args:
         model_name: HuggingFace Hub model ID, e.g.
-            ``"mistralai/Mistral-7B-Instruct-v0.2"``.
+            ``"mistralai/Mistral-7B-Instruct-v0.3"``.
         temperature: Sampling temperature.
         top_p: Nucleus-sampling probability threshold.
         max_new_tokens: Maximum number of tokens to generate per answer.

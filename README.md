@@ -2,9 +2,9 @@
 
 This repository contains thesis source, planning notes, and the first scaffold for experiments on hallucination detection with semantic entropy. The initial goal is a buildable LaTeX thesis project plus a clean place for future research code.
 
-Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware or TinyGPU. Phase 2 scales the same design on NHR@FAU Alex and Helma for larger models and stronger semantic judges. High-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume are optional Phase 2 work after the discrete baseline is stable.
+Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware and NHR@FAU Alex. Phase 2 scales the same design on Alex and Helma for larger models and stronger semantic judges. High-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume are optional Phase 2 work after the discrete baseline is stable.
 
-Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 1--9 have first-pass drafts or placeholders, and no Python experiment pipeline has been implemented yet. Results, discussion, and conclusion claims remain conditional until recorded runs exist.
+Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 1--9 have first-pass drafts or placeholders, and the stdlib-only Phase 1 scaffold is implemented for stub datasets, synthetic sampling, exact-match clustering, entropy scoring, metrics, plotting artifacts, and Slurm smoke testing. The Alex/A40 smoke job passed on 2026-05-17; the next step is a real 7B/8B model run on the Alex A100 partition. Results, discussion, and conclusion claims remain conditional until recorded real-model runs exist.
 
 ## Repository Layout
 
@@ -33,10 +33,10 @@ Current local toolchain: Homebrew TeX Live 2026 provides `latexmk`, `pdflatex`, 
 
 ## Planned Experiment Workflow
 
-Phase 1: local and TinyGPU pilot
+Phase 1: local and Alex pilot
 
 1. Use TriviaQA and SVAMP as the first datasets.
-2. Run a small local model first, then a 7B/8B instruct or chat model.
+2. Run a small local model first, then a 7B/8B instruct or chat model on Alex/A100.
 3. Sample `M = 4` answers for smoke tests and `M = 10` for the first meaningful comparison.
 4. Compare surface-form uncertainty, naive answer diversity, and discrete semantic entropy.
 5. Cluster sampled answers with a local NLI backend before using larger judges.
