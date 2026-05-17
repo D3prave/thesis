@@ -120,8 +120,8 @@ def make_hf_model(
         max_new_tokens: Maximum number of tokens to generate per answer.
         device_map: Passed directly to the HF pipeline (``"auto"`` works for
             single-GPU and multi-GPU setups).
-        torch_dtype: Passed directly to the HF pipeline (``"auto"`` selects
-            bfloat16 on supported hardware).
+        torch_dtype: Torch dtype string (``"auto"`` selects bfloat16 on
+            supported hardware, ``"float32"`` for CPU).
 
     Returns:
         A :data:`ModelFn` whose ``__call__`` signature is
@@ -146,7 +146,7 @@ def make_hf_model(
         "text-generation",
         model=model_name,
         device_map=device_map,
-        torch_dtype=_dtype,
+        dtype=_dtype,
     )
 
     def _model_fn(prompt: str, n: int) -> list[str]:
@@ -157,8 +157,9 @@ def make_hf_model(
             temperature=temperature,
             top_p=top_p,
             max_new_tokens=max_new_tokens,
+            return_full_text=False,
         )
-        return [out["generated_text"][len(prompt):].strip() for out in outputs]
+        return [out["generated_text"].strip() for out in outputs]
 
     return _model_fn
 
