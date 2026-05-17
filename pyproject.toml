@@ -11,6 +11,7 @@ dependencies = []
 
 [project.scripts]
 semantic-entropy-normalize-fixture = "semantic_entropy.fixtures:main"
+semantic-entropy-metrics-jsonl = "semantic_entropy.metrics:main"
 semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
 
 [project.optional-dependencies]
