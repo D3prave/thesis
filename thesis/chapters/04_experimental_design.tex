@@ -5,7 +5,7 @@ entropy provides a better hallucination and abstention signal than surface-form
 uncertainty. The design is split into two phases. Phase 1 keeps the experiment
 small enough to debug locally or on TinyGPU resources. Phase 2 scales the same
 measurement plan to NHR@FAU resources, with Alex used for large inference and
-clustering runs and Helma reserved for 70B+ models and final high-compute
+clustering runs and Helma reserved for 70B+ models and optional high-compute
 extensions. Chapter 3 defines the semantic entropy method itself; this chapter
 fixes the experimental variables, comparisons, and records; Chapter 5 covers
 execution, Slurm discipline, storage, and reproducibility logging.
@@ -193,5 +193,5 @@ answer, abstain, or route the prompt to a more expensive verification procedure
 
 The expected final comparison is therefore staged. Phase 1 should establish a
 working baseline result on TriviaQA and SVAMP. Phase 2 should test whether the
-same ranking behavior persists with larger models, stronger semantic judges, and
-advanced semantic uncertainty estimators.
+same ranking behavior persists with larger models and stronger semantic judges,
+with optional advanced semantic uncertainty estimators added only if completed.
