@@ -55,10 +55,13 @@ Phase 2: NHR@FAU HPC scaling
 - Primary note: `docs/reading_notes/nature_semantic_entropy.md`.
 - Expanded literature map: `docs/reading_notes/literature_review.md`.
 - Chapter 2 background notes: `docs/reading_notes/chapter_02_background_notes.md`.
+- Writing integrity guide: `docs/writing_integrity.md`.
 - Local PDF index: `external/papers/README.md`.
 - Bibliography: `thesis/main.bib`.
 
 The current corpus includes the Nature semantic entropy paper, the ICLR semantic uncertainty precursor, Semantic Entropy Probes, Kernel Language Entropy, SelfCheckGPT, P(True), hallucination/UQ surveys, dataset citations, model citations, and newer related work on semantic energy, semantic volume, high-certainty hallucinations, and neuron/probe-based detection.
+
+Thesis prose should follow the writing integrity guide before final plagiarism and AI-detection review. Detector output should be treated as a review queue, not as a writing objective.
 
 ## Data and Artifacts
 
