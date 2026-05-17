@@ -2,9 +2,9 @@
 
 This repository contains thesis source, planning notes, and the first scaffold for experiments on hallucination detection with semantic entropy. The initial goal is a buildable LaTeX thesis project plus a clean place for future research code.
 
-Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware or TinyGPU. Phase 2 scales the same design on NHR@FAU Alex and Helma for 70B+ models and high-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume.
+Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware or TinyGPU. Phase 2 scales the same design on NHR@FAU Alex and Helma for larger models and stronger semantic judges. High-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume are optional Phase 2 work after the discrete baseline is stable.
 
-Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 1--9 have first-pass drafts or placeholders, and no Python experiment pipeline has been implemented yet.
+Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 1--9 have first-pass drafts or placeholders, and no Python experiment pipeline has been implemented yet. Results, discussion, and conclusion claims remain conditional until recorded runs exist.
 
 ## Repository Layout
 
@@ -45,7 +45,7 @@ Phase 1: local and TinyGPU pilot
 Phase 2: NHR@FAU HPC scaling
 
 1. Use Alex for scaled inference and robust NLI clustering on A100-class GPUs.
-2. Use Helma for 70B+ models, high-cost semantic judges, Semantic Entropy Probes, and other high-compute extensions on H100/H200-class GPUs after the baseline is stable.
+2. Use Helma for 70B+ models and high-cost semantic judges; reserve Semantic Entropy Probes and other high-compute extensions for optional runs after the baseline is stable.
 3. Optionally expand from TriviaQA/SVAMP to SQuAD, BioASQ, and NQ-Open.
 4. Keep Slurm job IDs, commands, GPU type, runtime, memory, and output paths with every run.
 5. Keep large model caches, raw outputs, checkpoints, and downloaded datasets out of git.
