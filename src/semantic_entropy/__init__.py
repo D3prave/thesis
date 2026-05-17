@@ -3,11 +3,12 @@
 The package implements the Phase 1 discrete semantic-entropy baseline of the
 thesis: synthetic answer normalization, structural validation of the shared
 JSONL record schema, two uncertainty estimators -- surface-form entropy and
-discrete semantic entropy -- a naive raw sampled-answer entropy, and a
-dataset-ingestion layer for TriviaQA and SVAMP stubs. Probability-weighted
-semantic entropy and the Phase 2 extensions (SEP, KLE, Semantic Energy,
-Semantic Volume, adaptive Bayesian SE) are out of scope and are not
-re-exported here.
+discrete semantic entropy -- a naive raw sampled-answer entropy, a
+dataset-ingestion layer for TriviaQA and SVAMP stubs, and a pre-sampling
+harness that bridges ingested prompts to the model sampling step.
+Probability-weighted semantic entropy and the Phase 2 extensions (SEP, KLE,
+Semantic Energy, Semantic Volume, adaptive Bayesian SE) are out of scope and
+are not re-exported here.
 """
 
 from semantic_entropy.cluster_check import (
@@ -22,6 +23,11 @@ from semantic_entropy.datasets import (
     load_svamp_records,
     load_triviaqa_records,
 )
+from semantic_entropy.harness import (
+    RunConfig,
+    make_presampling_jsonl,
+    make_presampling_record,
+)
 from semantic_entropy.normalization import normalize_answer, normalize_answers
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import (
@@ -34,6 +40,7 @@ from semantic_entropy.scoring import (
 __all__ = [
     "DatasetError",
     "PromptItem",
+    "RunConfig",
     "SchemaError",
     "SVAMP_STUB_PATH",
     "TRIVIAQA_STUB_PATH",
@@ -42,6 +49,8 @@ __all__ = [
     "discrete_semantic_entropy",
     "load_svamp_records",
     "load_triviaqa_records",
+    "make_presampling_jsonl",
+    "make_presampling_record",
     "naive_sample_entropy",
     "normalize_answer",
     "normalize_answers",
