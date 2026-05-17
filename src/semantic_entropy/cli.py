@@ -5,11 +5,11 @@ This tool consumes a JSONL file whose records already contain
 synthetic clustering step has already been performed, or, in the smoke-test
 case, the labels are hand-authored -- computes the two Phase 1 uncertainty
 scores defined in :mod:`semantic_entropy.scoring`, validates the resulting
-record against the experimental JSONL schema, and writes one canonicalized
-JSON line per record. The CLI is intentionally strict: empty input lines,
-JSON-decode failures, and schema violations are reported with their source
-line number and abort the run, so that downstream metric code never sees a
-partially valid dataset.
+record against the experimental JSONL schema and cluster-consistency checks,
+and writes one canonicalized JSON line per record. The CLI is intentionally
+strict: empty input lines, JSON-decode failures, and validation violations
+are reported with their source line number and abort the run, so that
+downstream metric code never sees a partially valid dataset.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from semantic_entropy.cluster_check import check_cluster_consistency
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import score_record
 
@@ -30,11 +31,11 @@ def score_jsonl(input_path: Path, output_path: Path) -> int:
     For each non-empty input line the function decodes the JSON object,
     populates the ``scores`` field by calling
     :func:`semantic_entropy.scoring.score_record`, validates the augmented
-    record against the experimental schema, and emits a single line with
-    sorted keys for byte-stable, diff-friendly output. The number of
-    successfully written records is returned. Identical input and output
-    paths are rejected up front, since the read-then-overwrite loop would
-    otherwise truncate the source.
+    record against the experimental schema and cluster-consistency checks,
+    and emits a single line with sorted keys for byte-stable, diff-friendly
+    output. The number of successfully written records is returned.
+    Identical input and output paths are rejected up front, since the
+    read-then-overwrite loop would otherwise truncate the source.
     """
 
     if input_path.resolve() == output_path.resolve():
@@ -49,6 +50,7 @@ def score_jsonl(input_path: Path, output_path: Path) -> int:
             _add_scores(record, line_number)
             try:
                 validate_record(record)
+                check_cluster_consistency(record)
             except SchemaError as error:
                 raise SchemaError(f"line {line_number}: {error}") from error
             output_file.write(json.dumps(record, sort_keys=True) + "\n")
