@@ -12,6 +12,7 @@ coverage levels.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 from collections.abc import Mapping, Sequence
@@ -114,16 +115,7 @@ def summarize_records(
 ) -> dict[str, Any]:
     """Summarize raw accuracy, AUROC, and AURAC for scored JSONL records."""
 
-    if not records:
-        raise ValueError("at least one scored record is required")
-
-    for index, record in enumerate(records, start=1):
-        try:
-            validate_record(record)
-            check_cluster_consistency(record)
-        except SchemaError as error:
-            raise SchemaError(f"record {index}: {error}") from error
-
+    _validate_records(records)
     correctness_labels = [record["correctness_label"] for record in records]
     incorrect_labels = [not is_correct for is_correct in correctness_labels]
     fields = _resolve_score_fields(records, score_fields)
@@ -157,6 +149,55 @@ def summarize_jsonl(
     return summarize_records(records, score_fields)
 
 
+def rejection_curve_rows(
+    records: Sequence[Mapping[str, Any]], score_fields: Sequence[str] | None = None
+) -> list[dict[str, float | int | str]]:
+    """Return plot-ready rejection-accuracy rows for scored records."""
+
+    _validate_records(records)
+    correctness_labels = [record["correctness_label"] for record in records]
+    fields = _resolve_score_fields(records, score_fields)
+    rows: list[dict[str, float | int | str]] = []
+
+    for field in fields:
+        values = [_score_value(record, field) for record in records]
+        for point in rejection_accuracy_curve(correctness_labels, values):
+            rows.append({"score_field": field, **point})
+
+    return rows
+
+
+def write_metric_artifacts(
+    records: Sequence[Mapping[str, Any]],
+    output_dir: Path,
+    score_fields: Sequence[str] | None = None,
+    summary: Mapping[str, Any] | None = None,
+) -> dict[str, str]:
+    """Write summary and rejection-accuracy curves as small JSON/CSV files."""
+
+    summary_payload = dict(summary or summarize_records(records, score_fields))
+    rows = rejection_curve_rows(records, score_fields)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    artifacts = {
+        "summary_json": str(output_dir / "metrics_summary.json"),
+        "curves_json": str(output_dir / "rejection_accuracy_curves.json"),
+        "curves_csv": str(output_dir / "rejection_accuracy_curves.csv"),
+    }
+
+    summary_with_artifacts = {**summary_payload, "artifacts": artifacts}
+    Path(artifacts["summary_json"]).write_text(
+        json.dumps(summary_with_artifacts, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    Path(artifacts["curves_json"]).write_text(
+        json.dumps({"curves": rows}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    _write_curve_csv(Path(artifacts["curves_csv"]), rows)
+    return artifacts
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the scored-JSONL metrics CLI and return a process exit code."""
 
@@ -173,15 +214,40 @@ def main(argv: Sequence[str] | None = None) -> int:
         dest="score_fields",
         help="Score field to evaluate. May be supplied more than once.",
     )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Optional results directory for summary JSON and curve CSV/JSON artifacts.",
+    )
     args = parser.parse_args(argv)
 
     try:
-        summary = summarize_jsonl(args.input_jsonl, args.score_fields)
+        records = _load_records(args.input_jsonl)
+        summary = summarize_records(records, args.score_fields)
+        if args.output_dir is not None:
+            summary["artifacts"] = write_metric_artifacts(
+                records,
+                args.output_dir,
+                args.score_fields,
+                summary=summary,
+            )
     except (OSError, SchemaError, ValueError) as error:
         parser.exit(status=1, message=f"error: {error}\n")
 
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
+
+
+def _validate_records(records: Sequence[Mapping[str, Any]]) -> None:
+    if not records:
+        raise ValueError("at least one scored record is required")
+
+    for index, record in enumerate(records, start=1):
+        try:
+            validate_record(record)
+            check_cluster_consistency(record)
+        except SchemaError as error:
+            raise SchemaError(f"record {index}: {error}") from error
 
 
 def _load_records(input_path: Path) -> list[dict[str, Any]]:
@@ -230,6 +296,23 @@ def _score_value(record: Mapping[str, Any], field: str) -> float:
     if not math.isfinite(value):
         raise ValueError(f"scores.{field} must be finite")
     return float(value)
+
+
+def _write_curve_csv(
+    output_path: Path, rows: Sequence[Mapping[str, float | int | str]]
+) -> None:
+    fieldnames = [
+        "score_field",
+        "rejected",
+        "retained",
+        "coverage",
+        "rejection_fraction",
+        "accuracy",
+    ]
+    with output_path.open("w", encoding="utf-8", newline="") as output_file:
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def _validate_labels_and_scores(
