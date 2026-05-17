@@ -1,4 +1,31 @@
-"""Validation for semantic entropy JSONL prompt records."""
+"""Structural validation of semantic-entropy JSONL prompt records.
+
+A prompt record is the unit of analysis used throughout Phase 1 and Phase 2:
+one record per prompt, written as a single line of UTF-8 JSON. The canonical
+schema is specified in ``docs/experiment_protocol.md`` and mirrored in
+Chapter 4 of the thesis. This module enforces *structural* conformance only:
+required fields are present, value types are correct, enumerated fields take
+admissible values, and the cardinalities of the per-sample arrays
+(``sampled_answers``, ``normalized_answers``, ``semantic_clusters``) agree
+with ``decoding.num_samples``.
+
+Two classes of check are deliberately out of scope:
+
+* *Numerical range constraints* on decoding hyperparameters
+  (``temperature``, ``top_p``). The protocol fixes default values, but
+  Phase 2 includes a decoding-temperature sensitivity sweep, so enforcing
+  ranges here would obstruct legitimate ablations.
+
+* *Semantic consistency* of the clustering output -- canonical, contiguous,
+  non-negative cluster identifiers and one-to-one correspondence between
+  cluster IDs and representatives. These properties are stronger than the
+  shape constraints checked here and are validated by the dedicated cluster
+  utility (Phase 1 follow-on work).
+
+Schema violations are reported via :class:`SchemaError` with a precise field
+path, so that the CLI scoring pipeline can attribute failures to a specific
+line of input.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +35,7 @@ from typing import Any
 
 
 class SchemaError(ValueError):
-    """Raised when a prompt record does not match the expected schema."""
+    """Raised when a prompt record violates the experimental JSONL schema."""
 
 
 REQUIRED_FIELDS = {
@@ -39,7 +66,26 @@ SCORE_FIELDS = {"surface_entropy", "discrete_semantic_entropy"}
 
 
 def validate_record(record: Mapping[str, Any]) -> None:
-    """Validate one output record against the shared experiment schema."""
+    """Validate a single prompt record against the experimental schema.
+
+    The check is structural and fails fast on the first violation found.
+    Required keys must be present; string-typed fields, enumerated fields
+    (``phase``, ``cluster``, ``model_tier``), and the ``reference_answers``,
+    ``sampled_answers``, ``normalized_answers``, and
+    ``cluster_representatives`` lists are type-checked; the ``decoding``
+    sub-object must specify a positive ``num_samples``, finite
+    ``temperature`` and ``top_p``, a positive ``max_new_tokens``, and an
+    integer ``seed``. The lengths of all per-sample arrays must equal
+    ``decoding.num_samples``, and the number of cluster representatives must
+    equal the number of *distinct* cluster identifiers observed. The two
+    score fields are required to be finite and non-negative, which is the
+    range guaranteed by the entropy estimators in
+    :mod:`semantic_entropy.scoring`.
+
+    Non-required ``scores`` keys are permitted: this allows Phase 2 extension
+    metrics (e.g. probability-weighted semantic entropy, Semantic Energy)
+    to coexist with the baseline fields without forcing a schema migration.
+    """
 
     if not isinstance(record, Mapping):
         raise SchemaError("record must be a mapping")
