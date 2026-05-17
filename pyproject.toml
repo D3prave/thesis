@@ -22,6 +22,14 @@ test = ["pytest>=8"]
 plot = [
     "matplotlib>=3.8",
 ]
+hf = [
+    "torch",
+    "transformers",
+    "accelerate",
+]
+vllm = [
+    "vllm",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
