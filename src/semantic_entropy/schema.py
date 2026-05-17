@@ -63,6 +63,7 @@ PHASES = {"phase1", "phase2"}
 CLUSTERS = {"local", "tinygpu", "alex", "helma"}
 MODEL_TIERS = {"small", "7b_8b", "70b_plus"}
 SCORE_FIELDS = {"surface_entropy", "discrete_semantic_entropy"}
+OPTIONAL_SCORE_FIELDS = {"naive_sample_entropy"}
 
 
 def validate_record(record: Mapping[str, Any]) -> None:
@@ -85,6 +86,7 @@ def validate_record(record: Mapping[str, Any]) -> None:
     Non-required ``scores`` keys are permitted: this allows Phase 2 extension
     metrics (e.g. probability-weighted semantic entropy, Semantic Energy)
     to coexist with the baseline fields without forcing a schema migration.
+    Known optional score fields are validated when present.
     """
 
     if not isinstance(record, Mapping):
@@ -140,7 +142,8 @@ def validate_record(record: Mapping[str, Any]) -> None:
     missing_scores = sorted(SCORE_FIELDS - set(scores))
     if missing_scores:
         raise SchemaError(f"scores is missing fields: {', '.join(missing_scores)}")
-    for field in SCORE_FIELDS:
+    score_fields_to_validate = SCORE_FIELDS | (OPTIONAL_SCORE_FIELDS & set(scores))
+    for field in score_fields_to_validate:
         score = _require_finite_number(scores, field, "scores")
         if score < 0:
             raise SchemaError(f"scores.{field} must be non-negative")

@@ -3,7 +3,7 @@
 This tool consumes a JSONL file whose records already contain
 ``normalized_answers`` and ``semantic_clusters`` -- i.e. the upstream
 synthetic clustering step has already been performed, or, in the smoke-test
-case, the labels are hand-authored -- computes the two Phase 1 uncertainty
+case, the labels are hand-authored -- computes the Phase 1 uncertainty
 scores defined in :mod:`semantic_entropy.scoring`, validates the resulting
 record against the experimental JSONL schema and cluster-consistency checks,
 and writes one canonicalized JSON line per record. The CLI is intentionally
@@ -100,6 +100,7 @@ def _load_record(line: str, line_number: int) -> dict[str, Any]:
 
 def _add_scores(record: dict[str, Any], line_number: int) -> None:
     try:
+        sampled_answers = record["sampled_answers"]
         normalized_answers = record["normalized_answers"]
         semantic_clusters = record["semantic_clusters"]
     except KeyError as error:
@@ -108,7 +109,9 @@ def _add_scores(record: dict[str, Any], line_number: int) -> None:
         ) from error
 
     try:
-        record["scores"] = score_record(normalized_answers, semantic_clusters)
+        record["scores"] = score_record(
+            sampled_answers, normalized_answers, semantic_clusters
+        )
     except (TypeError, ValueError) as error:
         raise SchemaError(f"line {line_number}: {error}") from error
 

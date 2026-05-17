@@ -1,12 +1,12 @@
 """Entropy estimators for the discrete semantic-entropy baseline.
 
-This module implements the two uncertainty signals required by the Phase 1
-experimental protocol (see ``docs/experiment_protocol.md``): a *surface-form*
-entropy over exact normalized answer strings, and a *discrete semantic
-entropy* over the cluster assignments produced by an entailment-based
-clustering step. Both quantities are computed in nats from a single sample of
-``M`` generations per prompt and are therefore directly comparable on a
-common scale.
+This module implements the uncertainty signals required by the Phase 1
+experimental protocol (see ``docs/experiment_protocol.md``): a naive
+sampled-answer entropy over exact raw generations, a *surface-form* entropy
+over exact normalized answer strings, and a *discrete semantic entropy* over
+the cluster assignments produced by an entailment-based clustering step. All
+quantities are computed in nats from a single sample of ``M`` generations per
+prompt and are therefore directly comparable on a common scale.
 
 The estimator used throughout is the maximum-likelihood (plug-in) estimator
 
@@ -30,6 +30,17 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Hashable, Sequence
+
+
+def naive_sample_entropy(sampled_answers: Sequence[str]) -> float:
+    """Plug-in Shannon entropy over exact raw sampled answers (in nats).
+
+    This is the lexical diversity baseline before normalization or semantic
+    clustering: every distinct sampled answer string is treated as a separate
+    category, including differences in casing, spacing, or wording.
+    """
+
+    return entropy_from_labels(sampled_answers)
 
 
 def surface_entropy(normalized_answers: Sequence[str]) -> float:
@@ -64,18 +75,22 @@ def discrete_semantic_entropy(cluster_ids: Sequence[int]) -> float:
 
 
 def score_record(
-    normalized_answers: Sequence[str], cluster_ids: Sequence[int]
+    sampled_answers: Sequence[str],
+    normalized_answers: Sequence[str],
+    cluster_ids: Sequence[int],
 ) -> dict[str, float]:
-    """Return both Phase 1 uncertainty scores for a single prompt record.
+    """Return Phase 1 uncertainty scores for a single prompt record.
 
-    The two scores are computed independently on the same sample of
-    generations: surface-form entropy from the normalized answer strings and
-    discrete semantic entropy from the cluster assignments. They populate
-    the ``scores`` sub-object of the JSONL schema in
+    The scores are computed independently on the same sample of generations:
+    naive entropy from the raw sampled answer strings, surface-form entropy
+    from the normalized answer strings, and discrete semantic entropy from
+    the cluster assignments. They populate the ``scores`` sub-object of the
+    JSONL schema in
     ``docs/experiment_protocol.md``.
     """
 
     return {
+        "naive_sample_entropy": naive_sample_entropy(sampled_answers),
         "surface_entropy": surface_entropy(normalized_answers),
         "discrete_semantic_entropy": discrete_semantic_entropy(cluster_ids),
     }
