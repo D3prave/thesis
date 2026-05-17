@@ -65,7 +65,11 @@ from pathlib import Path
 from typing import Any
 
 from semantic_entropy.cluster_check import check_cluster_consistency
-from semantic_entropy.clustering import exact_match_cluster
+from semantic_entropy.clustering import (
+    NliFn,
+    exact_match_entailment_fn,
+    nli_cluster,
+)
 from semantic_entropy.datasets import (
     DatasetError,
     PromptItem,
@@ -223,19 +227,24 @@ def make_presampling_jsonl(
 ModelFn = Callable[[str, int], list[str]]
 
 
-def sample_record(record: dict[str, Any], model_fn: ModelFn) -> dict[str, Any]:
+def sample_record(
+    record: dict[str, Any],
+    model_fn: ModelFn,
+    entailment_fn: NliFn | None = None,
+) -> dict[str, Any]:
     """Fill the sampling fields of a pre-sampling record.
 
     Calls *model_fn* with the record's prompt and requested sample count,
-    normalizes the returned answers, and assigns cluster IDs using the
-    current clustering backend (:func:`semantic_entropy.clustering.exact_match_cluster`).
+    normalizes the returned answers using the dataset-faithful normalizer
+    (:func:`semantic_entropy.eval_normalize.normalize_answers_for_dataset`),
+    and assigns cluster IDs via bidirectional-entailment clustering
+    (:func:`semantic_entropy.clustering.nli_cluster`).
     The input record is not modified; a new dict is returned.
 
     The fields populated are:
 
     * ``sampled_answers`` — raw strings returned by *model_fn*.
-    * ``normalized_answers`` — canonicalized forms via
-      :func:`semantic_entropy.normalization.normalize_answers`.
+    * ``normalized_answers`` — canonicalized forms via the dataset normalizer.
     * ``semantic_clusters`` — integer cluster IDs, one per sample.
     * ``cluster_representatives`` — one representative string per cluster.
 
@@ -249,6 +258,12 @@ def sample_record(record: dict[str, Any], model_fn: ModelFn) -> dict[str, Any]:
         model_fn: Callable ``(prompt, num_samples) -> list[str]``.  Must
             return a list whose length equals *num_samples*; a
             :class:`ValueError` is raised otherwise.
+        entailment_fn: NLI function used for semantic clustering; see
+            :data:`semantic_entropy.clustering.NliFn`. Defaults to
+            :func:`semantic_entropy.clustering.exact_match_entailment_fn`
+            (string equality), which reproduces exact-match clustering and
+            requires no ML model. Pass a real DeBERTa-v3 cross-encoder
+            wrapper here for Phase 1/2 runs.
 
     Returns:
         A shallow copy of *record* with the four sampling fields populated.
@@ -269,7 +284,8 @@ def sample_record(record: dict[str, Any], model_fn: ModelFn) -> dict[str, Any]:
 
     dataset: str = record.get("dataset", "")
     normalized = normalize_answers_for_dataset(sampled, dataset)
-    cluster_ids, representatives = exact_match_cluster(normalized)
+    ent_fn = entailment_fn if entailment_fn is not None else exact_match_entailment_fn
+    cluster_ids, representatives = nli_cluster(normalized, ent_fn)
 
     return {
         **record,
@@ -315,6 +331,8 @@ def run_pipeline(
     config: RunConfig,
     model_fn: ModelFn,
     output_path: Path,
+    *,
+    entailment_fn: NliFn | None = None,
 ) -> int:
     """Run the full Phase 1 pipeline and write schema-valid scored JSONL.
 
@@ -322,7 +340,7 @@ def run_pipeline(
     pipeline executes in order:
 
     1. :func:`make_presampling_record` — populate run metadata and prompt fields.
-    2. :func:`sample_record` — call *model_fn*, normalize, cluster.
+    2. :func:`sample_record` — call *model_fn*, normalize, cluster via *entailment_fn*.
     3. :func:`evaluate_correctness` — set ``correctness_label``.
     4. :func:`semantic_entropy.scoring.score_record` — compute entropy scores.
     5. :func:`semantic_entropy.schema.validate_record` and
@@ -335,6 +353,9 @@ def run_pipeline(
         config: Run-level metadata applied to every record.
         model_fn: Model sampling function; see :data:`ModelFn`.
         output_path: Destination JSONL file. Created or overwritten.
+        entailment_fn: NLI function for semantic clustering (keyword-only).
+            Defaults to :func:`~semantic_entropy.clustering.exact_match_entailment_fn`.
+            Pass a real NLI wrapper here for Phase 1/2 production runs.
 
     Returns:
         The number of records successfully written.
@@ -350,7 +371,7 @@ def run_pipeline(
     with output_path.open("w", encoding="utf-8") as fh:
         for item in items:
             record: dict[str, Any] = make_presampling_record(item, config)
-            record = sample_record(record, model_fn)
+            record = sample_record(record, model_fn, entailment_fn)
             record = evaluate_correctness(record)
             record["scores"] = score_record(
                 record["sampled_answers"],
