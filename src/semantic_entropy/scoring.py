@@ -2,7 +2,7 @@
 
 This module implements the two uncertainty signals required by the Phase 1
 experimental protocol (see ``docs/experiment_protocol.md``): a *surface-form*
-entropy over exact normalised answer strings, and a *discrete semantic
+entropy over exact normalized answer strings, and a *discrete semantic
 entropy* over the cluster assignments produced by an entailment-based
 clustering step. Both quantities are computed in nats from a single sample of
 ``M`` generations per prompt and are therefore directly comparable on a
@@ -33,13 +33,13 @@ from collections.abc import Hashable, Sequence
 
 
 def surface_entropy(normalized_answers: Sequence[str]) -> float:
-    """Plug-in Shannon entropy over normalised answer strings (in nats).
+    """Plug-in Shannon entropy over normalized answer strings (in nats).
 
     Implements the surface-form uncertainty baseline of the Phase 1 protocol:
-    each unique normalised answer string is treated as its own category, and
+    each unique normalized answer string is treated as its own category, and
     the entropy of the empirical categorical distribution is returned. The
     function makes no semantic equivalence judgement -- strings that are
-    paraphrases but not character-identical after normalisation are counted
+    paraphrases but not character-identical after normalization are counted
     as distinct categories. This is by design, since the contrast against
     :func:`discrete_semantic_entropy` is the central comparison of the
     thesis.
@@ -69,7 +69,7 @@ def score_record(
     """Return both Phase 1 uncertainty scores for a single prompt record.
 
     The two scores are computed independently on the same sample of
-    generations: surface-form entropy from the normalised answer strings and
+    generations: surface-form entropy from the normalized answer strings and
     discrete semantic entropy from the cluster assignments. They populate
     the ``scores`` sub-object of the JSONL schema in
     ``docs/experiment_protocol.md``.

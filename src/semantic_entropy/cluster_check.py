@@ -16,7 +16,7 @@ invariants of the clustering output for a synthetic record:
   indexed by cluster identifier: ``cluster_representatives[k]`` is the
   representative for cluster ``k``.
 * For every cluster ``k`` the representative
-  ``cluster_representatives[k]`` is found among the normalised answers
+  ``cluster_representatives[k]`` is found among the normalized answers
   whose cluster identifier is ``k`` -- in other words, each representative
   is drawn from the members of the cluster it represents.
 
@@ -27,8 +27,8 @@ no Slurm orchestration. Violations are reported via
 mirroring the convention used by the schema validator.
 
 A known limitation, recorded here rather than enforced: the same
-normalised answer string may in principle appear in two different
-clusters (e.g. if string normalisation is coarser than the underlying
+normalized answer string may in principle appear in two different
+clusters (e.g. if string normalization is coarser than the underlying
 clustering). The present check neither requires nor forbids that
 situation; it only verifies that each cluster's nominated representative
 is one of its own members.
@@ -96,7 +96,7 @@ def check_cluster_consistency(record: Mapping[str, Any]) -> None:
             f"entries but {num_clusters} clusters were observed"
         )
 
-    # Bucket the normalised members by cluster identifier so that the
+    # Bucket the normalized members by cluster identifier so that the
     # representative-in-cluster check is a single set lookup per cluster.
     members_by_cluster: dict[int, set[str]] = {k: set() for k in range(num_clusters)}
     for answer, cid in zip(normalized_answers, semantic_clusters):

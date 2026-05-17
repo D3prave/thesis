@@ -1,16 +1,16 @@
-"""Synthetic answer normalisation for Phase 1 smoke tests.
+"""Synthetic answer normalization for Phase 1 smoke tests.
 
-This module provides a deliberately minimal canonicalisation step intended
+This module provides a deliberately minimal canonicalization step intended
 for synthetic fixtures and end-to-end plumbing checks. It is *not* the
-dataset-faithful normaliser that TriviaQA, SVAMP, and the other Phase 1/2
+dataset-faithful normalizer that TriviaQA, SVAMP, and the other Phase 1/2
 datasets require: it performs only case folding, internal-whitespace
 collapsing, and a closed-vocabulary substitution of the English number words
 ``zero``--``ten`` to their digit form. Punctuation, articles, alias lookup,
 and the wider numeric vocabulary needed by real evaluation are intentionally
-out of scope and will be supplied by the dataset-specific normaliser
+out of scope and will be supplied by the dataset-specific normalizer
 introduced in Stage 3 of ``PLANS.md``.
 
-Keeping the synthetic normaliser in a separate module makes the boundary
+Keeping the synthetic normalizer in a separate module makes the boundary
 between smoke-test plumbing and real evaluation logic explicit and prevents
 inadvertent reuse of the simplified rules in production scoring.
 """
@@ -37,7 +37,7 @@ NUMERIC_WORDS = {
 
 
 def normalize_answer(answer: str) -> str:
-    """Apply the synthetic canonicalisation rules to a single answer string.
+    """Apply the synthetic canonicalization rules to a single answer string.
 
     The transformation is: strip leading and trailing whitespace, lower-case,
     collapse runs of internal whitespace to a single space, and -- if the

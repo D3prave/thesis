@@ -1,7 +1,7 @@
 """Public interface for the semantic-entropy thesis pilot.
 
 The package implements the Phase 1 discrete semantic-entropy baseline of the
-thesis: synthetic answer normalisation, structural validation of the shared
+thesis: synthetic answer normalization, structural validation of the shared
 JSONL record schema, and two uncertainty estimators -- surface-form entropy
 and discrete semantic entropy -- in a deliberately small, dependency-free
 form. Probability-weighted semantic entropy and the Phase 2 extensions

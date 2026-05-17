@@ -5,7 +5,7 @@ This tool consumes a JSONL file whose records already contain
 synthetic clustering step has already been performed, or, in the smoke-test
 case, the labels are hand-authored -- computes the two Phase 1 uncertainty
 scores defined in :mod:`semantic_entropy.scoring`, validates the resulting
-record against the experimental JSONL schema, and writes one canonicalised
+record against the experimental JSONL schema, and writes one canonicalized
 JSON line per record. The CLI is intentionally strict: empty input lines,
 JSON-decode failures, and schema violations are reported with their source
 line number and abort the run, so that downstream metric code never sees a
@@ -25,7 +25,7 @@ from semantic_entropy.scoring import score_record
 
 
 def score_jsonl(input_path: Path, output_path: Path) -> int:
-    """Score every record in ``input_path`` and write canonicalised JSONL.
+    """Score every record in ``input_path`` and write canonicalized JSONL.
 
     For each non-empty input line the function decodes the JSON object,
     populates the ``scores`` field by calling
@@ -63,7 +63,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Score synthetic semantic-entropy JSONL records that already "
-            "carry normalised answers and semantic cluster identifiers. "
+            "carry normalized answers and semantic cluster identifiers. "
             "This tool is a Phase 1 smoke utility; it does not perform "
             "model inference, dataset loading, or entailment clustering."
         )
