@@ -7,8 +7,8 @@ small enough to debug locally or on TinyGPU resources. Phase 2 scales the same
 measurement plan to NHR@FAU resources, with Alex used for large inference and
 clustering runs and Helma reserved for 70B+ models and final high-compute
 extensions. Chapter 3 defines the semantic entropy method itself; this chapter
-defines the measurement contract; Chapter 5 covers execution, Slurm discipline,
-storage, and reproducibility logging.
+fixes the experimental variables, comparisons, and records; Chapter 5 covers
+execution, Slurm discipline, storage, and reproducibility logging.
 
 \section{Research Question}
 
@@ -61,7 +61,7 @@ Phase 2 repeats the same protocol at larger scale. Alex should be used for
 larger batched inference, more complete dataset sweeps, and robust NLI
 clustering on A100-class GPUs. Helma should be reserved for the final
 high-compute runs: 70B+ generation models, large judge models for semantic
-equivalence, Semantic Entropy Probes, and high-cost entropy variants. The
+equivalence, and the optional Phase 2 extensions described in Chapter 7. The
 important constraint is that the Phase 2 run should not introduce a new research
 question; it should test whether the Phase 1 pattern survives stronger models,
 larger batches, and better semantic judges.
@@ -91,10 +91,10 @@ outputs differ lexically?
 The core method is discrete semantic entropy. Samples are clustered by
 bidirectional entailment, and entropy is computed over cluster frequencies
 \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This is the
-first method that should be implemented and evaluated. Full probability-weighted
-semantic entropy should be treated as a later baseline once the discrete version
-is working and the output records are stable. The released semantic uncertainty
-codebase is useful as a reference point for implementation decisions
+first method that should be evaluated. Full probability-weighted semantic
+entropy belongs to the later extension set once the discrete version is working
+and the output records are stable. The released semantic uncertainty codebase is
+useful as a methodological reference point
 \cite{kossen_semantic_uncertainty_code_2024}.
 
 Secondary Phase 1 baselines may include SelfCheckGPT-style sampling consistency
@@ -104,8 +104,9 @@ These baselines should not block the first reproduction.
 
 \section{Advanced Metrics and Extensions}
 
-Phase 2 includes higher-cost comparison methods and extensions. Kernel Language
-Entropy replaces hard semantic clusters with a kernel-based entropy objective
+Phase 2 may include higher-cost comparison methods and extensions after the
+main discrete baseline is stable. Kernel Language Entropy replaces hard
+semantic clusters with a kernel-based entropy objective
 \cite{nikitin_kernel_language_entropy_2024}. Semantic Energy and Semantic
 Volume provide alternative scores for semantic dispersion
 \cite{ma_semantic_energy_2025,li_semantic_volume_2025}. Adaptive Bayesian
@@ -114,22 +115,24 @@ semantic entropy is relevant if sample cost becomes the dominant bottleneck
 reserved for the final HPC extension because they require hidden-state access
 and probe training \cite{kossen_semantic_entropy_probes_2024}.
 
-These methods are not required for the Phase 1 claim. They are included to test
-whether the basic semantic entropy result remains competitive when compared
-against stronger semantic uncertainty estimators on Alex and Helma.
+These methods are not required for the Phase 1 claim or for the primary Phase 2
+scale-up. They are included as optional comparisons to test whether the basic
+semantic entropy result remains competitive against stronger semantic
+uncertainty estimators on Alex and Helma.
 
 \section{Output Schema}
 
-Each run should write JSONL with one record per prompt. The schema is intended
-to make generation, clustering, scoring, and evaluation auditable:
+Each run should write JSONL with one record per prompt. The shared fields below
+make generation, clustering, scoring, and evaluation auditable while leaving
+Phase 2 extensions free to add method-specific fields:
 
 \begin{verbatim}
 {
   "run_id": "string",
-  "phase": "phase1_local_or_tinygpu",
+  "phase": "phase1|phase2",
   "cluster": "local|tinygpu|alex|helma",
   "prompt_id": "string",
-  "dataset": "triviaqa",
+  "dataset": "triviaqa|svamp|...",
   "split": "validation",
   "prompt": "string",
   "reference_answers": ["string"],
@@ -144,14 +147,14 @@ to make generation, clustering, scoring, and evaluation auditable:
   },
   "sampled_answers": ["string"],
   "normalized_answers": ["string"],
-  "semantic_clusters": [0, 0, 1],
+  "semantic_clusters": ["integer_per_sample"],
   "cluster_representatives": ["string"],
   "scores": {
     "surface_entropy": 0.0,
     "discrete_semantic_entropy": 0.0
   },
   "entailment_backend": "string",
-  "correctness_label": true
+  "correctness_label": "boolean"
 }
 \end{verbatim}
 
@@ -165,7 +168,8 @@ Every Phase 1 run must pass basic structural checks before any HPC scaling:
 \begin{enumerate}
   \item every prompt has exactly \(M\) sampled answers;
   \item every sampled answer has a normalized form;
-  \item every answer receives a semantic cluster identifier;
+  \item every answer receives a semantic cluster identifier, and the cluster
+    list has one identifier per sampled answer;
   \item entropy scores are finite and non-negative;
   \item correctness labels are present for all evaluated prompts;
   \item decoding settings, model names, NLI backend, dataset split, and random
@@ -175,7 +179,7 @@ Every Phase 1 run must pass basic structural checks before any HPC scaling:
 
 Phase 2 must satisfy the same structural checks at larger scale. The additional
 HPC checks for Slurm jobs, cache locations, output paths, GPU metadata, and
-failure logging are implementation concerns covered in Chapter 5.
+failure logging are execution concerns covered in Chapter 5.
 
 \section{Evaluation Metrics}
 
