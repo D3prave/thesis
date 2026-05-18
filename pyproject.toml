@@ -14,8 +14,10 @@ semantic-entropy-normalize-fixture = "semantic_entropy.fixtures:main"
 semantic-entropy-metrics-jsonl = "semantic_entropy.metrics:main"
 semantic-entropy-make-presampling-jsonl = "semantic_entropy.harness:main"
 semantic-entropy-plot-curves = "semantic_entropy.plotting:main"
+semantic-entropy-plot-extensions = "semantic_entropy.plotting_extensions:main"
 semantic-entropy-run-pipeline = "semantic_entropy.pipeline_cli:main"
 semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
+semantic-entropy-aggregate-results = "semantic_entropy.result_aggregator:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
