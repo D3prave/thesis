@@ -239,7 +239,7 @@ def make_vllm_model(
         tensor_parallel_size: Number of GPUs over which to split the model
             via tensor parallelism. Defaults to ``1`` (single-GPU). For a
             70B model on Alex (4× A100-40GB) pass ``4``; on Helma
-            (2× H100-80GB) pass ``2``. Must equal the number of GPUs
+            (2× H100-94GB) pass ``2``. Must equal the number of GPUs
             allocated to the Slurm job.
         dtype: Torch dtype string passed to ``vllm.LLM``. Defaults to
             ``"auto"`` (vLLM selects bfloat16 on supported hardware).
