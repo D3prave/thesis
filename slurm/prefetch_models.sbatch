@@ -39,6 +39,10 @@ REPO_ROOT="${SLURM_SUBMIT_DIR}"
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
 
+# Load .env from repo root if present (never commit .env — it's in .gitignore)
+# shellcheck disable=SC1091
+[ -f "${REPO_ROOT}/.env" ] && source "${REPO_ROOT}/.env"
+
 # Always write to vault — same location as all compute scripts
 export HF_HOME="/home/vault/b192aa/b192aa36/huggingface"
 export HF_HUB_CACHE="${HF_HOME}/hub"

@@ -21,6 +21,11 @@
 set -euo pipefail
 
 # ---------- Config ----------
+# Load .env from repo root if present (never commit .env — it's in .gitignore)
+REPO_ROOT_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck disable=SC1091
+[ -f "${REPO_ROOT_EARLY}/.env" ] && source "${REPO_ROOT_EARLY}/.env"
+
 HF_HOME="${HF_HOME:-/home/vault/b192aa/b192aa36/huggingface}"
 HF_HUB_CACHE="${HF_HUB_CACHE:-${HF_HOME}/hub}"
 mkdir -p "${HF_HOME}" "${HF_HUB_CACHE}"
