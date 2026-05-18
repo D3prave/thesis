@@ -212,6 +212,9 @@ def make_vllm_model(
     top_p: float = 0.95,
     max_tokens: int = 64,
     gpu_memory_utilization: float = 0.90,
+    tensor_parallel_size: int = 1,
+    dtype: str = "auto",
+    max_model_len: int | None = None,
     system_prompt: str | None = (
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
@@ -233,6 +236,18 @@ def make_vllm_model(
         max_tokens: Maximum number of tokens to generate per answer.
         gpu_memory_utilization: Fraction of GPU memory to allocate for the KV
             cache (vLLM default is 0.90).
+        tensor_parallel_size: Number of GPUs over which to split the model
+            via tensor parallelism. Defaults to ``1`` (single-GPU). For a
+            70B model on Alex (4× A100-40GB) pass ``4``; on Helma
+            (2× H100-80GB) pass ``2``. Must equal the number of GPUs
+            allocated to the Slurm job.
+        dtype: Torch dtype string passed to ``vllm.LLM``. Defaults to
+            ``"auto"`` (vLLM selects bfloat16 on supported hardware).
+        max_model_len: Optional cap on the maximum context length.
+            ``None`` defers to the model config. Setting an explicit cap
+            (e.g. ``4096``) avoids vLLM raising on models whose declared
+            ``max_position_embeddings`` exceeds the available KV-cache
+            memory on the chosen GPUs.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
 
@@ -253,10 +268,16 @@ def make_vllm_model(
 
     from vllm import LLM, SamplingParams
 
-    _llm = LLM(
-        model=model_name,
-        gpu_memory_utilization=gpu_memory_utilization,
-    )
+    _llm_kwargs: dict[str, object] = {
+        "model": model_name,
+        "gpu_memory_utilization": gpu_memory_utilization,
+        "tensor_parallel_size": tensor_parallel_size,
+        "dtype": dtype,
+    }
+    if max_model_len is not None:
+        _llm_kwargs["max_model_len"] = max_model_len
+
+    _llm = LLM(**_llm_kwargs)
     _sampling_params = SamplingParams(
         n=1,  # set per-call below
         temperature=temperature,

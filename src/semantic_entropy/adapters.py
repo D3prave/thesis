@@ -42,18 +42,32 @@ scripts can override them without editing Python code:
 * ``SE_DEVICE_MAP`` — device map string (fallback: ``"auto"``).
 * ``SE_NLI_MODEL`` — NLI model ID (fallback: ``"cross-encoder/nli-deberta-v3-base"``).
 * ``SE_NLI_DEVICE`` — NLI device (fallback: ``"cpu"``).
+* ``SE_TENSOR_PARALLEL_SIZE`` — vLLM tensor-parallel degree for multi-GPU
+  jobs (fallback: ``1``). Must equal the number of GPUs in the Slurm
+  allocation.
+* ``SE_GPU_MEMORY_UTILIZATION`` — vLLM ``gpu_memory_utilization`` (fallback:
+  ``0.90``).
+* ``SE_MAX_MODEL_LEN`` — optional cap on vLLM ``max_model_len`` (fallback:
+  unset, defers to the model config).
+* ``SE_VLLM_DTYPE`` — vLLM dtype string (fallback: ``"auto"``).
 """
 
 from __future__ import annotations
 
 import os
 
-from semantic_entropy.models import ModelFn, make_hf_model, make_nli_fn
+from semantic_entropy.models import (
+    ModelFn,
+    make_hf_model,
+    make_nli_fn,
+    make_vllm_model,
+)
 
 # Re-export the type for documentation
 __all__ = [
     "make_local_test_model",
     "make_phase1_model",
+    "make_vllm_phase1_model",
     "make_nli",
 ]
 
@@ -125,6 +139,42 @@ def make_phase1_model() -> ModelFn:
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 1 HPC adapter (vLLM, single- or multi-GPU)
+# ---------------------------------------------------------------------------
+
+
+def make_vllm_phase1_model() -> ModelFn:
+    """Create a vLLM-backed ModelFn for Phase 1 HPC jobs.
+
+    Reads ``SE_MODEL_NAME`` for the model ID. Falls back to
+    ``mistralai/Mistral-7B-Instruct-v0.3``. Reads ``SE_TENSOR_PARALLEL_SIZE``
+    for the number of GPUs (default ``1``); set this to the GPU count of
+    your Slurm allocation when running larger models with tensor parallelism
+    (e.g. ``4`` for 70B on 4× A100, ``2`` for 70B on 2× H100-80GB).
+
+    Returns:
+        A :data:`ModelFn` backed by a ``vllm.LLM`` engine.
+    """
+    model_name = os.environ.get(
+        "SE_MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3"
+    )
+
+    max_model_len_raw = os.environ.get("SE_MAX_MODEL_LEN")
+    max_model_len = int(max_model_len_raw) if max_model_len_raw else None
+
+    return make_vllm_model(
+        model_name,
+        temperature=_env_float("SE_TEMPERATURE", 0.7),
+        top_p=_env_float("SE_TOP_P", 0.95),
+        max_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
+        gpu_memory_utilization=_env_float("SE_GPU_MEMORY_UTILIZATION", 0.90),
+        tensor_parallel_size=_env_int("SE_TENSOR_PARALLEL_SIZE", 1),
+        dtype=os.environ.get("SE_VLLM_DTYPE", "auto"),
+        max_model_len=max_model_len,
     )
 
 
