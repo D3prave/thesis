@@ -30,6 +30,11 @@ REPO_ROOT_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export http_proxy="${http_proxy:-http://proxy.nhr.fau.de:80}"
 export https_proxy="${https_proxy:-http://proxy.nhr.fau.de:80}"
 
+# Explicitly clear offline flags — download scripts must never run in offline mode
+unset HF_HUB_OFFLINE
+unset TRANSFORMERS_OFFLINE
+unset HF_DATASETS_OFFLINE
+
 HF_HOME="${HF_HOME:-/home/vault/b192aa/b192aa36/huggingface}"
 HF_HUB_CACHE="${HF_HUB_CACHE:-${HF_HOME}/hub}"
 mkdir -p "${HF_HOME}" "${HF_HUB_CACHE}"
