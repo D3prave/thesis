@@ -326,6 +326,14 @@ def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
     return {**record, "correctness_label": correct}
 
 
+#: Type alias for a sentence-embedding function used by Kernel Language
+#: Entropy.  Receives a sequence of strings and returns an ``(n, d)``
+#: embedding matrix as either a ``numpy.ndarray`` or a ``list[list[float]]``.
+#: See :func:`semantic_entropy.models.make_embedding_fn` for a concrete
+#: factory.
+EmbeddingFn = Callable[[Sequence[str]], Any]
+
+
 def run_pipeline(
     items: Iterable[PromptItem],
     config: RunConfig,
@@ -333,6 +341,8 @@ def run_pipeline(
     output_path: Path,
     *,
     entailment_fn: NliFn | None = None,
+    embedding_fn: EmbeddingFn | None = None,
+    kle_kernel: str = "rbf",
 ) -> int:
     """Run the full Phase 1 pipeline and write schema-valid scored JSONL.
 
@@ -343,10 +353,13 @@ def run_pipeline(
     2. :func:`sample_record` — call *model_fn*, normalize, cluster via *entailment_fn*.
     3. :func:`evaluate_correctness` — set ``correctness_label``.
     4. :func:`semantic_entropy.scoring.score_record` — compute entropy scores.
-    5. :func:`semantic_entropy.schema.validate_record` and
+    5. Optional: when *embedding_fn* is provided, compute
+       :func:`semantic_entropy.kle.compute_kle` over the sampled answers
+       and merge it into the ``scores`` mapping under the key ``"kle"``.
+    6. :func:`semantic_entropy.schema.validate_record` and
        :func:`semantic_entropy.cluster_check.check_cluster_consistency` —
        validate the fully-scored record.
-    6. Write one JSON line (keys sorted) to *output_path*.
+    7. Write one JSON line (keys sorted) to *output_path*.
 
     Args:
         items: Source prompts to process.
@@ -356,6 +369,14 @@ def run_pipeline(
         entailment_fn: NLI function for semantic clustering (keyword-only).
             Defaults to :func:`~semantic_entropy.clustering.exact_match_entailment_fn`.
             Pass a real NLI wrapper here for Phase 1/2 production runs.
+        embedding_fn: Optional sentence-embedding function used to add a
+            Kernel Language Entropy score to every record. When ``None``
+            (default) no KLE score is computed and the legacy scores dict
+            is written unchanged.  See :data:`EmbeddingFn` and
+            :func:`semantic_entropy.models.make_embedding_fn`.
+        kle_kernel: Kernel name forwarded to
+            :func:`semantic_entropy.kle.compute_kle`. Ignored when
+            *embedding_fn* is ``None``.
 
     Returns:
         The number of records successfully written.
@@ -367,6 +388,13 @@ def run_pipeline(
             consistency validation, indicating a pipeline bug.
         OSError: If *output_path* cannot be opened for writing.
     """
+    # Defer the KLE import so the pipeline can run without numpy when
+    # KLE scoring is disabled (which is the default Phase 1 path).
+    compute_kle = None
+    if embedding_fn is not None:
+        from semantic_entropy.kle import compute_kle as _compute_kle
+        compute_kle = _compute_kle
+
     records_written = 0
     with output_path.open("w", encoding="utf-8") as fh:
         for item in items:
@@ -378,6 +406,12 @@ def run_pipeline(
                 record["normalized_answers"],
                 record["semantic_clusters"],
             )
+            if compute_kle is not None:
+                record["scores"]["kle"] = compute_kle(
+                    record["sampled_answers"],
+                    embedding_fn,
+                    kernel=kle_kernel,
+                )
             try:
                 validate_record(record)
                 check_cluster_consistency(record)

@@ -308,6 +308,80 @@ def make_vllm_model(
 
 
 # ---------------------------------------------------------------------------
+# Sentence-embedding factory (deferred — used by Kernel Language Entropy)
+# ---------------------------------------------------------------------------
+
+
+def make_embedding_fn(
+    model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+    *,
+    device: str = "cpu",
+    batch_size: int = 32,
+    normalize_embeddings: bool = False,
+):
+    """Return a function mapping a list of strings to a 2D embedding matrix.
+
+    The returned callable has signature
+    ``(texts: Sequence[str]) -> list[list[float]]``.  Each row of the
+    output is the dense embedding of the corresponding input string, as
+    produced by ``sentence_transformers.SentenceTransformer.encode``.
+
+    The factory is intended to feed
+    :func:`semantic_entropy.kle.compute_kle`, which is content-free with
+    respect to embedding model choice: any encoder that returns a
+    fixed-dimensional vector per string will work, but the Phase 2
+    protocol uses ``sentence-transformers/all-MiniLM-L6-v2`` as the
+    standard backbone.
+
+    Requires the ``sentence-transformers`` package.  Raises
+    :class:`ImportError` with an install hint if it is not available.
+
+    Args:
+        model_name: HuggingFace model ID accepted by
+            ``SentenceTransformer``.  Defaults to a small all-purpose
+            CPU-friendly model.
+        device: Device string passed to ``SentenceTransformer``.  KLE
+            runs cheaply on CPU even for a few hundred prompts × 10
+            samples, so the default is ``"cpu"`` to leave the GPU free
+            for the generation model when both are co-located.
+        batch_size: Encoding batch size.
+        normalize_embeddings: If ``True`` the encoder returns unit-norm
+            embeddings, which makes the RBF kernel equivalent to a
+            cosine-similarity kernel up to a monotone transform.  Leave
+            ``False`` for the default RBF behaviour.
+
+    Returns:
+        A callable as described above.
+
+    Raises:
+        ImportError: If ``sentence_transformers`` is not installed.
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise ImportError(
+            "Embedding adapter requires sentence-transformers. "
+            "Install the optional kle dependencies with: "
+            "pip install -e '.[kle]'"
+        ) from exc
+
+    _model = SentenceTransformer(model_name, device=device)
+
+    def _embed_fn(texts: Sequence[str]):
+        arr = _model.encode(
+            list(texts),
+            batch_size=batch_size,
+            convert_to_numpy=True,
+            normalize_embeddings=normalize_embeddings,
+            show_progress_bar=False,
+        )
+        # Return Python lists to keep the type contract numpy-optional.
+        return arr.tolist()
+
+    return _embed_fn
+
+
+# ---------------------------------------------------------------------------
 # NLI entailment function factory (deferred to Stage 5)
 # ---------------------------------------------------------------------------
 

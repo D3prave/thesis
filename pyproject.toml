@@ -30,6 +30,12 @@ hf = [
 vllm = [
     "vllm",
 ]
+# Kernel Language Entropy: embedding-based soft uncertainty score.
+# See src/semantic_entropy/kle.py.
+kle = [
+    "numpy>=1.24",
+    "sentence-transformers>=2.2",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

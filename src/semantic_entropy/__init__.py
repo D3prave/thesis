@@ -47,6 +47,7 @@ from semantic_entropy.eval_normalize import (
     normalize_triviaqa_answer,
 )
 from semantic_entropy.harness import (
+    EmbeddingFn,
     ModelFn,
     RunConfig,
     evaluate_correctness,
@@ -55,8 +56,10 @@ from semantic_entropy.harness import (
     run_pipeline,
     sample_record,
 )
+from semantic_entropy.kle import compute_kle
 from semantic_entropy.models import (
     SyntheticModel,
+    make_embedding_fn,
     make_hf_model,
     make_nli_fn,
     make_vllm_model,
@@ -73,6 +76,7 @@ from semantic_entropy.scoring import (
 
 __all__ = [
     "DatasetError",
+    "EmbeddingFn",
     "KNOWN_DATASETS",
     "ModelFn",
     "PromptItem",
@@ -89,6 +93,7 @@ __all__ = [
     "NliFn",
     "check_cluster_consistency",
     "check_jsonl_cluster_consistency",
+    "compute_kle",
     "discrete_semantic_entropy",
     "evaluate_correctness",
     "exact_match_cluster",
@@ -96,6 +101,7 @@ __all__ = [
     "load_callable",
     "load_svamp_records",
     "load_triviaqa_records",
+    "make_embedding_fn",
     "make_hf_model",
     "make_nli_fn",
     "make_presampling_jsonl",

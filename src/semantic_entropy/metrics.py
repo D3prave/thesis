@@ -26,6 +26,9 @@ DEFAULT_SCORE_ORDER = (
     "naive_sample_entropy",
     "surface_entropy",
     "discrete_semantic_entropy",
+    # Phase 2 extensions — included when present in the scored records.
+    "kle",
+    "probe_uncertainty",
 )
 MetricTableRow = dict[str, float | int | str | None]
 

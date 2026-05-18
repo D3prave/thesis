@@ -238,6 +238,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
 
+    # -- Kernel Language Entropy (KLE) ----------------------------------------
+    parser.add_argument(
+        "--kle-model",
+        default=None,
+        dest="kle_model",
+        metavar="SENTENCE_TRANSFORMER_ID",
+        help=(
+            "If set, compute Kernel Language Entropy alongside the discrete "
+            "scores using this sentence-transformer model "
+            "(e.g. sentence-transformers/all-MiniLM-L6-v2). Requires the "
+            "'kle' optional dependency group."
+        ),
+    )
+    parser.add_argument(
+        "--kle-kernel",
+        default="rbf",
+        choices=("rbf", "cosine"),
+        dest="kle_kernel",
+        help="Kernel function for KLE (default: rbf).",
+    )
+    parser.add_argument(
+        "--kle-device",
+        default="cpu",
+        dest="kle_device",
+        help=(
+            "Device for the embedding model (default: cpu). KLE runs cheaply "
+            "on CPU and keeps the GPU free for the generation model."
+        ),
+    )
+
     # -- RunConfig overrides ---------------------------------------------------
     parser.add_argument("--run-id", default="pipeline-001", dest="run_id")
     parser.add_argument("--phase", default="phase1", choices=("phase1", "phase2"))
@@ -293,6 +323,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         entailment_fn = ent_factory()
 
+    # -- Resolve KLE embedding function ---------------------------------------
+    embedding_fn = None
+    if args.kle_model is not None:
+        try:
+            from semantic_entropy.models import make_embedding_fn
+            embedding_fn = make_embedding_fn(
+                args.kle_model, device=args.kle_device,
+            )
+        except ImportError as exc:
+            parser.exit(status=1, message=f"error loading embedding model: {exc}\n")
+
     # -- Load dataset ----------------------------------------------------------
     try:
         items = _load_items(
@@ -326,6 +367,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         n = run_pipeline(
             items, config, model_fn, args.output_jsonl,
             entailment_fn=entailment_fn,
+            embedding_fn=embedding_fn,
+            kle_kernel=args.kle_kernel,
         )
     except (SchemaError, ValueError, OSError) as exc:
         parser.exit(status=1, message=f"pipeline error: {exc}\n")

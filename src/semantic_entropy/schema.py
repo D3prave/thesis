@@ -63,7 +63,17 @@ PHASES = {"phase1", "phase2"}
 CLUSTERS = {"local", "tinygpu", "alex", "helma"}
 MODEL_TIERS = {"small", "7b_8b", "70b_plus"}
 SCORE_FIELDS = {"surface_entropy", "discrete_semantic_entropy"}
-OPTIONAL_SCORE_FIELDS = {"naive_sample_entropy"}
+# Optional score fields produced by Phase 2 extensions.  These are
+# validated when present but their absence is not an error.
+OPTIONAL_SCORE_FIELDS = {
+    "naive_sample_entropy",
+    # Kernel Language Entropy (kle.py) — Nikitin et al. (2024).
+    "kle",
+    # Semantic Entropy Probe (probes.py) score — Slobodkin et al. (2023).
+    # Stored as a probability of "uncertain" in [0, 1]; finite and
+    # non-negative, so the same validation rule applies.
+    "probe_uncertainty",
+}
 
 
 def validate_record(record: Mapping[str, Any]) -> None:
