@@ -58,11 +58,19 @@ from semantic_entropy.harness import (
 )
 from semantic_entropy.kle import compute_kle
 from semantic_entropy.models import (
+    ModelFnWithStates,
     SyntheticModel,
     make_embedding_fn,
     make_hf_model,
+    make_hf_model_with_states,
     make_nli_fn,
     make_vllm_model,
+)
+from semantic_entropy.probes import (
+    SEPProbe,
+    score_probe,
+    score_probe_for_record,
+    train_probe,
 )
 from semantic_entropy.pipeline_cli import load_callable
 from semantic_entropy.normalization import normalize_answer, normalize_answers
@@ -79,9 +87,11 @@ __all__ = [
     "EmbeddingFn",
     "KNOWN_DATASETS",
     "ModelFn",
+    "ModelFnWithStates",
     "PromptItem",
     "RunConfig",
     "SchemaError",
+    "SEPProbe",
     "SyntheticModel",
     "SVAMP_DATASET",
     "SVAMP_STUB_PATH",
@@ -103,6 +113,7 @@ __all__ = [
     "load_triviaqa_records",
     "make_embedding_fn",
     "make_hf_model",
+    "make_hf_model_with_states",
     "make_nli_fn",
     "make_presampling_jsonl",
     "make_presampling_record",
@@ -117,7 +128,10 @@ __all__ = [
     "normalize_triviaqa_answer",
     "run_pipeline",
     "sample_record",
+    "score_probe",
+    "score_probe_for_record",
     "score_record",
     "surface_entropy",
+    "train_probe",
     "validate_record",
 ]

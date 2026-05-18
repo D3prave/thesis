@@ -268,6 +268,35 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
 
+    # -- Semantic Entropy Probes (SEP) ----------------------------------------
+    parser.add_argument(
+        "--model-with-states-module",
+        default=None,
+        dest="model_with_states_module",
+        metavar="MODULE:CALLABLE",
+        help=(
+            "Import a ModelFnWithStates factory. When set, the pipeline "
+            "uses this adapter instead of --model-module to sample answers "
+            "AND collect per-sample hidden states for Semantic Entropy "
+            "Probes (SEP). Hidden states are written into each scored "
+            "record under the 'hidden_states' key. Mutually exclusive "
+            "with --model-module."
+        ),
+    )
+    parser.add_argument(
+        "--sep-probe",
+        default=None,
+        dest="sep_probe",
+        metavar="PROBE_JSON",
+        help=(
+            "Path to a trained SEP probe JSON artifact (see "
+            "scripts/train_sep_probe.py). When set alongside "
+            "--model-with-states-module, the probe is applied at "
+            "inference time and a 'probe_uncertainty' score in [0, 1] "
+            "is written into each record's scores dict."
+        ),
+    )
+
     # -- RunConfig overrides ---------------------------------------------------
     parser.add_argument("--run-id", default="pipeline-001", dest="run_id")
     parser.add_argument("--phase", default="phase1", choices=("phase1", "phase2"))
@@ -299,8 +328,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     # -- Resolve model ---------------------------------------------------------
+    if args.model_with_states_module is not None and args.model_module is not None:
+        parser.exit(
+            status=1,
+            message=(
+                "error: --model-with-states-module and --model-module are "
+                "mutually exclusive\n"
+            ),
+        )
+
     model_fn: ModelFn
-    if args.stub_model or args.model_module is None:
+    model_fn_with_states = None
+    if args.model_with_states_module is not None:
+        try:
+            factory = load_callable(args.model_with_states_module)
+        except (ValueError, ImportError, AttributeError) as exc:
+            parser.exit(
+                status=1,
+                message=f"error loading model_with_states module: {exc}\n",
+            )
+        model_fn_with_states = factory()
+        # Provide a non-None model_fn placeholder so the type checker /
+        # downstream code is happy; run_pipeline ignores it whenever
+        # model_fn_with_states is set.
+        model_fn = _make_stub_model(seed=args.seed)
+    elif args.stub_model or args.model_module is None:
         model_fn = _make_stub_model(seed=args.seed)
         if args.model == "synthetic-model":
             pass  # keep default
@@ -333,6 +385,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         except ImportError as exc:
             parser.exit(status=1, message=f"error loading embedding model: {exc}\n")
+
+    # -- Resolve SEP probe -----------------------------------------------------
+    sep_probe = None
+    if args.sep_probe is not None:
+        try:
+            from semantic_entropy.probes import SEPProbe
+            sep_probe = SEPProbe.load(args.sep_probe)
+        except (OSError, ValueError, KeyError) as exc:
+            parser.exit(status=1, message=f"error loading SEP probe: {exc}\n")
 
     # -- Load dataset ----------------------------------------------------------
     try:
@@ -369,6 +430,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             entailment_fn=entailment_fn,
             embedding_fn=embedding_fn,
             kle_kernel=args.kle_kernel,
+            model_fn_with_states=model_fn_with_states,
+            sep_probe=sep_probe,
         )
     except (SchemaError, ValueError, OSError) as exc:
         parser.exit(status=1, message=f"pipeline error: {exc}\n")

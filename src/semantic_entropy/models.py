@@ -55,6 +55,17 @@ from semantic_entropy.clustering import NLI_ENTAILMENT, NLI_NEUTRAL, NliFn
 #: is applied by :func:`~semantic_entropy.harness.sample_record`.
 ModelFn = Callable[[str, int], list[str]]
 
+#: Type alias for a sampling model function that also returns hidden states.
+#:
+#: A ``ModelFnWithStates`` has signature ``(prompt, n) -> (answers, states)``
+#: where ``answers`` is the same list of ``n`` strings produced by a
+#: :data:`ModelFn`, and ``states`` is a ``(n, hidden_dim)`` matrix —
+#: returned as ``list[list[float]]`` — of per-sample hidden states extracted
+#: from the generation model.  The hidden state is typically the
+#: last-token activation at a chosen transformer layer, and is used by
+#: :mod:`semantic_entropy.probes` (Semantic Entropy Probes).
+ModelFnWithStates = Callable[[str, int], tuple[list[str], list[list[float]]]]
+
 
 # ---------------------------------------------------------------------------
 # Synthetic stub (no external deps)
@@ -196,6 +207,166 @@ def make_hf_model(
                 text = text[-1]["content"]
             results.append(text.strip())
         return results
+
+    return _model_fn
+
+
+# ---------------------------------------------------------------------------
+# HuggingFace model factory with hidden-state extraction (for SEP)
+# ---------------------------------------------------------------------------
+
+
+def make_hf_model_with_states(
+    model_name: str,
+    *,
+    temperature: float = 0.7,
+    top_p: float = 0.95,
+    max_new_tokens: int = 64,
+    device_map: str = "auto",
+    torch_dtype: str = "auto",
+    hidden_layer: int = -1,
+    hidden_token: int = -1,
+    system_prompt: str | None = (
+        "Answer the following question as briefly as possible. "
+        "Give only the answer — a word or short phrase — with no explanation."
+    ),
+) -> ModelFnWithStates:
+    """Return a :data:`ModelFnWithStates` backed by HuggingFace.
+
+    Wraps ``transformers.AutoModelForCausalLM.generate`` with
+    ``output_hidden_states=True`` and returns, alongside each generated
+    answer, the hidden state of the chosen token at the chosen
+    transformer layer.  This is the data source used by Semantic Entropy
+    Probes (see :mod:`semantic_entropy.probes`).
+
+    Hidden-state semantics:
+
+    * ``hidden_layer = -1`` selects the *final* transformer block's
+      output (the layer immediately before the LM head).
+    * ``hidden_token = -1`` selects the *last* generated token; ``-2``
+      selects the second-to-last (the "second-to-last token" probe of
+      Slobodkin et al., 2023).  Indices are negative-from-end.
+
+    The factory generates the ``n`` independent samples in a single
+    ``generate`` call with ``num_return_sequences=n`` so the per-prompt
+    forward-pass cost is shared.
+
+    Args:
+        model_name: HuggingFace Hub model ID.
+        temperature: Sampling temperature.
+        top_p: Nucleus-sampling probability threshold.
+        max_new_tokens: Maximum number of tokens to generate per answer.
+        device_map: Passed to ``AutoModelForCausalLM.from_pretrained``.
+        torch_dtype: Torch dtype string (``"auto"`` selects bfloat16 on
+            supported hardware).
+        hidden_layer: Transformer block index to extract; negative
+            indices count from the end (``-1`` = last block).
+        hidden_token: Position of the generated token whose hidden state
+            is returned; negative indices count from the end of the
+            generated continuation.
+        system_prompt: Optional system message; same semantics as in
+            :func:`make_hf_model`.
+
+    Returns:
+        A :data:`ModelFnWithStates`.
+
+    Raises:
+        ImportError: If ``torch`` or ``transformers`` are not installed.
+    """
+    try:
+        import torch  # noqa: F401
+        from transformers import (  # noqa: F401
+            AutoModelForCausalLM,
+            AutoTokenizer,
+            GenerationConfig,
+        )
+    except ImportError as exc:
+        raise ImportError(
+            "HuggingFace model adapter with hidden states requires torch "
+            "and transformers. Install them with: "
+            "pip install torch transformers accelerate"
+        ) from exc
+
+    import torch as _torch
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        GenerationConfig,
+    )
+
+    _dtype = getattr(_torch, torch_dtype) if torch_dtype != "auto" else "auto"
+    _tokenizer = AutoTokenizer.from_pretrained(model_name)
+    if _tokenizer.pad_token_id is None:
+        _tokenizer.pad_token_id = _tokenizer.eos_token_id
+
+    _model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map=device_map,
+        dtype=_dtype,
+    )
+    _model.eval()
+
+    _gen_config = GenerationConfig(
+        do_sample=True,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+        return_dict_in_generate=True,
+        output_hidden_states=True,
+        pad_token_id=_tokenizer.pad_token_id,
+    )
+
+    def _model_fn(prompt: str, n: int) -> tuple[list[str], list[list[float]]]:
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        formatted = _tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+        inputs = _tokenizer(formatted, return_tensors="pt").to(_model.device)
+        prompt_len = inputs["input_ids"].shape[1]
+
+        with _torch.no_grad():
+            out = _model.generate(
+                **inputs,
+                num_return_sequences=n,
+                generation_config=_gen_config,
+            )
+
+        # `out.sequences` shape: (n, prompt_len + new_len).
+        # `out.hidden_states` is a tuple of length new_len; element t is a
+        # tuple of (num_layers + 1) tensors, each shaped
+        # (n, seq_len_at_step_t, hidden_dim). For the *first* step
+        # seq_len_at_step_t = prompt_len; for subsequent steps it is 1.
+        new_len = len(out.hidden_states)
+        if new_len == 0:
+            raise RuntimeError(
+                "generate produced zero new tokens; cannot extract hidden states"
+            )
+
+        # Resolve hidden_token to a forward index over the generated continuation.
+        token_idx = hidden_token if hidden_token >= 0 else new_len + hidden_token
+        token_idx = max(0, min(token_idx, new_len - 1))
+        layer_hidden_states = out.hidden_states[token_idx]
+        layer_idx = hidden_layer if hidden_layer >= 0 else len(layer_hidden_states) + hidden_layer
+        chosen_layer = layer_hidden_states[layer_idx]
+        # For step > 0 the tensor is (n, 1, hidden_dim); for step 0 it's
+        # (n, prompt_len, hidden_dim) — we always take the *last* position
+        # within that step's tensor, which is the just-emitted token.
+        per_sample_states = chosen_layer[:, -1, :]
+
+        # Decode just the newly-generated tokens.
+        generated_ids = out.sequences[:, prompt_len:]
+        decoded = _tokenizer.batch_decode(
+            generated_ids, skip_special_tokens=True,
+        )
+
+        return (
+            [d.strip() for d in decoded],
+            per_sample_states.detach().to(_torch.float32).cpu().tolist(),
+        )
 
     return _model_fn
 

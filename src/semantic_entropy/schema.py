@@ -161,6 +161,45 @@ def validate_record(record: Mapping[str, Any]) -> None:
     if not isinstance(record["correctness_label"], bool):
         raise SchemaError("correctness_label must be a boolean")
 
+    # Optional Phase 2 extension: per-sample hidden states for SEP probes.
+    # When present, must be a 2D list of floats with one row per sampled
+    # answer and a consistent embedding dimension. Absence is the default.
+    if "hidden_states" in record:
+        _validate_hidden_states(record["hidden_states"], num_samples)
+
+
+def _validate_hidden_states(value: Any, num_samples: int) -> None:
+    if not isinstance(value, list):
+        raise SchemaError("hidden_states must be a list of lists of floats")
+    if len(value) != num_samples:
+        raise SchemaError(
+            "hidden_states length must equal decoding.num_samples"
+        )
+    if not value:
+        return
+    expected_dim: int | None = None
+    for row_index, row in enumerate(value):
+        if not isinstance(row, list):
+            raise SchemaError(
+                f"hidden_states[{row_index}] must be a list of floats"
+            )
+        if expected_dim is None:
+            expected_dim = len(row)
+        elif len(row) != expected_dim:
+            raise SchemaError(
+                f"hidden_states[{row_index}] has length {len(row)}; "
+                f"expected {expected_dim} (must be rectangular)"
+            )
+        for col_index, entry in enumerate(row):
+            if not isinstance(entry, (int, float)) or isinstance(entry, bool):
+                raise SchemaError(
+                    f"hidden_states[{row_index}][{col_index}] must be a number"
+                )
+            if not math.isfinite(entry):
+                raise SchemaError(
+                    f"hidden_states[{row_index}][{col_index}] must be finite"
+                )
+
 
 def _require_mapping(record: Mapping[str, Any], field: str) -> Mapping[str, Any]:
     value = _get(record, field)

@@ -58,7 +58,9 @@ import os
 
 from semantic_entropy.models import (
     ModelFn,
+    ModelFnWithStates,
     make_hf_model,
+    make_hf_model_with_states,
     make_nli_fn,
     make_vllm_model,
 )
@@ -67,6 +69,7 @@ from semantic_entropy.models import (
 __all__ = [
     "make_local_test_model",
     "make_phase1_model",
+    "make_phase1_model_with_states",
     "make_vllm_phase1_model",
     "make_nli",
 ]
@@ -139,6 +142,43 @@ def make_phase1_model() -> ModelFn:
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 SEP adapter (HF with hidden-state extraction, single GPU)
+# ---------------------------------------------------------------------------
+
+
+def make_phase1_model_with_states() -> ModelFnWithStates:
+    """Create a ModelFnWithStates for SEP hidden-state collection.
+
+    Wraps :func:`semantic_entropy.models.make_hf_model_with_states` and
+    forwards the same ``SE_*`` environment variables used by
+    :func:`make_phase1_model`, plus two SEP-specific knobs:
+
+    * ``SE_SEP_HIDDEN_LAYER`` — transformer layer to extract (default
+      ``-1``: the last layer's output).
+    * ``SE_SEP_HIDDEN_TOKEN`` — index over the generated continuation
+      (default ``-1``: the last generated token).
+
+    Use this adapter via ``--model-with-states-module`` on the run-pipeline
+    CLI when you need to collect hidden states for SEP probe training or
+    inference. Single-GPU only — vLLM does not currently expose
+    hidden-state hooks.
+    """
+    model_name = os.environ.get(
+        "SE_MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3"
+    )
+    return make_hf_model_with_states(
+        model_name,
+        temperature=_env_float("SE_TEMPERATURE", 0.7),
+        top_p=_env_float("SE_TOP_P", 0.95),
+        max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
+        device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
+        torch_dtype="auto",
+        hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),
+        hidden_token=_env_int("SE_SEP_HIDDEN_TOKEN", -1),
     )
 
 

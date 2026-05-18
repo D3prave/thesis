@@ -333,6 +333,12 @@ def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
 #: factory.
 EmbeddingFn = Callable[[Sequence[str]], Any]
 
+#: Type alias for a generation-model function that *also* returns hidden
+#: states.  See :data:`semantic_entropy.models.ModelFnWithStates` for the
+#: full description.  Re-exported here so callers of :func:`run_pipeline`
+#: have a single place to import the pipeline contract.
+ModelFnWithStates = Callable[[str, int], tuple[list[str], list[list[float]]]]
+
 
 def run_pipeline(
     items: Iterable[PromptItem],
@@ -343,6 +349,8 @@ def run_pipeline(
     entailment_fn: NliFn | None = None,
     embedding_fn: EmbeddingFn | None = None,
     kle_kernel: str = "rbf",
+    model_fn_with_states: ModelFnWithStates | None = None,
+    sep_probe: Any | None = None,
 ) -> int:
     """Run the full Phase 1 pipeline and write schema-valid scored JSONL.
 
@@ -377,6 +385,15 @@ def run_pipeline(
         kle_kernel: Kernel name forwarded to
             :func:`semantic_entropy.kle.compute_kle`. Ignored when
             *embedding_fn* is ``None``.
+        model_fn_with_states: Alternative sampler that returns both
+            answers and per-sample hidden states (see
+            :data:`ModelFnWithStates`).  When provided, this replaces
+            *model_fn* for the sampling step and the resulting hidden
+            states are written into each record under ``hidden_states``.
+        sep_probe: Optional trained :class:`semantic_entropy.probes.SEPProbe`.
+            When provided alongside *model_fn_with_states*, the probe is
+            applied to each record's first sampled hidden state and the
+            score is written into ``scores["probe_uncertainty"]``.
 
     Returns:
         The number of records successfully written.
@@ -395,11 +412,30 @@ def run_pipeline(
         from semantic_entropy.kle import compute_kle as _compute_kle
         compute_kle = _compute_kle
 
+    score_probe_for_record = None
+    if sep_probe is not None:
+        from semantic_entropy.probes import (
+            score_probe_for_record as _score_probe_for_record,
+        )
+        score_probe_for_record = _score_probe_for_record
+
     records_written = 0
     with output_path.open("w", encoding="utf-8") as fh:
         for item in items:
             record: dict[str, Any] = make_presampling_record(item, config)
-            record = sample_record(record, model_fn, entailment_fn)
+
+            if model_fn_with_states is not None:
+                # SEP path: sample answers and hidden states in one call,
+                # then run normalisation + clustering on the answers as
+                # usual.  We thread the hidden states into the record
+                # before scoring so they can also feed SEP inference.
+                hidden_record = _sample_with_states(
+                    record, model_fn_with_states, entailment_fn,
+                )
+                record = hidden_record
+            else:
+                record = sample_record(record, model_fn, entailment_fn)
+
             record = evaluate_correctness(record)
             record["scores"] = score_record(
                 record["sampled_answers"],
@@ -412,6 +448,10 @@ def run_pipeline(
                     embedding_fn,
                     kernel=kle_kernel,
                 )
+            if score_probe_for_record is not None and "hidden_states" in record:
+                record["scores"]["probe_uncertainty"] = score_probe_for_record(
+                    record, sep_probe,
+                )
             try:
                 validate_record(record)
                 check_cluster_consistency(record)
@@ -422,6 +462,49 @@ def run_pipeline(
             fh.write(json.dumps(record, sort_keys=True) + "\n")
             records_written += 1
     return records_written
+
+
+def _sample_with_states(
+    record: dict[str, Any],
+    model_fn_with_states: ModelFnWithStates,
+    entailment_fn: NliFn | None,
+) -> dict[str, Any]:
+    """Helper: call a ModelFnWithStates and populate the sampling fields.
+
+    Mirrors :func:`sample_record` exactly except that the model call also
+    yields per-sample hidden states, which are appended to the record
+    under ``"hidden_states"``.
+    """
+    prompt: str = record["prompt"]
+    num_samples: int = record["decoding"]["num_samples"]
+
+    sampled, hidden_states = model_fn_with_states(prompt, num_samples)
+    if len(sampled) != num_samples:
+        raise ValueError(
+            f"model_fn_with_states returned {len(sampled)} answers; "
+            f"expected {num_samples}"
+        )
+    if len(hidden_states) != num_samples:
+        raise ValueError(
+            f"model_fn_with_states returned {len(hidden_states)} hidden "
+            f"state rows; expected {num_samples}"
+        )
+
+    dataset: str = record.get("dataset", "")
+    normalized = normalize_answers_for_dataset(sampled, dataset)
+    ent_fn = (
+        entailment_fn if entailment_fn is not None else exact_match_entailment_fn
+    )
+    cluster_ids, representatives = nli_cluster(normalized, ent_fn)
+
+    return {
+        **record,
+        "sampled_answers": list(sampled),
+        "normalized_answers": normalized,
+        "semantic_clusters": cluster_ids,
+        "cluster_representatives": representatives,
+        "hidden_states": [list(row) for row in hidden_states],
+    }
 
 
 # ---------------------------------------------------------------------------

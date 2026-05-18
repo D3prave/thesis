@@ -36,6 +36,12 @@ kle = [
     "numpy>=1.24",
     "sentence-transformers>=2.2",
 ]
+# Semantic Entropy Probes: linear classifier over hidden states.
+# See src/semantic_entropy/probes.py.
+sep = [
+    "numpy>=1.24",
+    "scikit-learn>=1.3",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
