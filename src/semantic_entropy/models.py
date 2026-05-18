@@ -106,6 +106,10 @@ def make_hf_model(
     max_new_tokens: int = 64,
     device_map: str = "auto",
     torch_dtype: str = "auto",
+    system_prompt: str | None = (
+        "Answer the following question as briefly as possible. "
+        "Give only the answer — a word or short phrase — with no explanation."
+    ),
 ) -> ModelFn:
     """Return a :data:`ModelFn` backed by a HuggingFace text-generation pipeline.
 
@@ -122,6 +126,11 @@ def make_hf_model(
             single-GPU and multi-GPU setups).
         torch_dtype: Torch dtype string (``"auto"`` selects bfloat16 on
             supported hardware, ``"float32"`` for CPU).
+        system_prompt: Optional system message prepended to every prompt.
+            The default instructs the model to give brief, phrase-only answers,
+            which is required for the TriviaQA/SVAMP normalizers to match
+            correctly.  Pass ``None`` to disable and use raw text completion
+            (not recommended for instruct-tuned models).
 
     Returns:
         A :data:`ModelFn` whose ``__call__`` signature is
@@ -132,7 +141,7 @@ def make_hf_model(
     """
     try:
         import torch  # noqa: F401
-        from transformers import pipeline as hf_pipeline
+        from transformers import GenerationConfig, pipeline as hf_pipeline
     except ImportError as exc:
         raise ImportError(
             "HuggingFace model adapter requires torch and transformers. "
@@ -149,17 +158,44 @@ def make_hf_model(
         dtype=_dtype,
     )
 
+    # Build a GenerationConfig once so we never mix config-object +
+    # keyword-arg styles (which triggers a deprecation warning in
+    # transformers >= 4.40) and so that the model's own max_length default
+    # (often 20) does not conflict with max_new_tokens.
+    _gen_config = GenerationConfig(
+        do_sample=True,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
     def _model_fn(prompt: str, n: int) -> list[str]:
+        # Build a messages list so the pipeline applies the model's chat
+        # template (e.g. Mistral [INST]…[/INST], Llama-3 <|user|>…).
+        # Without this, instruct-tuned models run in raw completion mode and
+        # produce verbose sentences that fail the answer normalizers.
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
         outputs = _pipe(
-            prompt,
+            messages,
             num_return_sequences=n,
-            do_sample=True,
-            temperature=temperature,
-            top_p=top_p,
-            max_new_tokens=max_new_tokens,
+            generation_config=_gen_config,
             return_full_text=False,
         )
-        return [out["generated_text"].strip() for out in outputs]
+        # When the pipeline receives a messages list it returns a list of
+        # lists; each inner list contains one dict with key "generated_text"
+        # that is itself a messages list — take the last message's content.
+        results: list[str] = []
+        for seq in outputs:
+            text = seq["generated_text"]
+            if isinstance(text, list):
+                # Chat-template path: generated_text is a messages list
+                text = text[-1]["content"]
+            results.append(text.strip())
+        return results
 
     return _model_fn
 
@@ -176,6 +212,10 @@ def make_vllm_model(
     top_p: float = 0.95,
     max_tokens: int = 64,
     gpu_memory_utilization: float = 0.90,
+    system_prompt: str | None = (
+        "Answer the following question as briefly as possible. "
+        "Give only the answer — a word or short phrase — with no explanation."
+    ),
 ) -> ModelFn:
     """Return a :data:`ModelFn` backed by a vLLM engine.
 
@@ -193,6 +233,8 @@ def make_vllm_model(
         max_tokens: Maximum number of tokens to generate per answer.
         gpu_memory_utilization: Fraction of GPU memory to allocate for the KV
             cache (vLLM default is 0.90).
+        system_prompt: Optional system message; same semantics as in
+            :func:`make_hf_model`.
 
     Returns:
         A :data:`ModelFn` whose ``__call__`` signature is
@@ -223,9 +265,22 @@ def make_vllm_model(
     )
 
     def _model_fn(prompt: str, n: int) -> list[str]:
+        # Apply chat template via vLLM's tokenizer so instruct models
+        # receive the correct [INST]/system-prompt framing.
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        tokenizer = _llm.get_tokenizer()
+        formatted = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
         params = _sampling_params.clone()
         params.n = n
-        outputs = _llm.generate([prompt], params)
+        outputs = _llm.generate([formatted], params)
         return [out.text.strip() for out in outputs[0].outputs]
 
     return _model_fn
