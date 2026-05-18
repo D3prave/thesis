@@ -43,6 +43,10 @@ export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
 # shellcheck disable=SC1091
 [ -f "${REPO_ROOT}/.env" ] && source "${REPO_ROOT}/.env"
 
+# NHR@FAU proxy — required for outbound internet on compute nodes
+export http_proxy="${http_proxy:-http://proxy.nhr.fau.de:80}"
+export https_proxy="${https_proxy:-http://proxy.nhr.fau.de:80}"
+
 # Always write to vault — same location as all compute scripts
 export HF_HOME="/home/vault/b192aa/b192aa36/huggingface"
 export HF_HUB_CACHE="${HF_HOME}/hub"

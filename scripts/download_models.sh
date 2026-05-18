@@ -26,6 +26,10 @@ REPO_ROOT_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091
 [ -f "${REPO_ROOT_EARLY}/.env" ] && source "${REPO_ROOT_EARLY}/.env"
 
+# NHR@FAU proxy — required for outbound internet on both login and compute nodes
+export http_proxy="${http_proxy:-http://proxy.nhr.fau.de:80}"
+export https_proxy="${https_proxy:-http://proxy.nhr.fau.de:80}"
+
 HF_HOME="${HF_HOME:-/home/vault/b192aa/b192aa36/huggingface}"
 HF_HUB_CACHE="${HF_HUB_CACHE:-${HF_HOME}/hub}"
 mkdir -p "${HF_HOME}" "${HF_HUB_CACHE}"
