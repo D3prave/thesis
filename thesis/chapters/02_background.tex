@@ -8,7 +8,7 @@ mistakes caused by gaps in the model's knowledge, systematic reasoning
 errors, and answers encouraged by evaluation incentives that reward guessing
 over abstention \cite{ji_hallucination_survey_2023,
 huang_llm_hallucination_survey_2023,maynez_faithfulness_factuality_2020,
-kalai_why_language_models_hallucinate_2025}.
+kalai_why_language_models_hallucinate_2025,augenstein_factuality_challenges_2024}.
 This thesis adopts the broader vocabulary where it is convenient, but its
 target is narrower: detecting when an answer is unreliable because the model
 is uncertain about the meaning of the answer it has produced.
@@ -18,9 +18,14 @@ is uncertain about the meaning of the answer it has produced.
 The semantic entropy paper sharpens this target to \emph{confabulations}:
 fluent answers that are both incorrect and arbitrary, where arbitrary means
 that the answer is sensitive to irrelevant variation such as the random seed
-used during decoding \cite{semantic_entropy_nature_2024}. The distinction
-matters because it bounds what semantic entropy can and cannot detect. A
-model may also be consistently wrong because its training data contains a
+used during decoding \cite{semantic_entropy_nature_2024}. The practical
+stakes are not hypothetical: controlled studies of LLMs in clinical
+decision-support settings find hallucination rates of 50--82\,\% when
+fabricated details are embedded in prompts, and prompt-based mitigation
+reduces but does not eliminate the problem \cite{omar_adversarial_hallucination_clinical_2025}.
+The distinction between confabulation and other hallucination types matters
+because it bounds what semantic entropy can and cannot detect. A model may
+also be consistently wrong because its training data contains a
 misconception, because the problem requires reasoning it cannot perform, or
 because evaluation incentives discourage abstention. Semantic entropy is not
 designed to address any of these cases; it is a detector for semantic

@@ -1,4 +1,46 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-TODO: Write a concise abstract after the pilot experiments are designed and the thesis contribution is fixed.
+Large language models generate fluent text even when their answers are
+semantically inconsistent or factually unsupported, and they rarely
+signal when an answer should not be trusted. This thesis studies
+\emph{semantic entropy} as a training-free method for hallucination
+detection and selective abstention in short-answer question answering.
+
+Semantic entropy measures uncertainty over meanings rather than over
+surface strings. Sampled answers are grouped into semantic equivalence
+classes using bidirectional Natural Language Inference entailment, and
+Shannon entropy is computed over cluster frequencies. The method is
+designed to detect \emph{confabulations}---answers that are both
+incorrect and semantically inconsistent across alternative generations
+from the same prompt---while making no claim about high-confidence
+systematic errors that fall outside this failure mode.
+
+We implement discrete semantic entropy on two structurally distinct
+tasks: TriviaQA, an open-domain factual question-answering benchmark,
+and SVAMP, a short-answer arithmetic reasoning dataset. Experiments are
+organized in two phases on NHR@FAU high-performance computing resources.
+Phase~1 uses Mistral-7B with a DeBERTa NLI backend to validate the
+end-to-end pipeline at modest scale. Phase~2 extends the evaluation to
+Llama-3.1-70B and stronger semantic judges on A100 and H100 hardware.
+Uncertainty quality is measured with the area under the receiver
+operating characteristic curve (AUROC), the area under the
+rejection-accuracy curve (AURAC), and rejection-accuracy curves that
+compare discrete semantic entropy against surface-form entropy baselines.
+
+% TODO: replace the paragraph below with empirical findings once
+% Phase 1 and Phase 2 HPC results are available.
+Preliminary infrastructure validation confirms that the pipeline
+produces schema-valid output records across both datasets and that
+correctness labeling and entropy scoring are end-to-end reproducible.
+Full empirical results comparing semantic entropy against surface-form
+baselines, together with a manual audit of semantic clustering behavior,
+are reported in Chapter~6 following completion of the HPC runs.
+
+We additionally scope two Phase~2 extensions---Semantic Entropy Probes,
+which approximate semantic entropy from hidden model states, and Kernel
+Language Entropy, which replaces hard clustering with a kernel-based
+entropy objective---as cost-versus-quality comparators once the discrete
+baseline is established. The implementation, JSONL output schema, and
+evaluation scripts are made available as reproducible artefacts for
+future work on semantic uncertainty in large language models.

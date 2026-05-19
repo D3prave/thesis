@@ -11,12 +11,12 @@ Current status: the repository is organized, the LaTeX thesis builds locally, Ch
 - `thesis/`: LaTeX thesis source, local kaobook styles, logos, figures, bibliography, chapters, and appendices.
 - `docs/`: working thesis and experiment notes.
 - `external/`: preserved uploaded papers, source notes, and original template material.
-- `src/`: Python package and scripts for future experiments.
-- `configs/`: future experiment configuration files.
-- `slurm/`: future HPC job scripts.
+- `src/`: Python package (`semantic_entropy`) with the Phase 1 experiment scaffold.
+- `configs/`: experiment configuration files.
+- `slurm/`: HPC Slurm job scripts for Alex and Helma.
 - `data/`: local datasets and processed data placeholders.
 - `results/`: figures, tables, and small intentional results.
-- `tests/`: future Python tests.
+- `tests/`: Python tests for the `semantic_entropy` package.
 
 ## Local LaTeX Build
 

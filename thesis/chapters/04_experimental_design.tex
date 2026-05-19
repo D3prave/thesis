@@ -33,6 +33,22 @@ are small enough to support repeated sampling during Phase 1 while still
 exercising two distinct failure modes: factual recall and structured
 arithmetic reasoning.
 
+The original semantic entropy evaluation \cite{semantic_entropy_nature_2024}
+reports results across five datasets: TriviaQA, SQuAD, BioASQ, NQ-Open, and
+SVAMP\@. Of these, three---BioASQ, NQ-Open, and TriviaQA---are open-domain
+factual question-answering tasks that differ primarily in domain rather than in
+task structure, and TriviaQA is the most widely used and the primary reference
+dataset in the original experiments. SQuAD is a reading-comprehension task in
+which the answer passage is provided to the model, which changes the prompt
+format substantially and makes direct comparison with open-domain tasks less
+informative for this reproduction. The two-dataset scope therefore covers the
+two qualitatively distinct task types---open-domain factual recall and
+short-answer arithmetic---within a compute budget appropriate for a
+bachelor-thesis pilot. Expanding to NQ-Open or BioASQ
+is a straightforward Phase~2 extension once the baseline pipeline is stable,
+because both share the same short free-text answer format and normalization
+approach as TriviaQA.
+
 Phase 2 may add SQuAD, BioASQ, and NQ-Open once the core pipeline is
 stable, because these datasets broaden the evaluation setting beyond the
 first pilot \cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,

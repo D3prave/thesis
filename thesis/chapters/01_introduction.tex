@@ -3,8 +3,14 @@
 Large language models can answer open-ended questions fluently even when the
 answer is unsupported or wrong. This makes hallucination detection a practical
 problem rather than only a benchmark problem: a useful system should not merely
-produce an answer, but should also indicate when that answer is unreliable. The
-central difficulty is that free-form language has many valid surface forms. Two
+produce an answer, but should also indicate when that answer is unreliable.
+Empirical evidence confirms the scale of this risk: hallucination rates in
+clinical decision-support settings have been measured at 50--82\,\% under
+adversarial prompting, and the broader landscape of factuality failures in
+deployed LLMs---spanning misinformation, confabulation, and systematic reasoning
+errors---presents substantial challenges for automated verification
+\cite{omar_adversarial_hallucination_clinical_2025,augenstein_factuality_challenges_2024}.
+The central difficulty is that free-form language has many valid surface forms. Two
 sampled answers may use different words while expressing the same meaning, and
 two similar-looking answers may make incompatible claims.
 
