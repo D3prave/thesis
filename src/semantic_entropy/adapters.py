@@ -50,6 +50,13 @@ scripts can override them without editing Python code:
 * ``SE_MAX_MODEL_LEN`` — optional cap on vLLM ``max_model_len`` (fallback:
   unset, defers to the model config).
 * ``SE_VLLM_DTYPE`` — vLLM dtype string (fallback: ``"auto"``).
+* ``SE_VLLM_ENFORCE_EAGER`` — when ``"1"`` (default) disables vLLM's
+  ``torch.compile`` / CUDA-graph path. Required on NHR@FAU Alex/Helma
+  compute nodes because they lack ``python3-devel`` and triton's runtime
+  JIT compile of ``cuda_utils.c`` blows up with
+  ``fatal error: Python.h: No such file or directory``. Pass
+  ``SE_VLLM_ENFORCE_EAGER=0`` only on hosts where Python headers are
+  reachable from gcc (e.g. a uv-managed Python or a python3-devel install).
 """
 
 from __future__ import annotations
@@ -88,6 +95,24 @@ def _env_float(key: str, default: float) -> float:
 def _env_int(key: str, default: int) -> int:
     raw = os.environ.get(key)
     return int(raw) if raw is not None else default
+
+
+def _env_bool(key: str, default: bool) -> bool:
+    """Parse a bool from an env var. Accepts 1/0, true/false, yes/no (case-insensitive)."""
+    raw = os.environ.get(key)
+    if raw is None:
+        return default
+    truthy = {"1", "true", "yes", "y", "on"}
+    falsy = {"0", "false", "no", "n", "off"}
+    lowered = raw.strip().lower()
+    if lowered in truthy:
+        return True
+    if lowered in falsy:
+        return False
+    raise ValueError(
+        f"Environment variable {key}={raw!r} is not a recognised boolean. "
+        f"Use one of {sorted(truthy | falsy)}."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +240,10 @@ def make_vllm_phase1_model() -> ModelFn:
         tensor_parallel_size=_env_int("SE_TENSOR_PARALLEL_SIZE", 1),
         dtype=os.environ.get("SE_VLLM_DTYPE", "auto"),
         max_model_len=max_model_len,
+        # Default ON because NHR@FAU compute nodes have no python3-devel and
+        # triton's JIT compile of cuda_utils.c fails with Python.h missing.
+        # See logs/phase1_70b_alex_3624187 for the canonical failure mode.
+        enforce_eager=_env_bool("SE_VLLM_ENFORCE_EAGER", True),
     )
 
 

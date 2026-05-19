@@ -386,6 +386,7 @@ def make_vllm_model(
     tensor_parallel_size: int = 1,
     dtype: str = "auto",
     max_model_len: int | None = None,
+    enforce_eager: bool = True,
     system_prompt: str | None = (
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
@@ -419,6 +420,16 @@ def make_vllm_model(
             (e.g. ``4096``) avoids vLLM raising on models whose declared
             ``max_position_embeddings`` exceeds the available KV-cache
             memory on the chosen GPUs.
+        enforce_eager: When ``True`` (default), disable vLLM's ``torch.compile``
+            / CUDA-graph code path and run every forward in eager mode. This
+            avoids triton's JIT compiler, which requires ``Python.h`` from
+            ``python3-devel`` — a header that is **not** installed on NHR@FAU
+            (Alex/Helma) compute nodes. Symptom of a missing header is a
+            ``gcc: fatal error: Python.h: No such file or directory``
+            blow-up inside vLLM's profile run (see logs/phase1_70b_alex_3624187).
+            Eager mode is ~10–30% slower per token but bullet-proof on the
+            cluster. Pass ``False`` only on hosts where ``python3-devel`` or a
+            uv-managed Python (which ships its own headers) is available.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
 
@@ -444,6 +455,7 @@ def make_vllm_model(
         "gpu_memory_utilization": gpu_memory_utilization,
         "tensor_parallel_size": tensor_parallel_size,
         "dtype": dtype,
+        "enforce_eager": enforce_eager,
     }
     if max_model_len is not None:
         _llm_kwargs["max_model_len"] = max_model_len
