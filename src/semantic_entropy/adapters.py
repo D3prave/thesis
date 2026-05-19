@@ -51,7 +51,7 @@ scripts can override them without editing Python code:
   unset, defers to the model config).
 * ``SE_VLLM_DTYPE`` — vLLM dtype string (fallback: ``"auto"``).
 * ``SE_VLLM_ENFORCE_EAGER`` — when ``"1"`` (default) disables vLLM's
-  ``torch.compile`` / CUDA-graph path. Required on NHR@FAU Alex/Helma
+  ``torch.compile`` / CUDA-graph path. Required on NHR@FAU Alex
   compute nodes because they lack ``python3-devel`` and triton's runtime
   JIT compile of ``cuda_utils.c`` blows up with
   ``fatal error: Python.h: No such file or directory``. Pass
@@ -219,7 +219,7 @@ def make_vllm_phase1_model() -> ModelFn:
     ``mistralai/Mistral-7B-Instruct-v0.3``. Reads ``SE_TENSOR_PARALLEL_SIZE``
     for the number of GPUs (default ``1``); set this to the GPU count of
     your Slurm allocation when running larger models with tensor parallelism
-    (e.g. ``4`` for 70B on 4× A100, ``2`` for 70B on 2× H100-94GB).
+    (e.g. ``4`` for 70B on 4× A100).
 
     Returns:
         A :data:`ModelFn` backed by a ``vllm.LLM`` engine.

@@ -2,7 +2,7 @@
 
 This repository contains thesis source, planning notes, and the first scaffold for experiments on hallucination detection with semantic entropy. The initial goal is a buildable LaTeX thesis project plus a clean place for future research code.
 
-Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware and NHR@FAU Alex. Phase 2 scales the same design on Alex and Helma for larger models and stronger semantic judges. High-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume are optional Phase 2 work after the discrete baseline is stable.
+Current research direction: a two-phase experiment strategy. Phase 1 builds a small, sentence-length semantic entropy pipeline on local hardware and NHR@FAU Alex. Phase 2 scales the same design on Alex for larger models and stronger semantic judges. High-compute extensions such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and Semantic Volume are optional Phase 2 work after the discrete baseline is stable.
 
 Current status: the repository is organized, the LaTeX thesis builds locally, Chapters 1--9 have first-pass drafts or placeholders, and the stdlib-only Phase 1 scaffold is implemented for stub datasets, synthetic sampling, exact-match clustering, entropy scoring, metrics, plotting artifacts, and Slurm smoke testing. The Alex/A40 smoke job passed on 2026-05-17; the next step is a real 7B/8B model run on the Alex A100 partition. Results, discussion, and conclusion claims remain conditional until recorded real-model runs exist.
 
@@ -13,7 +13,7 @@ Current status: the repository is organized, the LaTeX thesis builds locally, Ch
 - `external/`: preserved uploaded papers, source notes, and original template material.
 - `src/`: Python package (`semantic_entropy`) with the Phase 1 experiment scaffold.
 - `configs/`: experiment configuration files.
-- `slurm/`: HPC Slurm job scripts for Alex and Helma.
+- `slurm/`: HPC Slurm job scripts for Alex.
 - `data/`: local datasets and processed data placeholders.
 - `results/`: figures, tables, and small intentional results.
 - `tests/`: Python tests for the `semantic_entropy` package.
@@ -45,7 +45,7 @@ Phase 1: local and Alex pilot
 Phase 2: NHR@FAU HPC scaling
 
 1. Use Alex for scaled inference and robust NLI clustering on A100-class GPUs.
-2. Use Helma for 70B+ models and high-cost semantic judges; reserve Semantic Entropy Probes and other high-compute extensions for optional runs after the baseline is stable.
+2. Use Alex A100/A100-80 jobs for 70B pilots and high-cost semantic judges; reserve Semantic Entropy Probes and other high-compute extensions for optional runs after the baseline is stable.
 3. Optionally expand from TriviaQA/SVAMP to SQuAD, BioASQ, and NQ-Open.
 4. Keep Slurm job IDs, commands, GPU type, runtime, memory, and output paths with every run.
 5. Keep large model caches, raw outputs, checkpoints, and downloaded datasets out of git.

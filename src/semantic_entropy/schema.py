@@ -60,7 +60,7 @@ REQUIRED_FIELDS = {
 }
 
 PHASES = {"phase1", "phase2"}
-CLUSTERS = {"local", "tinygpu", "alex", "helma"}
+CLUSTERS = {"local", "tinygpu", "alex"}
 MODEL_TIERS = {"small", "7b_8b", "70b_plus"}
 SCORE_FIELDS = {"surface_entropy", "discrete_semantic_entropy"}
 # Optional score fields produced by Phase 2 extensions.  These are

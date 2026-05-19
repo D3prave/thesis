@@ -99,8 +99,8 @@ class RunConfig:
         run_id: Unique identifier for this run, e.g. ``"smoke-001"`` or
             ``"phase1-tinygpu-7b-seed0"``.
         phase: One of ``"phase1"`` or ``"phase2"``.
-        cluster: Compute cluster name: ``"local"``, ``"tinygpu"``,
-            ``"alex"``, or ``"helma"``.
+        cluster: Compute cluster name: ``"local"``, ``"tinygpu"``, or
+            ``"alex"``.
         model: Model name or path string, e.g. ``"synthetic-model"`` or
             ``"meta-llama/Llama-3.1-8B-Instruct"``.
         model_tier: One of ``"small"``, ``"7b_8b"``, or ``"70b_plus"``.
@@ -547,7 +547,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--cluster",
         default="local",
-        choices=("local", "tinygpu", "alex", "helma"),
+        choices=("local", "tinygpu", "alex"),
     )
     parser.add_argument("--model", default="synthetic-model")
     parser.add_argument(

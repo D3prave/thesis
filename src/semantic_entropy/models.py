@@ -396,7 +396,7 @@ def make_vllm_model(
 
     vLLM batches all ``n`` sequences for a single prompt in one engine call,
     which is significantly faster than ``n`` sequential HF pipeline calls.
-    Recommended for Stage 5 inference on A100 / H100 nodes.
+    Recommended for Stage 5 inference on Alex A100 nodes.
 
     Requires ``vllm``.  Raises :class:`ImportError` with an install hint if
     the package is missing.
@@ -410,9 +410,8 @@ def make_vllm_model(
             cache (vLLM default is 0.90).
         tensor_parallel_size: Number of GPUs over which to split the model
             via tensor parallelism. Defaults to ``1`` (single-GPU). For a
-            70B model on Alex (4× A100-40GB) pass ``4``; on Helma
-            (2× H100-94GB) pass ``2``. Must equal the number of GPUs
-            allocated to the Slurm job.
+            70B model on Alex (4× A100-80GB) pass ``4``. Must equal the
+            number of GPUs allocated to the Slurm job.
         dtype: Torch dtype string passed to ``vllm.LLM``. Defaults to
             ``"auto"`` (vLLM selects bfloat16 on supported hardware).
         max_model_len: Optional cap on the maximum context length.
@@ -424,7 +423,7 @@ def make_vllm_model(
             / CUDA-graph code path and run every forward in eager mode. This
             avoids triton's JIT compiler, which requires ``Python.h`` from
             ``python3-devel`` — a header that is **not** installed on NHR@FAU
-            (Alex/Helma) compute nodes. Symptom of a missing header is a
+            Alex compute nodes. Symptom of a missing header is a
             ``gcc: fatal error: Python.h: No such file or directory``
             blow-up inside vLLM's profile run (see logs/phase1_70b_alex_3624187).
             Eager mode is ~10–30% slower per token but bullet-proof on the

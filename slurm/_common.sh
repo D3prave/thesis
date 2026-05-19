@@ -37,7 +37,6 @@
 #
 # The preamble assumes:
 #   * REPO_ROOT is already set (e.g. to $SLURM_SUBMIT_DIR).
-#   * SE_CLUSTER is optionally set to alex or helma before sourcing.
 #   * A .venv exists at $REPO_ROOT/.venv with the project installed.
 # ============================================================================
 
@@ -58,24 +57,11 @@ module load python 2>/dev/null || true   # may already be loaded
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
-export SE_CLUSTER="${SE_CLUSTER:-alex}"
+export SE_CLUSTER="alex"
 
 # --- 2. HuggingFace cache ----------------------------------------------------
-# Alex has /home/vault on compute nodes. Helma compute nodes do not mount
-# /home/vault, so use an explicit HF_HOME override there when an /hnvme
-# workspace is available.
-if [ -z "${HF_HOME:-}" ]; then
-    case "${SE_CLUSTER}" in
-        helma)
-            export HF_HOME="${HOME}/.cache/huggingface"
-            ;;
-        *)
-            export HF_HOME="/home/vault/b192aa/b192aa36/huggingface"
-            ;;
-    esac
-else
-    export HF_HOME
-fi
+# Alex has /home/vault on compute nodes; keep model weights out of $HOME.
+export HF_HOME="${HF_HOME:-/home/vault/b192aa/b192aa36/huggingface}"
 export HF_HUB_CACHE="${HF_HOME}/hub"
 export TRANSFORMERS_CACHE="${HF_HUB_CACHE}"
 export SENTENCE_TRANSFORMERS_HOME="${HF_HOME}/sentence-transformers"

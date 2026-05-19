@@ -303,7 +303,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--cluster",
         default="local",
-        choices=("local", "tinygpu", "alex", "helma"),
+        choices=("local", "tinygpu", "alex"),
     )
     parser.add_argument("--model", default="synthetic-model")
     parser.add_argument(
