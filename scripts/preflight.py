@@ -247,6 +247,19 @@ def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
             f"multi-process startup; got {method!r}"
         )
 
+    import shutil
+    nvcc_path = shutil.which("nvcc")
+    if nvcc_path:
+        rep.ok(f"nvcc available at {nvcc_path}")
+    else:
+        rep.fail("nvcc NOT found on PATH. vLLM/flashinfer JIT compilation will fail. Did you run 'module load cuda/...'?")
+
+    cuda_home = os.environ.get("CUDA_HOME")
+    if cuda_home:
+        rep.ok(f"CUDA_HOME is set to {cuda_home}")
+    else:
+        rep.fail("CUDA_HOME is NOT set. flashinfer may fail to JIT compile.")
+
     try:
         enforce_eager = _env_bool("SE_VLLM_ENFORCE_EAGER", True)
     except ValueError as exc:

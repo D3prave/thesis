@@ -57,6 +57,8 @@ fi
 
 # --- 1. Modules + venv -------------------------------------------------------
 module load python 2>/dev/null || true   # may already be loaded
+module load cuda/12.1.1 2>/dev/null || true # load CUDA for flashinfer JIT
+export CUDA_HOME=${CUDA_BASE:-/usr/local/cuda}
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
