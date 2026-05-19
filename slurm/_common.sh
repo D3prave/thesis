@@ -75,12 +75,14 @@ if [ -z "${CUDA_HOME:-}" ]; then
         export CUDA_HOME="$(dirname "$(dirname "${_nvcc}")")"
     fi
 fi
+# shellcheck disable=SC1091
+source "${REPO_ROOT}/.venv/bin/activate"
+# Add CUDA to PATH *after* venv activation so activate's PATH reset
+# doesn't clobber the CUDA bin directory.
 if [ -n "${CUDA_HOME:-}" ]; then
     export PATH="${CUDA_HOME}/bin:${PATH}"
     export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
 fi
-# shellcheck disable=SC1091
-source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
 export SE_CLUSTER="alex"
 
