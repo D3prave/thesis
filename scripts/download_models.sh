@@ -71,7 +71,7 @@ export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
 # ---------- Download helper ----------
 download_model() {
     local model="$1"
-    local cache_dir="${HF_HUB_CACHE}/models--$(echo "${model}" | tr '/' '--')"
+    local cache_dir="${HF_HUB_CACHE}/models--$(echo "${model}" | sed 's|/|--|g')"
 
     if [ -d "${cache_dir}" ]; then
         echo "  SKIP (already cached): ${model}"
