@@ -126,22 +126,27 @@ first reproduction.
 
 \section{Advanced Metrics and Extensions}
 
-Phase 2 may include higher-cost comparison methods and extensions once
-the main discrete baseline is stable. Kernel Language Entropy replaces
-hard semantic clusters with a kernel-based entropy objective
-\cite{nikitin_kernel_language_entropy_2024}. Semantic Energy and Semantic
-Volume provide alternative scores for semantic dispersion
-\cite{ma_semantic_energy_2025,li_semantic_volume_2025}. Adaptive
-Bayesian semantic entropy is relevant if sample cost becomes the dominant
-bottleneck \cite{sun_adaptive_bayesian_semantic_entropy_2026}. Semantic
-Entropy Probes are reserved for the final HPC extension because they
-require hidden-state access and probe training
-\cite{kossen_semantic_entropy_probes_2024}.
+Following the Phase~2 main runs, two posthoc extensions were completed
+and are reported in Section~\ref{sec:posthoc}.
 
-None of these methods is required for the Phase 1 claim or for the
-primary Phase 2 scale-up. They are included as optional comparators that
-test whether the basic semantic entropy result remains competitive
-against stronger semantic uncertainty estimators on Alex and Helma.
+\textbf{Kernel Language Entropy (KLE)} replaces hard semantic clusters
+with a kernel-based entropy objective computed over sentence-embedding
+similarities \cite{nikitin_kernel_language_entropy_2024}.  KLE was run
+on all four Phase~2 JSONL output sets (Fritz cluster, posthoc jobs) using
+\texttt{sentence-transformers/all-MiniLM-L6-v2}.
+
+\textbf{DeBERTa-v3-large reclustering} re-runs the Phase~2 NLI
+clustering step with a larger cross-encoder
+(\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
+70B/TriviaQA regression observed under the base model disappears with a
+stronger NLI backend \cite{he_deberta_2021}.
+
+The following extensions were not run within the thesis scope: Semantic
+Energy \cite{ma_semantic_energy_2025}, Semantic Volume
+\cite{li_semantic_volume_2025}, Adaptive Bayesian semantic entropy
+\cite{sun_adaptive_bayesian_semantic_entropy_2026}, and Semantic Entropy
+Probes \cite{kossen_semantic_entropy_probes_2024}.  None is required for
+the Phase~1 claim or the primary Phase~2 scale-up.
 
 \section{Output Schema}
 
