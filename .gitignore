@@ -67,4 +67,4 @@ results/smoke/*/scored.jsonl
 # Per-run rejection-accuracy figures (flat copies in results/figures/ are tracked)
 results/phase1/*/figures/
 results/phase2/*/figures/
-thesis/tmp2.tmp
+tmp*.tmp
