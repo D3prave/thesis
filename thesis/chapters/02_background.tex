@@ -110,11 +110,14 @@ criterion is a practical approximation to equality of meaning.
 Natural Language Inference (NLI) supplies a local way to approximate this
 relation, because an NLI model assigns one of three labels --- entailment,
 contradiction, or neutrality --- to a pair of sentences
-\cite{williams_multinli_2018}. DeBERTa-style NLI models are the most common
-local backend in the literature \cite{he_deberta_2021}. For the background,
-the relevant point is that semantic equivalence is being approximated; the
-exact bidirectional-entailment rule and the choice of pilot backend are
-settled in Chapter 3.
+\cite{williams_multinli_2018}. The local backend used in this thesis is a
+Sentence-Transformers DeBERTa-v3 cross-encoder trained on SNLI and MultiNLI,
+which provides exactly these three NLI labels
+\cite{he_deberta_2021,he_debertav3_2021,
+sentence_transformers_nli_deberta_v3_base_2022}.
+For the background, the relevant point is that semantic equivalence is being
+approximated; the exact bidirectional-entailment rule and the choice of pilot
+backend are settled in Chapter 3.
 
 \section{Extensions and Related Methods}
 
@@ -154,7 +157,8 @@ benchmark with short factual answers \cite{joshi_triviaqa_2017}, and SVAMP
 provides math word problems in which equivalent numerical answers and
 concise reasoning matter \cite{patel_svamp_2021}. SQuAD, BioASQ, and
 NQ-Open are useful subsequent expansions because they appear in the wider
-semantic entropy evaluation setting \cite{rajpurkar_squad_2016,
+semantic entropy evaluation setting \cite{semantic_entropy_nature_2024,
+rajpurkar_squad_2016,
 tsatsaronis_bioasq_2015,lee_nq_open_2019}. TruthfulQA is relevant to the
 broader truthfulness problem but is not the first pilot benchmark, because
 the initial experiment is intended to isolate semantic clustering on

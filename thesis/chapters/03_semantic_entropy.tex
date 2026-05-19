@@ -83,9 +83,9 @@ answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails
 semantic answer. Natural Language Inference is a practical backend for this
 decision because it produces the entailment, contradiction, and neutral
 labels needed by the clustering rule \cite{williams_multinli_2018}. A
-DeBERTa NLI model is the preferred first local backend, because it is
-strong enough for a pilot while avoiding dependence on a proprietary judge
-\cite{he_deberta_2021}.
+DeBERTa-v3 NLI cross-encoder is the preferred first local backend, because
+it is practical for a pilot while avoiding dependence on a proprietary judge
+\cite{he_debertav3_2021,sentence_transformers_nli_deberta_v3_base_2022}.
 
 This rule is an approximation rather than a definition of truth. It may
 split answers that differ only in harmless detail, and it may merge answers

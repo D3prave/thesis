@@ -70,11 +70,11 @@ older GPUs such as V100 or RTX~3080 class hardware. Candidate model
 families include Mistral-7B and the LLaMA family, subject to availability
 and licensing \cite{jiang_mistral_2023,touvron_llama2_2023}.
 
-The Phase 1 entailment backend is a local NLI model. A DeBERTa model
-fine-tuned on NLI is the preferred first backend because it is practical
-to run locally and supplies the entailment, contradiction, and neutral
-labels needed for bidirectional semantic clustering \cite{he_deberta_2021,
-williams_multinli_2018}.
+The Phase 1 entailment backend is a local NLI model. A DeBERTa-v3
+cross-encoder fine-tuned on NLI is the preferred first backend because it is
+practical to run locally and supplies the entailment, contradiction, and neutral
+labels needed for bidirectional semantic clustering \cite{he_debertav3_2021,
+sentence_transformers_nli_deberta_v3_base_2022,williams_multinli_2018}.
 
 \subsection{Phase 2: Alex and Helma HPC Runs}
 
@@ -133,13 +133,15 @@ and are reported in Section~\ref{sec:posthoc}.
 with a kernel-based entropy objective computed over sentence-embedding
 similarities \cite{nikitin_kernel_language_entropy_2024}.  KLE was run
 on all four Phase~2 JSONL output sets (Fritz cluster, posthoc jobs) using
-\texttt{sentence-transformers/all-MiniLM-L6-v2}.
+\texttt{sentence-transformers/all-MiniLM-L6-v2}
+\cite{sentence_transformers_all_minilm_l6_v2_2022}.
 
 \textbf{DeBERTa-v3-large reclustering} re-runs the Phase~2 NLI
 clustering step with a larger cross-encoder
 (\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
 70B/TriviaQA regression observed under the base model disappears with a
-stronger NLI backend \cite{he_deberta_2021}.
+larger NLI backend
+\cite{sentence_transformers_nli_deberta_v3_large_2022}.
 
 The following extensions were not run within the thesis scope: Semantic
 Energy \cite{ma_semantic_energy_2025}, Semantic Volume
