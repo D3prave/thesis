@@ -57,7 +57,13 @@ fi
 
 # --- 1. Modules + venv -------------------------------------------------------
 module load python 2>/dev/null || true   # may already be loaded
-module load cuda/12.1.1 2>/dev/null || true # flashinfer JIT needs nvcc
+# OS upgrades (e.g. el8 -> el9) often break specific module versions.
+# Try 12.1.1 first, fallback to 12.4.1, then default cuda.
+if ! module load cuda/12.1.1 2>/dev/null; then
+    if ! module load cuda/12.4.1 2>/dev/null; then
+        module load cuda || echo "WARNING: Failed to load any CUDA module" >&2
+    fi
+fi
 # The NHR module system may set any of these; pick the first one found.
 if [ -z "${CUDA_HOME:-}" ]; then
     for _var in CUDA_ROOT CUDA_BASE CUDA_PATH CUDA_INSTALL_PATH; do
