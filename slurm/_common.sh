@@ -57,9 +57,28 @@ fi
 
 # --- 1. Modules + venv -------------------------------------------------------
 module load python 2>/dev/null || true   # may already be loaded
-module load cuda/12.1.1 2>/dev/null || true # load CUDA for flashinfer JIT
-export CUDA_HOME=${CUDA_BASE:-/usr/local/cuda}
-export PATH="${CUDA_HOME}/bin:${PATH}"
+module load cuda/12.1.1 2>/dev/null || true # flashinfer JIT needs nvcc
+# The NHR module system may set any of these; pick the first one found.
+if [ -z "${CUDA_HOME:-}" ]; then
+    for _var in CUDA_ROOT CUDA_BASE CUDA_PATH CUDA_INSTALL_PATH; do
+        eval "_val=\${${_var}:-}"
+        if [ -n "${_val}" ] && [ -d "${_val}" ]; then
+            export CUDA_HOME="${_val}"
+            break
+        fi
+    done
+fi
+# Last resort: derive from nvcc location
+if [ -z "${CUDA_HOME:-}" ]; then
+    _nvcc="$(command -v nvcc 2>/dev/null || true)"
+    if [ -n "${_nvcc}" ]; then
+        export CUDA_HOME="$(dirname "$(dirname "${_nvcc}")")"
+    fi
+fi
+if [ -n "${CUDA_HOME:-}" ]; then
+    export PATH="${CUDA_HOME}/bin:${PATH}"
+    export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
+fi
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
@@ -196,5 +215,6 @@ cat <<EOF
   TORCH_COMPILE_DISABLE= ${TORCH_COMPILE_DISABLE}
   VLLM_LOGGING_LEVEL   = ${VLLM_LOGGING_LEVEL}
   OMP_NUM_THREADS      = ${OMP_NUM_THREADS:-<unset>}
+  CUDA_HOME            = ${CUDA_HOME:-<unset>}
   CPATH                = ${CPATH:-<unset>}
 EOF
