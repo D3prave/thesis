@@ -1,8 +1,6 @@
 #!/bin/bash -l
 #SBATCH --job-name=se-prefetch
-#SBATCH --partition=tiny
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
+#SBATCH --partition=a100mig
 #SBATCH --cpus-per-task=8
 #SBATCH --time=04:00:00
 #SBATCH --output=logs/prefetch_%j.out
