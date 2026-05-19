@@ -57,6 +57,9 @@ scripts can override them without editing Python code:
   ``fatal error: Python.h: No such file or directory``. Pass
   ``SE_VLLM_ENFORCE_EAGER=0`` only on hosts where Python headers are
   reachable from gcc (e.g. a uv-managed Python or a python3-devel install).
+* ``TORCH_COMPILE_DISABLE`` — should remain ``"1"`` on Alex, because
+  vLLM can still trigger inner ``torch.compile`` wrappers even when
+  ``enforce_eager`` is enabled.
 """
 
 from __future__ import annotations

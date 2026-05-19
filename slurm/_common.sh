@@ -15,10 +15,11 @@
 # Phase 1 70B job 3624187 burned ~6 minutes of a 4xA100 reservation before
 # vLLM crashed with `Python.h: No such file or directory`. Root cause: NHR@FAU
 # Alex compute nodes run AlmaLinux 8 without python3-devel, so triton's
-# runtime JIT compile of cuda_utils.c (driven by torch.compile / inductor
-# combo-kernel benchmarking) fails. This preamble configures every knob
-# needed to either (a) avoid that code path entirely or (b) make the JIT
-# compile actually succeed when Python headers happen to be reachable.
+# runtime JIT compile of cuda_utils.c (driven by torch.compile / inductor)
+# fails. vLLM's `enforce_eager=True` disables the main compilation path, but
+# vLLM 0.21 still leaves some inner torch.compile wrappers active. This
+# preamble therefore disables TorchDynamo globally unless the user explicitly
+# opts back in on an environment with Python headers.
 #
 # What it sets, in one place, for submit-time jobs:
 #   * HuggingFace cache -> vault (HF_HOME, HF_HUB_CACHE, TRANSFORMERS_CACHE).
@@ -32,6 +33,8 @@
 #     fork-safety with CUDA).
 #   * SE_VLLM_ENFORCE_EAGER=1 by default - opt out only on hosts proven to
 #     have Python.h (e.g. an interactive node where you've verified it).
+#   * TORCH_COMPILE_DISABLE=1 by default, because vLLM can still trigger
+#     inner torch.compile wrappers even when enforce_eager is enabled.
 #   * HF_HUB_OFFLINE=1 so compute jobs fail fast on a missing model cache rather
 #     than discovering it inside a 6-hour A100 reservation.
 #
@@ -105,7 +108,7 @@ if [ -n "${_SE_PY_INCLUDE}" ] && [ -f "${_SE_PY_INCLUDE}/Python.h" ]; then
     export C_INCLUDE_PATH="${_SE_PY_INCLUDE}${C_INCLUDE_PATH:+:${C_INCLUDE_PATH}}"
     echo "[_common.sh] Python.h found at ${_SE_PY_INCLUDE}; added to CPATH."
 else
-    echo "[_common.sh] Python.h NOT findable from $(which python). Relying on enforce_eager."
+    echo "[_common.sh] Python.h NOT findable from $(which python). Disabling TorchDynamo/Inductor."
 fi
 
 # --- 5. CPU threading --------------------------------------------------------
@@ -123,11 +126,15 @@ export MKL_CBWR="${MKL_CBWR:-AUTO}"
 
 # --- 6. vLLM and logging knobs ----------------------------------------------
 export VLLM_WORKER_MULTIPROC_METHOD="${VLLM_WORKER_MULTIPROC_METHOD:-spawn}"
-# Default ON: skip torch.compile / CUDA graphs so we never enter triton's
-# JIT compile path. ~10-30% slower than compiled, but bullet-proof on Alex.
+# Default ON: skip vLLM's main torch.compile / CUDA graph path.
 # Override with --export=...,SE_VLLM_ENFORCE_EAGER=0 only after preflight
 # proves the JIT path actually works on the node you got.
 export SE_VLLM_ENFORCE_EAGER="${SE_VLLM_ENFORCE_EAGER:-1}"
+# Default ON: disable residual torch.compile wrappers inside vLLM/PyTorch.
+# Job 3624402 proved enforce_eager alone is not enough on Alex: vLLM still
+# compiled vocab_parallel_embedding.get_masked_input_and_mask and hit the
+# same missing-Python.h Triton path.
+export TORCH_COMPILE_DISABLE="${TORCH_COMPILE_DISABLE:-1}"
 # Keep Slurm logs compact. Errors still surface.
 export VLLM_LOGGING_LEVEL="${VLLM_LOGGING_LEVEL:-WARNING}"
 export TRANSFORMERS_VERBOSITY="${TRANSFORMERS_VERBOSITY:-error}"
@@ -183,6 +190,7 @@ cat <<EOF
   VLLM_CACHE_ROOT      = ${VLLM_CACHE_ROOT}
   TMPDIR               = ${TMPDIR:-<unset>}
   SE_VLLM_ENFORCE_EAGER= ${SE_VLLM_ENFORCE_EAGER}
+  TORCH_COMPILE_DISABLE= ${TORCH_COMPILE_DISABLE}
   VLLM_LOGGING_LEVEL   = ${VLLM_LOGGING_LEVEL}
   OMP_NUM_THREADS      = ${OMP_NUM_THREADS:-<unset>}
   CPATH                = ${CPATH:-<unset>}

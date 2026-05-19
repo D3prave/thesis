@@ -8,8 +8,8 @@ Verifies, in order:
    will be exercised (``--features hf,kle,sep,vllm,plot,download``).
 4. HuggingFace model weights are present in ``HF_HOME`` (for every
    ``--model`` value).
-5. vLLM runtime settings are safe for NHR@FAU when ``--features`` includes
-   ``vllm``.
+5. vLLM and TorchDynamo runtime settings are safe for NHR@FAU when
+   ``--features`` includes ``vllm``.
 6. Sentence-transformer embedding model is present (when
    ``--kle-model`` is given).
 7. Data files referenced by ``--data-path`` exist and are readable.
@@ -253,17 +253,35 @@ def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
         rep.fail(str(exc))
         return
 
-    if enforce_eager:
-        rep.ok("SE_VLLM_ENFORCE_EAGER=1 avoids triton's Python.h JIT path")
-        return
-
     available, detail = _python_h_available()
-    if available:
-        rep.ok(f"Python.h available for triton JIT: {detail}")
+
+    if enforce_eager:
+        rep.ok("SE_VLLM_ENFORCE_EAGER=1 disables vLLM's main compile path")
+    elif available:
+        rep.ok(f"Python.h available for vLLM compile path: {detail}")
     else:
         rep.fail(
             "SE_VLLM_ENFORCE_EAGER=0 but Python.h is not available to gcc "
             f"(checked {detail}); set SE_VLLM_ENFORCE_EAGER=1"
+        )
+
+    try:
+        torch_compile_disabled = _env_bool("TORCH_COMPILE_DISABLE", False)
+    except ValueError as exc:
+        rep.fail(str(exc))
+        return
+
+    if torch_compile_disabled:
+        rep.ok(
+            "TORCH_COMPILE_DISABLE=1 disables residual torch.compile wrappers"
+        )
+    elif available:
+        rep.ok(f"TORCH_COMPILE_DISABLE=0 but Python.h is available: {detail}")
+    else:
+        rep.fail(
+            "TORCH_COMPILE_DISABLE must be 1 because vLLM can still call "
+            "inner torch.compile wrappers even with enforce_eager enabled, "
+            f"and Python.h is not available to gcc (checked {detail})"
         )
 
 

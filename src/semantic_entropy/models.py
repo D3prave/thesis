@@ -419,16 +419,13 @@ def make_vllm_model(
             (e.g. ``4096``) avoids vLLM raising on models whose declared
             ``max_position_embeddings`` exceeds the available KV-cache
             memory on the chosen GPUs.
-        enforce_eager: When ``True`` (default), disable vLLM's ``torch.compile``
-            / CUDA-graph code path and run every forward in eager mode. This
-            avoids triton's JIT compiler, which requires ``Python.h`` from
-            ``python3-devel`` — a header that is **not** installed on NHR@FAU
-            Alex compute nodes. Symptom of a missing header is a
-            ``gcc: fatal error: Python.h: No such file or directory``
-            blow-up inside vLLM's profile run (see logs/phase1_70b_alex_3624187).
-            Eager mode is ~10–30% slower per token but bullet-proof on the
-            cluster. Pass ``False`` only on hosts where ``python3-devel`` or a
-            uv-managed Python (which ships its own headers) is available.
+        enforce_eager: When ``True`` (default), disable vLLM's main
+            ``torch.compile`` / CUDA-graph code path and run model forwards in
+            eager mode. On Alex this must be paired with
+            ``TORCH_COMPILE_DISABLE=1`` from ``slurm/_common.sh`` because vLLM
+            can still trigger inner ``torch.compile`` wrappers while profiling.
+            The failure symptom is ``gcc: fatal error: Python.h: No such file
+            or directory`` inside vLLM startup.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
 
