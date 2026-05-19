@@ -67,6 +67,7 @@ fi
 # shellcheck disable=SC1091
 source "${VENV}/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
+python "${REPO_ROOT}/scripts/preflight.py" --features download
 
 # ---------- Download helper ----------
 download_model() {
@@ -112,7 +113,7 @@ download_model "cross-encoder/nli-deberta-v3-base"
 download_model "sentence-transformers/all-MiniLM-L6-v2"
 
 echo ""
-echo "=== 70B generation models (gated — requires accepted licence + HF_TOKEN) ==="
+echo "=== 70B generation models (gated — requires accepted license + HF_TOKEN) ==="
 if [ -n "${HF_TOKEN:-}" ]; then
     download_model "meta-llama/Llama-3.1-70B-Instruct"
 else

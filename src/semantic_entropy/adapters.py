@@ -110,7 +110,7 @@ def _env_bool(key: str, default: bool) -> bool:
     if lowered in falsy:
         return False
     raise ValueError(
-        f"Environment variable {key}={raw!r} is not a recognised boolean. "
+        f"Environment variable {key}={raw!r} is not a recognized boolean. "
         f"Use one of {sorted(truthy | falsy)}."
     )
 

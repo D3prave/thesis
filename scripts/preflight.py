@@ -5,13 +5,15 @@ Verifies, in order:
 1. Python version matches ``pyproject.toml`` (>= 3.11).
 2. Core package imports (``semantic_entropy``) without errors.
 3. Optional dependency groups are importable for the features that
-   will be exercised (``--features hf,kle,sep,vllm,plot``).
-4. HuggingFace model weights are present in ``HF_HOME`` (when
-   ``--model`` is given).
-5. Sentence-transformer embedding model is present (when
+   will be exercised (``--features hf,kle,sep,vllm,plot,download``).
+4. HuggingFace model weights are present in ``HF_HOME`` (for every
+   ``--model`` value).
+5. vLLM runtime settings are safe for NHR@FAU when ``--features`` includes
+   ``vllm``.
+6. Sentence-transformer embedding model is present (when
    ``--kle-model`` is given).
-6. Data files referenced by ``--data-path`` exist and are readable.
-7. The ``semantic-entropy-run-pipeline`` CLI accepts every feature
+7. Data files referenced by ``--data-path`` exist and are readable.
+8. The ``semantic-entropy-run-pipeline`` CLI accepts every feature
    flag we plan to use (``--kle-model``, ``--sep-probe``, etc.).
 
 Each check prints either ``[ok]`` or ``[FAIL]`` and exits non-zero on
@@ -34,8 +36,8 @@ Typical use (on the cluster, inside an interactive shell):
         --data-path data/processed/triviaqa_val_500.jsonl
 
 Exit codes:
-    0 — all checks passed
-    1 — at least one check failed (only with default --strict)
+    0 - all checks passed
+    1 - at least one check failed (only with default --strict)
 """
 
 from __future__ import annotations
@@ -44,15 +46,16 @@ import argparse
 import importlib
 import os
 import sys
+import sysconfig
 from collections.abc import Iterable
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
-# Feature → required modules / Python imports
+# Feature -> required modules / Python imports
 # ---------------------------------------------------------------------------
 
 FEATURE_REQUIREMENTS: dict[str, tuple[str, ...]] = {
+    "download": ("huggingface_hub",),
     "hf": ("torch", "transformers"),
     "vllm": ("vllm",),
     "kle": ("numpy", "sentence_transformers"),
@@ -68,16 +71,17 @@ def parse_args() -> argparse.Namespace:
         default="hf",
         help=(
             "Comma-separated optional dependency groups to verify. "
-            "One or more of: hf,vllm,kle,sep,plot. Default: hf."
+            "One or more of: download,hf,vllm,kle,sep,plot,none. Default: hf."
         ),
     )
     p.add_argument(
         "--model",
-        default=None,
+        action="append",
+        default=[],
         metavar="HF_MODEL_ID",
         help=(
-            "If set, verify that the model weights are cached in HF_HOME "
-            "(an actual `from_pretrained` is NOT performed)."
+            "Verify that model weights are cached in HF_HOME. May be passed "
+            "multiple times. An actual `from_pretrained` is NOT performed."
         ),
     )
     p.add_argument(
@@ -156,7 +160,7 @@ def _check_package_imports(rep: Reporter) -> None:
 def _check_feature_imports(rep: Reporter, features: Iterable[str]) -> None:
     for feature in features:
         feature = feature.strip()
-        if not feature:
+        if not feature or feature == "none":
             continue
         reqs = FEATURE_REQUIREMENTS.get(feature)
         if reqs is None:
@@ -203,6 +207,66 @@ def _check_embedding_cache(rep: Reporter, model: str) -> None:
         )
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    lowered = raw.strip().lower()
+    if lowered in {"1", "true", "yes", "y", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "n", "off"}:
+        return False
+    raise ValueError(f"{name}={raw!r} is not a recognized boolean")
+
+
+def _python_h_available() -> tuple[bool, str]:
+    include_dir = Path(sysconfig.get_path("include") or "")
+    if (include_dir / "Python.h").is_file():
+        return True, str(include_dir / "Python.h")
+    for env_name in ("CPATH", "C_INCLUDE_PATH"):
+        for raw_entry in os.environ.get(env_name, "").split(":"):
+            if not raw_entry:
+                continue
+            candidate = Path(raw_entry) / "Python.h"
+            if candidate.is_file():
+                return True, str(candidate)
+    return False, str(include_dir / "Python.h")
+
+
+def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
+    if "vllm" not in {feature.strip() for feature in features}:
+        return
+
+    print("vLLM runtime", flush=True)
+    method = os.environ.get("VLLM_WORKER_MULTIPROC_METHOD")
+    if method == "spawn":
+        rep.ok("VLLM_WORKER_MULTIPROC_METHOD=spawn")
+    else:
+        rep.fail(
+            "VLLM_WORKER_MULTIPROC_METHOD must be spawn for CUDA-safe "
+            f"multi-process startup; got {method!r}"
+        )
+
+    try:
+        enforce_eager = _env_bool("SE_VLLM_ENFORCE_EAGER", True)
+    except ValueError as exc:
+        rep.fail(str(exc))
+        return
+
+    if enforce_eager:
+        rep.ok("SE_VLLM_ENFORCE_EAGER=1 avoids triton's Python.h JIT path")
+        return
+
+    available, detail = _python_h_available()
+    if available:
+        rep.ok(f"Python.h available for triton JIT: {detail}")
+    else:
+        rep.fail(
+            "SE_VLLM_ENFORCE_EAGER=0 but Python.h is not available to gcc "
+            f"(checked {detail}); set SE_VLLM_ENFORCE_EAGER=1"
+        )
+
+
 def _check_data_paths(rep: Reporter, paths: Iterable[str]) -> None:
     for p in paths:
         print(f"Data file {p!r}", flush=True)
@@ -239,6 +303,7 @@ def _check_cli_flags(rep: Reporter) -> None:
     # via redirect_stdout to keep the preflight output clean.
     import contextlib
     import io
+
     from semantic_entropy import pipeline_cli
 
     buf = io.StringIO()
@@ -282,9 +347,10 @@ def main() -> int:
 
     features = [f for f in args.features.split(",") if f.strip()]
     _check_feature_imports(rep, features)
+    _check_vllm_runtime_config(rep, features)
 
-    if args.model:
-        _check_hf_cache(rep, args.model)
+    for model in args.model:
+        _check_hf_cache(rep, model)
     if args.kle_model:
         _check_embedding_cache(rep, args.kle_model)
     if args.data_path:

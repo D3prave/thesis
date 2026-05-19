@@ -1,5 +1,5 @@
 # ============================================================================
-# slurm/_common.sh — shared environment preamble for every GPU job on Alex.
+# slurm/_common.sh - shared environment preamble for Slurm jobs.
 #
 # Source this file *after* `set -euo pipefail` and *before* any `python` call:
 #
@@ -12,7 +12,7 @@
 #
 # Why a shared preamble exists
 # ----------------------------
-# Phase 1 70B job 3624187 burned ~6 minutes of a 4×A100 reservation before
+# Phase 1 70B job 3624187 burned ~6 minutes of a 4xA100 reservation before
 # vLLM crashed with `Python.h: No such file or directory`. Root cause: NHR@FAU
 # Alex compute nodes run AlmaLinux 8 without python3-devel, so triton's
 # runtime JIT compile of cuda_utils.c (driven by torch.compile / inductor
@@ -20,9 +20,9 @@
 # needed to either (a) avoid that code path entirely or (b) make the JIT
 # compile actually succeed when Python headers happen to be reachable.
 #
-# What it sets, in one place, for ALL jobs:
-#   * HuggingFace cache → vault (HF_HOME, HF_HUB_CACHE, TRANSFORMERS_CACHE).
-#   * Triton + Inductor caches → $WORK (persistent across jobs) for warm
+# What it sets, in one place, for submit-time jobs:
+#   * HuggingFace cache -> vault (HF_HOME, HF_HUB_CACHE, TRANSFORMERS_CACHE).
+#   * Triton + Inductor caches -> $WORK (persistent across jobs) for warm
 #     starts, with scratch on $TMPDIR (node-local NVMe).
 #   * CPATH best-effort pointing at the venv's Python include dir so triton
 #     can find Python.h when one exists (uv-managed Python ships it).
@@ -30,13 +30,14 @@
 #     (Slurm >22.05 doesn't propagate the latter automatically).
 #   * VLLM_WORKER_MULTIPROC_METHOD=spawn (required for tensor-parallel
 #     fork-safety with CUDA).
-#   * SE_VLLM_ENFORCE_EAGER=1 by default — opt out only on hosts proven to
+#   * SE_VLLM_ENFORCE_EAGER=1 by default - opt out only on hosts proven to
 #     have Python.h (e.g. an interactive node where you've verified it).
-#   * HF_HUB_OFFLINE=1 so jobs fail fast on a missing model cache rather
+#   * HF_HUB_OFFLINE=1 so compute jobs fail fast on a missing model cache rather
 #     than discovering it inside a 6-hour A100 reservation.
 #
 # The preamble assumes:
 #   * REPO_ROOT is already set (e.g. to $SLURM_SUBMIT_DIR).
+#   * SE_CLUSTER is optionally set to alex or helma before sourcing.
 #   * A .venv exists at $REPO_ROOT/.venv with the project installed.
 # ============================================================================
 
@@ -45,7 +46,7 @@ if [ -z "${REPO_ROOT:-}" ]; then
     echo "ERROR: _common.sh sourced without REPO_ROOT set." >&2
     return 1 2>/dev/null || exit 1
 fi
-if [ ! -d "${REPO_ROOT}/.venv" ]; then
+if [ ! -f "${REPO_ROOT}/.venv/bin/activate" ]; then
     echo "ERROR: ${REPO_ROOT}/.venv not found. Create it on a login node with:" >&2
     echo "       module load python && python -m venv .venv" >&2
     echo "       source .venv/bin/activate && pip install -e '.[vllm,hf]'" >&2
@@ -57,17 +58,30 @@ module load python 2>/dev/null || true   # may already be loaded
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
+export SE_CLUSTER="${SE_CLUSTER:-alex}"
 
 # --- 2. HuggingFace cache ----------------------------------------------------
-# /home/vault is backed up and survives the account lifetime (500 GB quota,
-# we use ~670 GB already → request a quota extension or move 70B to $WORK).
-export HF_HOME="${HF_HOME:-/home/vault/b192aa/b192aa36/huggingface}"
+# Alex has /home/vault on compute nodes. Helma compute nodes do not mount
+# /home/vault, so use an explicit HF_HOME override there when an /hnvme
+# workspace is available.
+if [ -z "${HF_HOME:-}" ]; then
+    case "${SE_CLUSTER}" in
+        helma)
+            export HF_HOME="${HOME}/.cache/huggingface"
+            ;;
+        *)
+            export HF_HOME="/home/vault/b192aa/b192aa36/huggingface"
+            ;;
+    esac
+else
+    export HF_HOME
+fi
 export HF_HUB_CACHE="${HF_HOME}/hub"
 export TRANSFORMERS_CACHE="${HF_HUB_CACHE}"
 export SENTENCE_TRANSFORMERS_HOME="${HF_HOME}/sentence-transformers"
 mkdir -p "${HF_HOME}" "${HF_HUB_CACHE}" "${SENTENCE_TRANSFORMERS_HOME}"
 # Fail fast if a job asks for a model that isn't on disk. Without this,
-# the compute node tries a download → blocked (no proxy by default) →
+# the compute node tries a download -> blocked (no proxy by default) ->
 # wastes the entire allocation.
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
@@ -75,8 +89,9 @@ export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 # --- 3. Triton + Inductor caches --------------------------------------------
 # $WORK has no backup but no inode-tight quota and survives across jobs, so
 # a warm triton cache cuts vLLM startup by ~30s on subsequent runs.
-# If $WORK isn't set (rare), fall back to vault.
-_SE_WORK="${WORK:-/home/vault/b192aa/b192aa36}"
+# If $WORK is not set, fall back to HF_HOME, which is mounted by all scripts
+# that use this preamble.
+_SE_WORK="${WORK:-${HF_HOME}}"
 export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-${_SE_WORK}/.cache/triton}"
 export TORCHINDUCTOR_CACHE_DIR="${TORCHINDUCTOR_CACHE_DIR:-${_SE_WORK}/.cache/torchinductor}"
 # vLLM's own compile cache also goes here (default is ~/.cache/vllm, which
@@ -120,15 +135,18 @@ fi
 # correct value of MKL_CBWR=AUTO is still helpful.
 export MKL_CBWR="${MKL_CBWR:-AUTO}"
 
-# --- 6. vLLM knobs -----------------------------------------------------------
+# --- 6. vLLM and logging knobs ----------------------------------------------
 export VLLM_WORKER_MULTIPROC_METHOD="${VLLM_WORKER_MULTIPROC_METHOD:-spawn}"
 # Default ON: skip torch.compile / CUDA graphs so we never enter triton's
-# JIT compile path. ~10–30% slower than compiled, but bullet-proof on Alex.
+# JIT compile path. ~10-30% slower than compiled, but bullet-proof on Alex.
 # Override with --export=...,SE_VLLM_ENFORCE_EAGER=0 only after preflight
 # proves the JIT path actually works on the node you got.
 export SE_VLLM_ENFORCE_EAGER="${SE_VLLM_ENFORCE_EAGER:-1}"
-# Quiet down vLLM banner. Errors still surface.
-export VLLM_LOGGING_LEVEL="${VLLM_LOGGING_LEVEL:-INFO}"
+# Keep Slurm logs compact. Errors still surface.
+export VLLM_LOGGING_LEVEL="${VLLM_LOGGING_LEVEL:-WARNING}"
+export TRANSFORMERS_VERBOSITY="${TRANSFORMERS_VERBOSITY:-error}"
+export HF_HUB_DISABLE_PROGRESS_BARS="${HF_HUB_DISABLE_PROGRESS_BARS:-1}"
+export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 
 # --- 7. Proxy (only if needed; HF_HUB_OFFLINE=1 makes it irrelevant) --------
 # Compute nodes can reach the outside world only via the NHR proxy.
@@ -136,15 +154,50 @@ export VLLM_LOGGING_LEVEL="${VLLM_LOGGING_LEVEL:-INFO}"
 # rather than silently pulling from the internet during a 6-hour job.
 # Set them explicitly in prefetch jobs (slurm/prefetch_models.sbatch).
 
-# --- 8. Banner ---------------------------------------------------------------
+# --- 8. Helpers --------------------------------------------------------------
+se_hf_cache_dir() {
+    local model="$1"
+    printf '%s/models--%s' "${HF_HUB_CACHE}" "${model//\//--}"
+}
+
+se_require_cached_model() {
+    local model expected
+    for model in "$@"; do
+        expected="$(se_hf_cache_dir "${model}")"
+        if [ ! -d "${expected}" ]; then
+            echo "ERROR: Model '${model}' is not cached." >&2
+            echo "       Expected: ${expected}" >&2
+            echo "       Fix: run  bash scripts/download_models.sh  on a login node," >&2
+            echo "            or:  sbatch slurm/prefetch_models.sbatch" >&2
+            return 1
+        fi
+        echo "Cache check passed: ${expected}"
+    done
+}
+
+se_require_data_path() {
+    local data_path="${1:-}"
+    if [ -n "${data_path}" ] && [ ! -f "${data_path}" ]; then
+        echo "ERROR: DATA_PATH does not exist: ${data_path}" >&2
+        return 1
+    fi
+}
+
+se_preflight() {
+    python "${REPO_ROOT}/scripts/preflight.py" "$@"
+}
+
+# --- 9. Banner ---------------------------------------------------------------
 cat <<EOF
 [_common.sh] env ready
+  SE_CLUSTER           = ${SE_CLUSTER}
   HF_HOME              = ${HF_HOME}
   TRITON_CACHE_DIR     = ${TRITON_CACHE_DIR}
   TORCHINDUCTOR_CACHE_DIR = ${TORCHINDUCTOR_CACHE_DIR}
   VLLM_CACHE_ROOT      = ${VLLM_CACHE_ROOT}
   TMPDIR               = ${TMPDIR:-<unset>}
   SE_VLLM_ENFORCE_EAGER= ${SE_VLLM_ENFORCE_EAGER}
+  VLLM_LOGGING_LEVEL   = ${VLLM_LOGGING_LEVEL}
   OMP_NUM_THREADS      = ${OMP_NUM_THREADS:-<unset>}
   CPATH                = ${CPATH:-<unset>}
 EOF

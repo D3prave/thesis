@@ -36,6 +36,10 @@ module load python
 REPO_ROOT="${SLURM_SUBMIT_DIR}"
 source "${REPO_ROOT}/.venv/bin/activate"
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
+if [ -n "${SLURM_CPUS_PER_TASK:-}" ]; then
+    export OMP_NUM_THREADS="${OMP_NUM_THREADS:-${SLURM_CPUS_PER_TASK}}"
+    export SRUN_CPUS_PER_TASK="${SLURM_CPUS_PER_TASK}"
+fi
 
 # Load .env from repo root if present (never commit .env — it's in .gitignore)
 # shellcheck disable=SC1091
@@ -45,11 +49,18 @@ export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
 export http_proxy="${http_proxy:-http://proxy.nhr.fau.de:80}"
 export https_proxy="${https_proxy:-http://proxy.nhr.fau.de:80}"
 
+# Explicitly clear offline flags - prefetch jobs must be allowed to download
+unset HF_HUB_OFFLINE
+unset TRANSFORMERS_OFFLINE
+unset HF_DATASETS_OFFLINE
+
 # Always write to vault — same location as all compute scripts
 export HF_HOME="/home/vault/b192aa/b192aa36/huggingface"
 export HF_HUB_CACHE="${HF_HOME}/hub"
 export TRANSFORMERS_CACHE="${HF_HUB_CACHE}"
 mkdir -p "${HF_HOME}" "${HF_HUB_CACHE}"
+
+python "${REPO_ROOT}/scripts/preflight.py" --features download
 
 # Set HF_TOKEN if provided via --export (enables gated models like Llama)
 if [ -n "${HF_TOKEN:-}" ]; then
@@ -70,7 +81,7 @@ MODELS_NLI=(
     "sentence-transformers/all-MiniLM-L6-v2"   # KLE embedding model
 )
 MODELS_70B=(
-    # Gated — requires HF_TOKEN and accepted licence on huggingface.co
+    # Gated — requires HF_TOKEN and accepted license on huggingface.co
     "meta-llama/Llama-3.1-70B-Instruct"
 )
 
