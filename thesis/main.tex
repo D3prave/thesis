@@ -15,6 +15,23 @@
 \usepackage{graphicx}
 \usepackage{kaobiblio}
 
+% Compatibility for the kaobook caption hook with current LaTeX.
+\LetLtxMacro{\kaooriginalcaption}{\caption}
+\NewDocumentCommand{\kaocaptionwrapper}{s o m}{%
+  \IfBooleanTF{#1}{%
+    \kaooriginalcaption*{#3}%
+  }{%
+    \IfValueTF{#2}{%
+      \kaooriginalcaption[#2]{#3}%
+    }{%
+      \kaooriginalcaption{#3}%
+    }%
+  }%
+  \toggletrue{kaocaption}%
+}
+\AtBeginEnvironment{figure}{\LetLtxMacro{\caption}{\kaocaptionwrapper}}
+\AtBeginEnvironment{table}{\LetLtxMacro{\caption}{\kaocaptionwrapper}}
+
 % Metric table generation and automated result reporting
 % \input{includes/metric_tables.tex}  % Disabled: pgfplotstable macros need fixing
 
