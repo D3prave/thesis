@@ -8,9 +8,10 @@ signal when an answer should not be trusted. This thesis studies
 detection and selective abstention in short-answer question answering.
 
 Semantic entropy measures uncertainty over meanings rather than over
-surface strings. Sampled answers are grouped into semantic equivalence
-classes using bidirectional Natural Language Inference entailment, and
-Shannon entropy is computed over cluster frequencies. The method is
+surface strings. In this thesis, sampled answers are grouped either by
+exact match after normalization or, in the NLI condition, by
+bidirectional Natural Language Inference entailment. Shannon entropy is
+computed over cluster frequencies. The method is
 designed to detect \emph{confabulations}---answers that are both
 incorrect and semantically inconsistent across alternative generations
 from the same prompt---while making no claim about high-confidence
@@ -20,9 +21,10 @@ We implement discrete semantic entropy on two structurally distinct
 tasks: TriviaQA, an open-domain factual question-answering benchmark,
 and SVAMP, a short-answer arithmetic reasoning dataset. Experiments are
 organized in two phases on NHR@FAU high-performance computing resources.
-Phase~1 uses Mistral-7B with a DeBERTa NLI backend to validate the
-end-to-end pipeline at modest scale. Phase~2 extends the evaluation to
-Llama-3.1-70B and stronger semantic judges on A100 and H100 hardware.
+Phase~1 establishes exact-match clustering baselines for Mistral-7B and
+Llama-3.1-70B. Phase~2 repeats the same model--dataset grid and replaces
+exact-match clustering with a DeBERTa-v3-base NLI backend on A100
+hardware.
 Uncertainty quality is measured with the area under the receiver
 operating characteristic curve (AUROC), the area under the
 rejection-accuracy curve (AURAC), and rejection-accuracy curves that

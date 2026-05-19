@@ -3,10 +3,11 @@
 This chapter specifies the experiment plan used to evaluate whether
 semantic entropy provides a better hallucination and abstention signal
 than surface-form uncertainty. The design is split into two phases. Phase
-1 keeps the experiment small enough to debug locally or on TinyGPU
-resources. Phase 2 scales the same measurement plan to NHR@FAU resources,
-with Alex used for large inference and clustering runs and Helma reserved
-for 70B+ models and the optional high-compute extensions. Chapter 3
+1 establishes an exact-match clustering baseline that is small enough to
+debug locally before being run at evaluation scale. Phase 2 repeats the
+same measurement plan with NLI clustering on NHR@FAU resources, with Alex
+used for large inference and clustering runs and Helma reserved for 70B+
+models and the optional high-compute extensions. Chapter 3
 defines the semantic entropy method itself; this chapter fixes the
 experimental variables, comparisons, and records; Chapter 5 covers
 execution, Slurm discipline, storage, and reproducibility logging.
@@ -61,19 +62,19 @@ to isolate semantic clustering on short-answer tasks
 
 \subsection{Phase 1: Local and TinyGPU Models}
 
-Phase 1 uses a small local model first, then a 7B--8B instruct or chat
-model once the output schema and metrics are stable. The aim is not to
-maximize model quality, but to verify generation, answer normalization,
-entailment clustering, entropy scoring, and correctness labeling
-end to end. TinyGPU resources can be used for single-GPU debug jobs on
-older GPUs such as V100 or RTX~3080 class hardware. Candidate model
-families include Mistral-7B and the LLaMA family, subject to availability
-and licensing \cite{jiang_mistral_2023,touvron_llama2_2023}.
+Phase 1 first validates the output schema and metrics with small local or
+TinyGPU jobs, then records exact-match clustering baselines for the evaluated
+generation models. The aim is not to maximize semantic-judge quality, but to
+verify generation, answer normalization, exact-match clustering, entropy
+scoring, and correctness labeling end to end. TinyGPU resources can be used for
+single-GPU debug jobs on older GPUs such as V100 or RTX~3080 class hardware.
+Candidate model families include Mistral-7B and the LLaMA family, subject to
+availability and licensing \cite{jiang_mistral_2023,touvron_llama2_2023}.
 
-The Phase 1 entailment backend is a local NLI model. A DeBERTa-v3
-cross-encoder fine-tuned on NLI is the preferred first backend because it is
-practical to run locally and supplies the entailment, contradiction, and neutral
-labels needed for bidirectional semantic clustering \cite{he_debertav3_2021,
+The first NLI backend enters in Phase~2. A DeBERTa-v3 cross-encoder fine-tuned
+on NLI is the preferred local semantic judge because it is practical to run and
+supplies the entailment, contradiction, and neutral labels needed for
+bidirectional semantic clustering \cite{he_debertav3_2021,
 sentence_transformers_nli_deberta_v3_base_2022,williams_multinli_2018}.
 
 \subsection{Phase 2: Alex and Helma HPC Runs}
@@ -109,10 +110,11 @@ diversity over exact or lightly normalized answer strings. It addresses
 a single question: does semantic clustering add value beyond the
 observation that sampled outputs differ lexically?
 
-The core method is discrete semantic entropy. Samples are clustered by
-bidirectional entailment, and entropy is computed over cluster
-frequencies \cite{kuhn_semantic_uncertainty_2023,
-semantic_entropy_nature_2024}. This is the first method evaluated. Full
+The core method is discrete semantic entropy. Phase~1 clusters samples by
+exact-match normalization, while Phase~2 uses bidirectional entailment clusters;
+in both cases entropy is computed over cluster frequencies
+\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This is the
+first method evaluated. Full
 probability-weighted semantic entropy belongs to the later extension set
 once the discrete version is working and the output records are stable.
 The released semantic uncertainty codebase serves as a methodological
@@ -205,7 +207,7 @@ scaling:
     cluster list contains one identifier per sampled answer;
   \item entropy scores are finite and non-negative;
   \item correctness labels are present for all evaluated prompts;
-  \item decoding settings, model names, NLI backend, dataset split, and
+  \item decoding settings, model names, clustering backend, dataset split, and
     random seeds are recorded;
   \item a small manual audit confirms that several clusters are
     reasonable.
@@ -229,6 +231,6 @@ route the prompt to a more expensive verification procedure
 
 The final comparison is therefore staged. Phase 1 establishes a working
 baseline result on TriviaQA and SVAMP. Phase 2 tests whether the same
-ranking behavior persists with larger models and stronger semantic
-judges, with optional advanced semantic uncertainty estimators added
+ranking behavior persists when exact-match clusters are replaced by NLI-defined
+semantic clusters, with optional advanced semantic uncertainty estimators added
 only if Phase 1 completes and time permits.

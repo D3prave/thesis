@@ -41,21 +41,18 @@ the different answer types and normalization requirements of the two tasks.
 
 \section{Two-Phase Study}
 
-The study is organized in two phases. Phase 1 is a constrained pilot that can be
-debugged locally and on TinyGPU resources. It will use small local models first,
-then 7B--8B instruct or chat models, and will evaluate discrete semantic entropy
-on TriviaQA and SVAMP. The purpose of Phase 1 is to make the full pipeline
-auditable: sample answers, normalize them, cluster them by bidirectional
-entailment, compute uncertainty scores, attach correctness labels, and write
-machine-readable records.
+The study is organized in two phases. Phase 1 establishes exact-match
+clustering baselines for Mistral-7B and Llama-3.1-70B on TriviaQA and SVAMP.
+The purpose of Phase 1 is to make the full pipeline auditable: sample answers,
+normalize them, assign clusters, compute uncertainty scores, attach correctness
+labels, and write machine-readable records.
 
-Phase 2 repeats the same measurement plan at larger scale on NHR@FAU resources.
-Alex is planned for scaled inference, larger sweeps, and stronger semantic
-clustering runs. Helma is reserved for 70B+ models and high-compute extensions
-such as Semantic Entropy Probes, Kernel Language Entropy, Semantic Energy, and
-Semantic Volume. The key constraint is continuity: Phase 2 should test whether
-the Phase 1 pattern survives stronger models and better judges, not replace the
-research question with a different one.
+Phase 2 repeats the same model--dataset grid on NHR@FAU resources and replaces
+exact-match clustering with a DeBERTa-v3-base NLI backend. Posthoc checks then
+test whether a larger DeBERTa-v3 NLI backend or Kernel Language Entropy changes
+the observed pattern. The key constraint is continuity: Phase 2 should test
+whether the Phase 1 ranking behavior survives semantic clustering, not replace
+the research question with a different one.
 
 \section{Contributions}
 
@@ -64,7 +61,8 @@ The contributions of this thesis are:
 \begin{enumerate}
   \item a reproducible implementation of discrete semantic entropy for
     short-answer hallucination detection, covering answer normalization,
-    bidirectional NLI clustering, entropy scoring, and correctness labeling;
+    exact-match and bidirectional NLI clustering, entropy scoring, and
+    correctness labeling;
   \item a two-phase experimental design that separates local pipeline validation
     from high-compute NHR@FAU HPC runs, with Slurm templates and
     reproducibility logging for each phase;

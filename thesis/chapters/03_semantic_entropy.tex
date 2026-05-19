@@ -76,7 +76,7 @@ entropy framing, two answers belong to the same cluster when they are
 equivalent in the context of the prompt \cite{kuhn_semantic_uncertainty_2023,
 semantic_entropy_nature_2024}.
 
-The baseline approximates equivalence with bidirectional entailment. For
+The NLI version approximates equivalence with bidirectional entailment. For
 answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails
 \(y_j\) and whether \(y_j\) entails \(y_i\), conditioned on the prompt
 \(x\). If both directions hold, the answers are treated as the same
@@ -86,6 +86,11 @@ labels needed by the clustering rule \cite{williams_multinli_2018}. A
 DeBERTa-v3 NLI cross-encoder is the preferred first local backend, because
 it is practical for a pilot while avoiding dependence on a proprietary judge
 \cite{he_debertav3_2021,sentence_transformers_nli_deberta_v3_base_2022}.
+
+The reported experiments also use an exact-match clustering baseline in
+Phase~1. In that condition, normalized strings define clusters, so the
+comparison with Phase~2 isolates the effect of replacing exact-match
+clustering with NLI-based semantic merging.
 
 This rule is an approximation rather than a definition of truth. It may
 split answers that differ only in harmless detail, and it may merge answers
@@ -227,7 +232,8 @@ The method contract is intentionally minimal:
     decoding configuration;
   \item normalize only obvious formatting differences, such as surrounding
     whitespace and simple answer prefixes;
-  \item cluster answers using bidirectional entailment;
+  \item cluster answers using the configured equivalence relation, either
+    exact-match normalization or bidirectional entailment;
   \item compute naive answer-diversity entropy and discrete semantic
     entropy;
   \item attach a correctness label and evaluate whether uncertainty

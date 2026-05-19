@@ -36,8 +36,9 @@
   name={NLI},
   description={Natural Language Inference: the task of determining whether
     a hypothesis sentence is entailed by, contradicted by, or neutral with
-    respect to a premise sentence. Used in this thesis as the backend for
-    deciding whether two sampled answers express the same meaning}
+    respect to a premise sentence. Used in Phase 2 and posthoc reclustering as
+    the backend for deciding whether two sampled answers express the same
+    meaning}
 }
 
 \newglossaryentry{entailment}{
@@ -50,9 +51,10 @@
 
 \newglossaryentry{semanticcluster}{
   name={semantic cluster},
-  description={a group of sampled answers that are mutually semantically
-    equivalent under the bidirectional entailment criterion. Each cluster
-    represents one distinct semantic answer among the sampled outputs}
+  description={a group of sampled answers treated as semantically equivalent,
+    either by exact-match normalization in Phase 1 or by bidirectional
+    entailment in the NLI-clustered runs. Each cluster represents one distinct
+    semantic answer among the sampled outputs}
 }
 
 \newglossaryentry{auroc}{
