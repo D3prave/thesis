@@ -247,14 +247,22 @@ def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
             f"multi-process startup; got {method!r}"
         )
 
+    cuda_home = os.environ.get("CUDA_HOME")
+    
     import shutil
+    from pathlib import Path
     nvcc_path = shutil.which("nvcc")
+    
+    if not nvcc_path and cuda_home:
+        candidate = Path(cuda_home) / "bin" / "nvcc"
+        if candidate.is_file():
+            nvcc_path = str(candidate)
+
     if nvcc_path:
         rep.ok(f"nvcc available at {nvcc_path}")
     else:
-        rep.fail("nvcc NOT found on PATH. vLLM/flashinfer JIT compilation will fail. Did you run 'module load cuda/...'?")
+        rep.fail("nvcc NOT found on PATH or in CUDA_HOME/bin. flashinfer JIT compilation will fail. (Hint: run 'module load cuda/12.1.1' and 'export PATH=$CUDA_BASE/bin:$PATH')")
 
-    cuda_home = os.environ.get("CUDA_HOME")
     if cuda_home:
         rep.ok(f"CUDA_HOME is set to {cuda_home}")
     else:
