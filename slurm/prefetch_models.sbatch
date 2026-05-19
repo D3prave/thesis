@@ -69,6 +69,7 @@ MODELS_7B=(
 )
 MODELS_NLI=(
     "cross-encoder/nli-deberta-v3-base"
+    "sentence-transformers/all-MiniLM-L6-v2"   # KLE embedding model
 )
 MODELS_70B=(
     # Gated — requires HF_TOKEN and accepted licence on huggingface.co
