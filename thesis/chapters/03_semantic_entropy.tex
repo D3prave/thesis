@@ -11,6 +11,40 @@ experiment plan, and Chapter 7 keeps probability-weighted variants, kernel
 methods, and probe-based approximations outside the main baseline until the
 discrete pipeline is stable.
 
+\section*{Notation}
+
+Table~\ref{tab:notation} summarises the symbols used in this chapter and
+referred to throughout the thesis.
+
+\begin{table}[h]
+\centering
+\caption{Notation used for discrete semantic entropy.}
+\label{tab:notation}
+\begin{tabular}{lp{9cm}}
+\hline
+\textbf{Symbol} & \textbf{Meaning} \\
+\hline
+$x$ & prompt or question supplied to the model \\
+$M$ & number of sampled answers drawn from the model per prompt \\
+$y_i$ & the $i$-th sampled answer, $i \in \{1,\ldots,M\}$ \\
+$Y(x)$ & the multiset of all $M$ sampled answers for prompt $x$ \\
+$e(y_i, y_j \mid x)$ & NLI entailment decision: 1 if $y_i$ entails $y_j$
+                        given $x$, 0 otherwise \\
+$\sim_{\mathrm{sem}}$ & semantic equivalence relation: $y_i \sim y_j$ iff
+                        $e(y_i,y_j\mid x)=1$ and $e(y_j,y_i\mid x)=1$ \\
+$C(x)$ & the set of semantic clusters $\{c_1,\ldots,c_K\}$ induced by
+          $\sim_{\mathrm{sem}}$ on $Y(x)$ \\
+$K$ & number of distinct semantic clusters, $1 \le K \le M$ \\
+$n_k$ & number of sampled answers assigned to cluster $c_k$ \\
+$\hat{p}_k$ & empirical cluster probability $n_k / M$ \\
+$\widehat{H}_{\mathrm{sem}}(x)$ & discrete semantic entropy score for prompt $x$ \\
+$\widehat{H}_{\mathrm{lex}}(x)$ & naive lexical entropy score (surface-form baseline) \\
+AUROC & area under the receiver operating characteristic curve \\
+AURAC & area under the rejection-accuracy curve \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Sampling Setup}
 
 For each question or prompt \(x\), the model is sampled \(M\) times under a
@@ -89,6 +123,98 @@ SelfCheckGPT-style consistency and P(True) are useful later comparisons,
 but they should not delay the first discrete semantic entropy
 implementation \cite{manakul_selfcheckgpt_2023,
 kadavath_language_models_know_2022}.
+
+\section{Worked Example}
+
+The following example makes the pipeline concrete. Consider the factual
+question $x = $ ``What is the capital of Australia?'' and suppose the model
+produces $M=5$ sampled answers under temperature $T=0.7$:
+
+\begin{center}
+\begin{tabular}{cl}
+\hline
+Index & Sampled answer $y_i$ \\
+\hline
+1 & \emph{Canberra} \\
+2 & \emph{Canberra is the capital city of Australia} \\
+3 & \emph{Sydney} \\
+4 & \emph{Melbourne} \\
+5 & \emph{Canberra} \\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent
+\textbf{Step 1: Bidirectional entailment.}
+The NLI model is applied to each ordered pair $(y_i, y_j)$ conditioned on
+$x$. Table~\ref{tab:entailment_example} shows the resulting binary
+entailment decisions; a cell is 1 if the row answer entails the column
+answer, 0 otherwise.
+
+\begin{table}[h]
+\centering
+\caption{Pairwise entailment matrix for the worked example.
+         A cell $(i,j)=1$ means $y_i$ entails $y_j$ given $x$.}
+\label{tab:entailment_example}
+\begin{tabular}{c|ccccc}
+       & $y_1$ & $y_2$ & $y_3$ & $y_4$ & $y_5$ \\\hline
+$y_1$ &  --   &   1   &   0   &   0   &   1   \\
+$y_2$ &   1   &  --   &   0   &   0   &   1   \\
+$y_3$ &   0   &   0   &  --   &   0   &   0   \\
+$y_4$ &   0   &   0   &   0   &  --   &   0   \\
+$y_5$ &   1   &   1   &   0   &   0   &  --   \\
+\end{tabular}
+\end{table}
+
+\noindent
+\textbf{Step 2: Semantic clustering.}
+Two answers belong to the same cluster iff both off-diagonal cells are 1
+(bidirectional entailment). Reading from Table~\ref{tab:entailment_example}:
+$y_1 \sim y_2$, $y_1 \sim y_5$, and $y_2 \sim y_5$, while $y_3$ and $y_4$
+each stand alone. This yields $K=3$ clusters:
+\[
+  c_1 = \{y_1, y_2, y_5\},\quad
+  c_2 = \{y_3\},\quad
+  c_3 = \{y_4\}.
+\]
+
+\noindent
+\textbf{Step 3: Empirical probabilities.}
+\[
+  \hat{p}_1 = \tfrac{3}{5} = 0.60,\quad
+  \hat{p}_2 = \tfrac{1}{5} = 0.20,\quad
+  \hat{p}_3 = \tfrac{1}{5} = 0.20.
+\]
+
+\noindent
+\textbf{Step 4: Discrete semantic entropy.}
+\begin{align*}
+  \widehat{H}_{\mathrm{sem}}(x)
+  &= -\bigl(0.60\ln 0.60 + 0.20\ln 0.20 + 0.20\ln 0.20\bigr) \\
+  &= -(-0.306 - 0.322 - 0.322) \\
+  &\approx 0.95 \text{ nats.}
+\end{align*}
+
+\noindent
+\textbf{Step 5: Lexical baseline for comparison.}
+The surface-form baseline treats each distinct string as a separate outcome.
+With strings $\{$\emph{Canberra}$\times 2$, \emph{Canberra is the capital
+city of Australia}$\times 1$, \emph{Sydney}$\times 1$,
+\emph{Melbourne}$\times 1\}$ the lexical entropy is:
+\begin{align*}
+  \widehat{H}_{\mathrm{lex}}(x)
+  &= -\bigl(0.40\ln 0.40 + 0.20\ln 0.20 + 0.20\ln 0.20 + 0.20\ln 0.20\bigr) \\
+  &\approx 1.33 \text{ nats.}
+\end{align*}
+
+The lexical score is higher (1.33 vs.\ 0.95) because it treats the
+paraphrase \emph{``Canberra is the capital city of Australia''} as a
+different answer from \emph{``Canberra''}, inflating the apparent
+uncertainty. After semantic clustering, the correct answer class
+($c_1$, Canberra) accounts for 60\,\% of samples, and the entropy is
+correspondingly lower and better calibrated to the actual semantic
+situation. The model is genuinely somewhat uncertain --- two samples
+confabulated wrong cities --- but less so than the lexical score implies.
 
 \section{Method Contract}
 

@@ -32,6 +32,13 @@ answer varies semantically across samples. It does not claim that semantic
 entropy detects every hallucination, especially high-confidence systematic
 errors \cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
 
+The working hypothesis is that discrete semantic entropy, computed over
+bidirectional entailment-based semantic clusters, achieves higher AUROC for
+hallucination detection than surface-form entropy computed over sampled answer
+strings on the same prompt records. A secondary hypothesis is that the
+improvement, if present, is consistent across both TriviaQA and SVAMP, despite
+the different answer types and normalization requirements of the two tasks.
+
 \section{Two-Phase Study}
 
 The study is organized in two phases. Phase 1 is a constrained pilot that can be
@@ -52,19 +59,25 @@ research question with a different one.
 
 \section{Contributions}
 
-The intended contributions are:
+The contributions of this thesis are:
 
 \begin{enumerate}
-  \item a concise reproduction-oriented formulation of discrete semantic entropy
-    for short-answer hallucination detection;
-  \item a two-phase experimental design that separates local validation from
-    high-compute HPC runs;
-  \item an auditable output schema for sampled answers, semantic clusters,
-    entropy scores, and correctness labels;
-  \item a selective-prediction evaluation using AUROC, AURAC, and
-    rejection-accuracy curves;
-  \item a scoped plan for Phase 2 extensions once the discrete baseline is
-    stable.
+  \item a reproducible implementation of discrete semantic entropy for
+    short-answer hallucination detection, covering answer normalization,
+    bidirectional NLI clustering, entropy scoring, and correctness labeling;
+  \item a two-phase experimental design that separates local pipeline validation
+    from high-compute NHR@FAU HPC runs, with Slurm templates and
+    reproducibility logging for each phase;
+  \item an auditable JSONL output schema recording sampled answers, semantic
+    clusters, cluster representatives, entropy scores, and correctness labels
+    for every evaluated prompt;
+  \item a selective-prediction evaluation framework using AUROC, AURAC, and
+    rejection-accuracy curves, applicable to any uncertainty estimator that
+    writes a score field to the shared schema;
+  \item method descriptions, implementation scaffolding, and evaluation
+    criteria for two Phase~2 extensions --- Semantic Entropy Probes and Kernel
+    Language Entropy --- as cost-versus-quality comparators against the
+    discrete baseline.
 \end{enumerate}
 
 \section{Thesis Structure}
