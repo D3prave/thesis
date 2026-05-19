@@ -126,8 +126,46 @@ fi
 # `/usr/include/python3.11/Python.h` does NOT exist (no python3-devel).
 # If the venv (or another Python on PATH) ships its own headers we can
 # point gcc at them via CPATH so the JIT compile succeeds.
+#
+# Strategy (in order):
+#   1. sysconfig.get_path("include")  — works when base Python has headers
+#   2. sys.base_prefix + include/pythonX.Y — catches uv-managed Pythons
+#      whose venv sysconfig still reports the system include path
+#   3. Glob for uv-managed Python installations under ~/.local/share/uv
+_SE_PY_INCLUDE=""
+# Strategy 1: sysconfig (the standard answer)
 _SE_PY_INCLUDE="$(python -c 'import sysconfig; print(sysconfig.get_path("include"))' 2>/dev/null || true)"
 if [ -n "${_SE_PY_INCLUDE}" ] && [ -f "${_SE_PY_INCLUDE}/Python.h" ]; then
+    : # found
+else
+    _SE_PY_INCLUDE=""
+fi
+# Strategy 2: base_prefix (venvs may report different include than base)
+if [ -z "${_SE_PY_INCLUDE}" ]; then
+    _SE_PY_INCLUDE="$(python -c '
+import sys, os
+bp = sys.base_prefix
+vi = f"python{sys.version_info.major}.{sys.version_info.minor}"
+for d in [os.path.join(bp, "include", vi), os.path.join(bp, "include")]:
+    if os.path.isfile(os.path.join(d, "Python.h")):
+        print(d); break
+' 2>/dev/null || true)"
+fi
+# Strategy 3: uv-managed Python (last resort)
+if [ -z "${_SE_PY_INCLUDE}" ]; then
+    _uv_py_ver="$(python -c 'import sys; print(f"python{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+    if [ -n "${_uv_py_ver}" ]; then
+        for _uv_dir in "${HOME}/.local/share/uv/python"/cpython-*/include/"${_uv_py_ver}"; do
+            if [ -f "${_uv_dir}/Python.h" ]; then
+                _SE_PY_INCLUDE="${_uv_dir}"
+                break
+            fi
+        done
+    fi
+    unset _uv_py_ver _uv_dir
+fi
+
+if [ -n "${_SE_PY_INCLUDE}" ]; then
     export CPATH="${_SE_PY_INCLUDE}${CPATH:+:${CPATH}}"
     export C_INCLUDE_PATH="${_SE_PY_INCLUDE}${C_INCLUDE_PATH:+:${C_INCLUDE_PATH}}"
     echo "[_common.sh] Python.h found at ${_SE_PY_INCLUDE}; added to CPATH."
