@@ -74,12 +74,20 @@ from semantic_entropy.probes import (
 )
 from semantic_entropy.pipeline_cli import load_callable
 from semantic_entropy.normalization import normalize_answer, normalize_answers
-from semantic_entropy.plotting_extensions import (
-    generate_all_plots,
-    plot_accuracy_vs_auroc,
-    plot_method_comparison_by_dataset,
-    plot_phase_comparison,
-)
+try:
+    from semantic_entropy.plotting_extensions import (
+        generate_all_plots,
+        plot_accuracy_vs_auroc,
+        plot_method_comparison_by_dataset,
+        plot_phase_comparison,
+    )
+except ImportError:
+    # matplotlib is an optional dependency; plotting functions unavailable
+    # when it is not installed.  Install with: uv pip install matplotlib
+    generate_all_plots = None  # type: ignore[assignment]
+    plot_accuracy_vs_auroc = None  # type: ignore[assignment]
+    plot_method_comparison_by_dataset = None  # type: ignore[assignment]
+    plot_phase_comparison = None  # type: ignore[assignment]
 from semantic_entropy.result_aggregator import (
     MetricRow,
     aggregate_results,
