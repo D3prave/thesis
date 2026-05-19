@@ -28,19 +28,25 @@ operating characteristic curve (AUROC), the area under the
 rejection-accuracy curve (AURAC), and rejection-accuracy curves that
 compare discrete semantic entropy against surface-form entropy baselines.
 
-% TODO: replace the paragraph below with empirical findings once
-% Phase 1 and Phase 2 HPC results are available.
-Preliminary infrastructure validation confirms that the pipeline
-produces schema-valid output records across both datasets and that
-correctness labeling and entropy scoring are end-to-end reproducible.
-Full empirical results comparing semantic entropy against surface-form
-baselines, together with a manual audit of semantic clustering behavior,
-are reported in Chapter~6 following completion of the HPC runs.
+Discrete semantic entropy outperforms naive sample entropy for
+Llama-3.1-70B by 5.2~AUROC points on TriviaQA (0.696 vs.\ 0.644) and
+1.5~points on SVAMP (0.842 vs.\ 0.827). For Mistral-7B the improvement
+is negligible, suggesting that semantic clustering adds value only when
+the underlying model is sufficiently consistent. NLI clustering in
+Phase~2 provides a small improvement for the 7B model on TriviaQA
+($+$1.3~AUROC) but a slight regression for the 70B model on the same
+task ($-$1.8~AUROC), plausibly because the DeBERTa-v3-base
+cross-encoder collapses semantically distinct near-miss wrong answers
+produced by the stronger model. Rejection-accuracy curves rise
+monotonically in all eight experimental conditions, confirming that
+sampling-based entropy ranks incorrect records reliably for selective
+abstention.
 
-We additionally scope two Phase~2 extensions---Semantic Entropy Probes,
-which approximate semantic entropy from hidden model states, and Kernel
-Language Entropy, which replaces hard clustering with a kernel-based
-entropy objective---as cost-versus-quality comparators once the discrete
-baseline is established. The implementation, JSONL output schema, and
-evaluation scripts are made available as reproducible artefacts for
-future work on semantic uncertainty in large language models.
+Posthoc sensitivity checks using a DeBERTa-v3-large NLI backend and
+Kernel Language Entropy (KLE) show that a stronger judge partially
+recovers the 70B/TriviaQA regression but slightly worsens the 7B
+results, and that KLE with a general-purpose sentence encoder falls
+below discrete semantic entropy on all four runs. The implementation,
+JSONL output schema, and evaluation scripts are made available as
+reproducible artefacts for future work on semantic uncertainty in large
+language models.
