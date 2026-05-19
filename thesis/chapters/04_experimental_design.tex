@@ -1,13 +1,13 @@
 \chapter{Experimental Design}
 
-This chapter specifies the experiment plan used to evaluate whether
+This chapter specifies the experimental design used to evaluate whether
 semantic entropy provides a better hallucination and abstention signal
 than surface-form uncertainty. The design is split into two phases. Phase
 1 establishes an exact-match clustering baseline that is small enough to
 debug locally before being run at evaluation scale. Phase 2 repeats the
 same measurement plan with NLI clustering on NHR@FAU resources, with Alex
-used for large inference and clustering runs and Helma reserved for 70B+
-models and the optional high-compute extensions. Chapter 3
+used for the primary GPU runs and Fritz used for posthoc CPU reclustering and
+KLE runs. Helma remained outside the recorded execution scope. Chapter 3
 defines the semantic entropy method itself; this chapter fixes the
 experimental variables, comparisons, and records; Chapter 5 covers
 execution, Slurm discipline, storage, and reproducibility logging.
@@ -45,31 +45,30 @@ format substantially and makes direct comparison with open-domain tasks less
 informative for this reproduction. The two-dataset scope therefore covers the
 two qualitatively distinct task types---open-domain factual recall and
 short-answer arithmetic---within a compute budget appropriate for a
-bachelor-thesis pilot. Expanding to NQ-Open or BioASQ
-is a straightforward Phase~2 extension once the baseline pipeline is stable,
-because both share the same short free-text answer format and normalization
-approach as TriviaQA.
+bachelor-thesis pilot. Expanding to NQ-Open or BioASQ remains a straightforward
+extension because both share the same short free-text answer format and
+normalization approach as TriviaQA.
 
-Phase 2 may add SQuAD, BioASQ, and NQ-Open once the core pipeline is
-stable, because these datasets broaden the evaluation setting beyond the
-first pilot \cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,
+The completed runs do not add SQuAD, BioASQ, or NQ-Open; these datasets remain
+future extensions that would broaden the evaluation setting beyond the two
+reported tasks \cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,
 lee_nq_open_2019}. TruthfulQA is relevant to broader truthfulness, but it
-is not part of the first pipeline, because the initial design is intended
-to isolate semantic clustering on short-answer tasks
+is not part of the completed pipeline, because the design isolates semantic
+clustering on short-answer tasks
 \cite{lin_truthfulqa_2022}.
 
 \section{Model Tiers}
 
-\subsection{Phase 1: Local and TinyGPU Models}
+\subsection{Phase 1: Exact-Match Baselines}
 
-Phase 1 first validates the output schema and metrics with small local or
-TinyGPU jobs, then records exact-match clustering baselines for the evaluated
-generation models. The aim is not to maximize semantic-judge quality, but to
-verify generation, answer normalization, exact-match clustering, entropy
-scoring, and correctness labeling end to end. TinyGPU resources can be used for
-single-GPU debug jobs on older GPUs such as V100 or RTX~3080 class hardware.
-Candidate model families include Mistral-7B and the LLaMA family, subject to
-availability and licensing \cite{jiang_mistral_2023,touvron_llama2_2023}.
+Phase 1 records exact-match clustering baselines for the evaluated generation
+models. The aim is not to maximize semantic-judge quality, but to verify
+generation, answer normalization, exact-match clustering, entropy scoring, and
+correctness labeling end to end. The recorded Phase~1 runs use Mistral-7B and
+Llama-3.1-70B on TriviaQA and SVAMP; Appendix~\ref{app:runs} lists the Slurm
+job identifiers. TinyGPU remains a debug option in the repository workflow, but
+it is not the source of any reported Phase~1 result
+\cite{jiang_mistral_2023,grattafiori_llama3_2024}.
 
 The first NLI backend enters in Phase~2. A DeBERTa-v3 cross-encoder fine-tuned
 on NLI is the preferred local semantic judge because it is practical to run and
@@ -77,31 +76,28 @@ supplies the entailment, contradiction, and neutral labels needed for
 bidirectional semantic clustering \cite{he_debertav3_2021,
 sentence_transformers_nli_deberta_v3_base_2022,williams_multinli_2018}.
 
-\subsection{Phase 2: Alex and Helma HPC Runs}
+\subsection{Phase 2: Alex NLI Runs}
 
-Phase 2 repeats the same protocol at larger scale. Alex is used for
-larger batched inference, more complete dataset sweeps, and robust NLI
-clustering on A100-class GPUs. Helma is reserved for the final
-high-compute runs: 70B+ generation models, larger judge models for
-semantic equivalence, and the optional Phase 2 extensions described in
-Chapter 7. The important constraint is that Phase 2 introduces no new
-research question; it tests whether the Phase 1 pattern survives stronger
-models, larger batches, and stronger semantic judges.
+Phase 2 repeats the same model--dataset grid with NLI clustering. The primary
+Phase~2 runs are executed on Alex, with DeBERTa-v3-base used as the NLI backend
+for semantic clustering. The later DeBERTa-v3-large and KLE checks are posthoc
+experiments on the Phase~2 outputs rather than separate primary phases. The
+important constraint is that Phase 2 introduces no new research question; it
+tests whether the Phase 1 ranking behavior survives NLI-defined semantic
+clusters.
 
 \section{Sampling Settings}
 
-For each prompt \(x\), the model produces \(M\) sampled answers. Phase 1
-uses \(M=4\) for smoke tests and \(M=10\) for the first meaningful
-comparison. Phase 2 keeps \(M=10\) as the default and may add a
-higher-sample setting only if runtime and GPU allocation make it
-practical. The decoding configuration is logged for every run.
+For each prompt \(x\), the model produces \(M\) sampled answers. All recorded
+Phase~1 and Phase~2 runs use \(M=10\), matching the first meaningful
+comparison after smoke testing. The decoding configuration is logged for every
+run.
 
 The default generation setting is temperature \(T=0.7\), top-\(p=0.95\),
 and a short maximum answer length appropriate for sentence-length
-question answering. Phase 1 keeps decoding fixed unless a run is
-explicitly marked as a sensitivity check. Phase 2 may compare \(T=0.3\),
-\(T=0.7\), and \(T=1.0\) to test whether semantic entropy remains
-informative under lower- and higher-diversity sampling.
+question answering. The completed experiments keep decoding fixed at
+\(T=0.7\) and top-\(p=0.95\); temperature sweeps remain future sensitivity
+checks.
 
 \section{Baselines and Methods}
 
@@ -115,16 +111,14 @@ exact-match normalization, while Phase~2 uses bidirectional entailment clusters;
 in both cases entropy is computed over cluster frequencies
 \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This is the
 first method evaluated. Full
-probability-weighted semantic entropy belongs to the later extension set
-once the discrete version is working and the output records are stable.
+probability-weighted semantic entropy remains outside the completed extension
+set.
 The released semantic uncertainty codebase serves as a methodological
 reference point \cite{kossen_semantic_uncertainty_code_2024}.
 
-Secondary Phase 1 baselines may include SelfCheckGPT-style sampling
-consistency and P(True), but only once the naive and discrete semantic
-entropy scores are available \cite{manakul_selfcheckgpt_2023,
-kadavath_language_models_know_2022}. These baselines do not block the
-first reproduction.
+Secondary baselines such as SelfCheckGPT-style sampling consistency and P(True)
+are relevant comparisons but are not included in the recorded runs
+\cite{manakul_selfcheckgpt_2023,kadavath_language_models_know_2022}.
 
 \section{Advanced Metrics and Extensions}
 
@@ -138,10 +132,10 @@ on all four Phase~2 JSONL output sets (Fritz cluster, posthoc jobs) using
 \texttt{sentence-transformers/all-MiniLM-L6-v2}
 \cite{sentence_transformers_all_minilm_l6_v2_2022}.
 
-\textbf{DeBERTa-v3-large reclustering} re-runs the Phase~2 NLI
+\textbf{DeBERTa-v3-large reclustering} re-ran the Phase~2 NLI
 clustering step with a larger cross-encoder
 (\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
-70B/TriviaQA regression observed under the base model disappears with a
+70B/TriviaQA regression observed under the base model disappeared with a
 larger NLI backend
 \cite{sentence_transformers_nli_deberta_v3_large_2022}.
 
@@ -154,9 +148,9 @@ the Phase~1 claim or the primary Phase~2 scale-up.
 
 \section{Output Schema}
 
-Each run writes JSONL with one record per prompt. The shared fields
+Each recorded run writes JSONL with one record per prompt. The shared fields
 below make generation, clustering, scoring, and evaluation auditable
-while leaving Phase 2 extensions free to add method-specific fields:
+while leaving extensions free to add method-specific fields:
 
 \begin{verbatim}
 {
@@ -197,8 +191,7 @@ Chapter 5.
 
 \section{Validation Checks}
 
-Every Phase 1 run must pass basic structural checks before any HPC
-scaling:
+Every recorded run is checked against the following structural requirements:
 
 \begin{enumerate}
   \item every prompt has exactly \(M\) sampled answers;
@@ -213,10 +206,9 @@ scaling:
     reasonable.
 \end{enumerate}
 
-Phase 2 must satisfy the same structural checks at larger scale. The
-additional HPC checks for Slurm jobs, cache locations, output paths, GPU
-metadata, and failure logging are execution concerns covered in
-Chapter 5.
+The additional HPC checks for Slurm jobs, cache locations, output paths, GPU
+metadata, and failure logging are execution concerns covered in Chapter 5 and
+Appendix~\ref{app:experiment-details}.
 
 \section{Evaluation Metrics}
 
@@ -230,7 +222,7 @@ route the prompt to a more expensive verification procedure
 \cite{semantic_entropy_nature_2024}.
 
 The final comparison is therefore staged. Phase 1 establishes a working
-baseline result on TriviaQA and SVAMP. Phase 2 tests whether the same
-ranking behavior persists when exact-match clusters are replaced by NLI-defined
-semantic clusters, with optional advanced semantic uncertainty estimators added
-only if Phase 1 completes and time permits.
+baseline result on TriviaQA and SVAMP. Phase 2 tests whether the same ranking
+behavior persists when exact-match clusters are replaced by NLI-defined semantic
+clusters. The completed posthoc checks then test DeBERTa-v3-large reclustering
+and Kernel Language Entropy on the Phase~2 outputs.

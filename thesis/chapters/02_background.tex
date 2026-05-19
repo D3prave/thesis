@@ -110,14 +110,14 @@ criterion is a practical approximation to equality of meaning.
 Natural Language Inference (NLI) supplies a local way to approximate this
 relation, because an NLI model assigns one of three labels --- entailment,
 contradiction, or neutrality --- to a pair of sentences
-\cite{williams_multinli_2018}. The local backend used in this thesis is a
-Sentence-Transformers DeBERTa-v3 cross-encoder trained on SNLI and MultiNLI,
-which provides exactly these three NLI labels
+\cite{williams_multinli_2018}. The primary NLI backend used in Phase~2 is a
+Sentence-Transformers DeBERTa-v3-base cross-encoder trained on SNLI and
+MultiNLI, which provides exactly these three NLI labels
 \cite{he_deberta_2021,he_debertav3_2021,
 sentence_transformers_nli_deberta_v3_base_2022}.
 For the background, the relevant point is that semantic equivalence is being
-approximated; the exact bidirectional-entailment rule and the choice of pilot
-backend are settled in Chapter 3.
+approximated; the exact bidirectional-entailment rule and the recorded backend
+choices are settled in Chapters 3 and 6.
 
 \section{Extensions and Related Methods}
 
@@ -162,9 +162,9 @@ rajpurkar_squad_2016,
 tsatsaronis_bioasq_2015,lee_nq_open_2019}. TruthfulQA is relevant to the
 broader truthfulness problem but is not the first pilot benchmark, because
 the initial experiment is intended to isolate semantic clustering on
-short-answer tasks \cite{lin_truthfulqa_2022}. Where the experiments use
-LLaMA 2 or Mistral models, their respective model reports are cited as
-part of the implementation context \cite{touvron_llama2_2023,
+short-answer tasks \cite{lin_truthfulqa_2022}. Where the thesis discusses
+Llama-family or Mistral models, the corresponding model reports are cited as
+implementation context \cite{touvron_llama2_2023,grattafiori_llama3_2024,
 jiang_mistral_2023}. The released semantic uncertainty codebase serves as a
 methodological reference against which implementation decisions can be
 checked \cite{kossen_semantic_uncertainty_code_2024}.
@@ -179,5 +179,5 @@ selective-prediction metrics. The thesis therefore begins with a small,
 reproducible implementation of discrete semantic entropy before turning to
 more ambitious extensions such as Semantic Entropy Probes or kernel-based
 variants. Chapter 3 formalizes this restricted method; the experimental
-design and HPC chapters then specify how it will be tested in the two-phase
-study.
+design and HPC chapters specify the completed two-phase study that is reported
+in Chapters 6 and 7.

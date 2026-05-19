@@ -1,19 +1,19 @@
 \chapter{Semantic Entropy}
 
-This chapter defines the method that the thesis implements first: discrete
+This chapter defines the main method used in the thesis: discrete
 semantic entropy over sampled answers. The aim is to preserve the central
 idea of semantic entropy --- that uncertainty should be measured over
-meanings rather than over surface strings --- while keeping the first
-reproduction small enough to verify
+meanings rather than over surface strings --- while keeping the
+implementation small enough to verify
 \cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. The
 discussion stays at the method level. Chapter 4 turns the method into an
-experiment plan, and Chapter 7 keeps probability-weighted variants, kernel
-methods, and probe-based approximations outside the main baseline until the
-discrete pipeline is stable.
+experimental design, and Chapter 7 reports the completed Kernel Language
+Entropy check while keeping probability-weighted variants and probe-based
+approximations outside the main empirical baseline.
 
 \section*{Notation}
 
-Table~\ref{tab:notation} summarises the symbols used in this chapter and
+Table~\ref{tab:notation} summarizes the symbols used in this chapter and
 referred to throughout the thesis.
 
 \begin{table}[h]
@@ -82,9 +82,9 @@ answers \(y_i\) and \(y_j\), the method asks whether \(y_i\) entails
 \(x\). If both directions hold, the answers are treated as the same
 semantic answer. Natural Language Inference is a practical backend for this
 decision because it produces the entailment, contradiction, and neutral
-labels needed by the clustering rule \cite{williams_multinli_2018}. A
-DeBERTa-v3 NLI cross-encoder is the preferred first local backend, because
-it is practical for a pilot while avoiding dependence on a proprietary judge
+labels needed by the clustering rule \cite{williams_multinli_2018}. The
+Phase~2 runs use a DeBERTa-v3-base NLI cross-encoder, which is practical for
+the recorded evaluation while avoiding dependence on a proprietary judge
 \cite{he_debertav3_2021,sentence_transformers_nli_deberta_v3_base_2022}.
 
 The reported experiments also use an exact-match clustering baseline in
@@ -117,18 +117,16 @@ answer. A high score indicates that the samples spread across several
 meanings, which the method treats as evidence of semantic uncertainty.
 Only observed clusters enter the sum, and the choice of logarithm base
 affects only the scale, not the ordering. The thesis reports this
-cluster-frequency entropy first; more exact semantic-entropy variants that
-use model probabilities remain out of scope until the discrete version and
-its failure cases are understood
+cluster-frequency entropy; more exact semantic-entropy variants that use model
+probabilities remain out of scope for the completed evaluation
 \cite{semantic_entropy_nature_2024,kossen_semantic_uncertainty_code_2024}.
 
 The principal baseline is naive entropy, or diversity, over answer
 strings. This baseline isolates the question of whether semantic clustering
 adds value beyond observing that sampled outputs differ lexically.
-SelfCheckGPT-style consistency and P(True) are useful later comparisons,
-but they should not delay the first discrete semantic entropy
-implementation \cite{manakul_selfcheckgpt_2023,
-kadavath_language_models_know_2022}.
+SelfCheckGPT-style consistency and P(True) are useful comparisons, but they
+were not included in the recorded experiments
+\cite{manakul_selfcheckgpt_2023,kadavath_language_models_know_2022}.
 
 \section{Worked Example}
 
@@ -256,15 +254,14 @@ kalai_why_language_models_hallucinate_2025}.
 
 \section{Scope of Later Extensions}
 
-Several extensions are relevant but lie outside the first implementation.
-Kernel Language Entropy, Semantic Energy, Semantic Volume, adaptive
-Bayesian semantic entropy, and Semantic Entropy Probes each change either
-the entropy estimator, the representation of semantic similarity, the
-sampling budget, or the required model access
+Several extensions are relevant but lie outside the main discrete baseline.
+Kernel Language Entropy is evaluated posthoc in Chapter 7. Semantic Energy,
+Semantic Volume, adaptive Bayesian semantic entropy, and Semantic Entropy
+Probes each change either the entropy estimator, the representation of semantic
+similarity, the sampling budget, or the required model access
 \cite{nikitin_kernel_language_entropy_2024,ma_semantic_energy_2025,
 li_semantic_volume_2025,sun_adaptive_bayesian_semantic_entropy_2026,
 kossen_semantic_entropy_probes_2024}. Chapter 7 treats these as Phase 2
-extensions. The first research contribution remains deliberately
-conservative: implement the discrete version cleanly, document where
-entailment clustering succeeds and where it fails, and only then decide
-whether a given extension is worth running.
+extensions and states which were run. The main research contribution remains
+deliberately conservative: implement the discrete version cleanly and document
+where entailment clustering succeeds or fails.
