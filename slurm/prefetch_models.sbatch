@@ -78,6 +78,7 @@ MODELS_7B=(
 )
 MODELS_NLI=(
     "cross-encoder/nli-deberta-v3-base"
+    "cross-encoder/nli-deberta-v3-large"
     "sentence-transformers/all-MiniLM-L6-v2"   # KLE embedding model
 )
 MODELS_70B=(

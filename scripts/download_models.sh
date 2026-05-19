@@ -110,6 +110,7 @@ download_model "mistralai/Mistral-7B-Instruct-v0.3"
 echo ""
 echo "=== NLI entailment + KLE embedding models ==="
 download_model "cross-encoder/nli-deberta-v3-base"
+download_model "cross-encoder/nli-deberta-v3-large"
 download_model "sentence-transformers/all-MiniLM-L6-v2"
 
 echo ""

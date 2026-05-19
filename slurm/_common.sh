@@ -90,7 +90,7 @@ if [ -n "${CUDA_HOME:-}" ]; then
     export LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
 fi
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"
-export SE_CLUSTER="alex"
+export SE_CLUSTER="${SE_CLUSTER:-alex}"
 
 # --- 2. HuggingFace cache ----------------------------------------------------
 # Alex has /home/vault on compute nodes; keep model weights out of $HOME.
