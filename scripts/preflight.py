@@ -205,6 +205,17 @@ def _check_embedding_cache(rep: Reporter, model: str) -> None:
             f"embedding model NOT cached at {cache_root / expected_dir}; "
             "run SentenceTransformer(...) once with network access first"
         )
+        return
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        SentenceTransformer(model, device="cpu")
+        rep.ok("embedding model loads in the current offline environment")
+    except Exception as exc:
+        rep.fail(
+            "embedding model cache exists but cannot be loaded offline: "
+            f"{exc}"
+        )
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -248,11 +259,11 @@ def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
         )
 
     cuda_home = os.environ.get("CUDA_HOME")
-    
+
     import shutil
     from pathlib import Path
     nvcc_path = shutil.which("nvcc")
-    
+
     if not nvcc_path and cuda_home:
         candidate = Path(cuda_home) / "bin" / "nvcc"
         if candidate.is_file():
@@ -261,7 +272,11 @@ def _check_vllm_runtime_config(rep: Reporter, features: Iterable[str]) -> None:
     if nvcc_path:
         rep.ok(f"nvcc available at {nvcc_path}")
     else:
-        rep.fail("nvcc NOT found on PATH or in CUDA_HOME/bin. flashinfer JIT compilation will fail. (Hint: run 'module load cuda/12.1.1' and 'export PATH=$CUDA_BASE/bin:$PATH')")
+        rep.fail(
+            "nvcc NOT found on PATH or in CUDA_HOME/bin. flashinfer JIT "
+            "compilation will fail. (Hint: run 'module load cuda/12.1.1' "
+            "and 'export PATH=$CUDA_BASE/bin:$PATH')"
+        )
 
     if cuda_home:
         rep.ok(f"CUDA_HOME is set to {cuda_home}")

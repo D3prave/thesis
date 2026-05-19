@@ -58,14 +58,17 @@ fi
 # --- 1. Modules + venv -------------------------------------------------------
 module load python 2>/dev/null || true   # may already be loaded
 # OS upgrades (e.g. el8 -> el9) often break specific module versions.
-# Try 12.1.1 first, fallback to 12.4.1, then default cuda.
-if ! module load cuda/12.1.1 2>/dev/null; then
-    if ! module load cuda/12.4.1 2>/dev/null; then
-        module load cuda || echo "WARNING: Failed to load any CUDA module" >&2
+# Try 12.1.1 first, fallback to 12.4.1, then default cuda. CPU-only jobs
+# such as Fritz post-hoc KLE/reclustering set SE_SKIP_CUDA_MODULES=1.
+if [ "${SE_SKIP_CUDA_MODULES:-0}" != "1" ]; then
+    if ! module load cuda/12.1.1 2>/dev/null; then
+        if ! module load cuda/12.4.1 2>/dev/null; then
+            module load cuda || echo "WARNING: Failed to load any CUDA module" >&2
+        fi
     fi
 fi
 # The NHR module system may set any of these; pick the first one found.
-if [ -z "${CUDA_HOME:-}" ]; then
+if [ "${SE_SKIP_CUDA_MODULES:-0}" != "1" ] && [ -z "${CUDA_HOME:-}" ]; then
     for _var in CUDA_ROOT CUDA_BASE CUDA_PATH CUDA_INSTALL_PATH; do
         eval "_val=\${${_var}:-}"
         if [ -n "${_val}" ] && [ -d "${_val}" ]; then
@@ -75,7 +78,7 @@ if [ -z "${CUDA_HOME:-}" ]; then
     done
 fi
 # Last resort: derive from nvcc location
-if [ -z "${CUDA_HOME:-}" ]; then
+if [ "${SE_SKIP_CUDA_MODULES:-0}" != "1" ] && [ -z "${CUDA_HOME:-}" ]; then
     _nvcc="$(command -v nvcc 2>/dev/null || true)"
     if [ -n "${_nvcc}" ]; then
         export CUDA_HOME="$(dirname "$(dirname "${_nvcc}")")"
