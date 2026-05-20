@@ -218,9 +218,3 @@ reported as context, but it is not sufficient on its own, because the
 practical goal is to decide when a model should answer, abstain, or
 route the prompt to a more expensive verification procedure
 \cite{semantic_entropy_nature_2024}.
-
-The final comparison is therefore staged. Phase 1 establishes a working
-baseline result on TriviaQA and SVAMP. Phase 2 tests whether the same ranking
-behavior persists when exact-match clusters are replaced by NLI-defined semantic
-clusters. The completed posthoc checks then test DeBERTa-v3-large reclustering
-and Kernel Language Entropy on the Phase~2 outputs.

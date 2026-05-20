@@ -40,6 +40,13 @@
 \graphicspath{{figures/}{logos/}}
 \newcommand{\myfooter}{}
 
+% Discourage single-line widows and orphans (stranded first/last lines of a
+% paragraph at a page boundary). Does not prevent multi-line section tails;
+% upstream tightening is still required for those.
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+
 \makenoidxglossaries
 \input{frontmatter/glossary.tex}
 
