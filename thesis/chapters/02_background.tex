@@ -27,9 +27,8 @@ The distinction between confabulation and other hallucination types matters
 because it bounds what semantic entropy can and cannot detect. A model may
 also be consistently wrong because its training data contains a
 misconception, because the problem requires reasoning it cannot perform, or
-because evaluation incentives discourage abstention. Semantic entropy is not
-designed to address any of these cases; it is a detector for semantic
-instability across alternative generations from the same prompt.
+because evaluation incentives discourage abstention. Semantic entropy does not
+address these cases; it detects instability across sampled meanings.
 
 This narrower framing motivates the central hypothesis of the thesis. If the
 model knows the answer, stochastic samples should vary mostly in wording
@@ -163,11 +162,10 @@ tsatsaronis_bioasq_2015,lee_nq_open_2019}. TruthfulQA is relevant to the
 broader truthfulness problem but is not the first pilot benchmark, because
 the initial experiment is intended to isolate semantic clustering on
 short-answer tasks \cite{lin_truthfulqa_2022}. Where the thesis discusses
-Llama-family or Mistral models, the corresponding model reports are cited as
+Llama-family or Mistral models, the corresponding model reports provide
 implementation context \cite{touvron_llama2_2023,grattafiori_llama3_2024,
 jiang_mistral_2023}. The released semantic uncertainty codebase serves as a
-methodological reference against which implementation decisions can be
-checked \cite{kossen_semantic_uncertainty_code_2024}.
+methodological reference \cite{kossen_semantic_uncertainty_code_2024}.
 
 \section{Research Gap}
 
@@ -175,9 +173,6 @@ Taken together, the literature positions semantic entropy as a middle
 ground between cheap surface-level uncertainty signals and expensive
 factual verification. Its value depends on a clean separation between
 generation, semantic clustering, entropy scoring, correctness labeling, and
-selective-prediction metrics. The thesis therefore begins with a small,
-reproducible implementation of discrete semantic entropy before turning to
-more ambitious extensions such as Semantic Entropy Probes or kernel-based
-variants. Chapter 3 formalizes this restricted method; the experimental
-design and HPC chapters specify the completed two-phase study that is reported
-in Chapters 6 and 7.
+selective-prediction metrics. The thesis therefore starts with a small,
+reproducible discrete semantic entropy implementation before considering
+Semantic Entropy Probes or kernel-based variants.

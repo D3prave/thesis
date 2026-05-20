@@ -6,11 +6,11 @@ than surface-form uncertainty. The design is split into two phases. Phase
 1 establishes an exact-match clustering baseline that is small enough to
 debug locally before being run at evaluation scale. Phase 2 repeats the
 same measurement plan with NLI clustering on NHR@FAU resources, with Alex
-used for the primary GPU runs and Fritz used for posthoc CPU reclustering and
-KLE runs. Helma remained outside the recorded execution scope. Chapter 3
+used for the primary GPU runs and Fritz for posthoc CPU reclustering and KLE.
+Helma remained outside the recorded execution scope. Chapter 3
 defines the semantic entropy method itself; this chapter fixes the
-experimental variables, comparisons, and records; Chapter 5 covers
-execution, Slurm discipline, storage, and reproducibility logging.
+experimental variables, comparisons, and records; Chapter 5 covers execution,
+storage, and reproducibility.
 
 \section{Research Question}
 
@@ -90,14 +90,12 @@ clusters.
 
 For each prompt \(x\), the model produces \(M\) sampled answers. All recorded
 Phase~1 and Phase~2 runs use \(M=10\), matching the first meaningful
-comparison after smoke testing. The decoding configuration is logged for every
-run.
+comparison after smoke testing. Each run logs its decoding configuration.
 
 The default generation setting is temperature \(T=0.7\), top-\(p=0.95\),
 and a short maximum answer length appropriate for sentence-length
 question answering. The completed experiments keep decoding fixed at
-\(T=0.7\) and top-\(p=0.95\); temperature sweeps remain future sensitivity
-checks.
+\(T=0.7\) and top-\(p=0.95\); temperature sweeps remain future work.
 
 \section{Baselines and Methods}
 
