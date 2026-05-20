@@ -39,15 +39,15 @@ reports results across five datasets: TriviaQA, SQuAD, BioASQ, NQ-Open, and
 SVAMP\@. Of these, three---BioASQ, NQ-Open, and TriviaQA---are open-domain
 factual question-answering tasks that differ primarily in domain rather than in
 task structure, and TriviaQA is the most widely used and the primary reference
-dataset in the original experiments. SQuAD is a reading-comprehension task in
-which the answer passage is provided to the model, which changes the prompt
-format substantially and makes direct comparison with open-domain tasks less
-informative for this reproduction. The two-dataset scope therefore covers the
-two qualitatively distinct task types---open-domain factual recall and
-short-answer arithmetic---within a compute budget appropriate for a
-bachelor-thesis pilot. Expanding to NQ-Open or BioASQ remains a straightforward
-extension because both share the same short free-text answer format and
-normalization approach as TriviaQA.
+dataset in the original experiments. SQuAD is a reading-comprehension dataset
+whose original benchmark design includes source passages; Farquhar et al. make
+it context-free by withholding those passages, which still leaves a different
+dataset origin and prompt assumption from open-domain recall tasks. The
+two-dataset scope therefore covers the two qualitatively distinct task
+types---open-domain factual recall and short-answer arithmetic---within a
+compute budget appropriate for a bachelor-thesis pilot. Expanding to NQ-Open or
+BioASQ remains a straightforward extension because both share the same short
+free-text answer format and normalization approach as TriviaQA.
 
 The completed runs do not add SQuAD, BioASQ, or NQ-Open; these datasets remain
 future extensions that would broaden the evaluation setting beyond the two
