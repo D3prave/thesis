@@ -12,11 +12,16 @@ Mistral-7B-Instruct-v0.3 and Llama-3.1-70B-Instruct.
 
 ## Thesis Status
 
-The main experiment matrix is complete. Phase 1 evaluates exact-match
-clustering after answer normalization. Phase 2 repeats the same model-dataset
-grid with bidirectional Natural Language Inference clustering using
-DeBERTa-v3-base. Additional post-hoc checks compare DeBERTa-v3-large
-reclustering and Kernel Language Entropy.
+The thesis is complete. All nine chapters, the abstract, the
+acknowledgements, the appendix, the bibliography, and all figures are
+written, and the PDF builds cleanly with `latexmk -pdf main.tex`. Phase~1
+evaluates exact-match clustering after answer normalization. Phase~2 repeats
+the same model--dataset grid with bidirectional Natural Language Inference
+clustering using DeBERTa-v3-base. Posthoc sensitivity checks on the Fritz
+cluster compare DeBERTa-v3-large reclustering and Kernel Language Entropy.
+Semantic Entropy Probes (SEP) are scaffolded but were not run within the
+thesis scope; see Chapter~7 and `PLANS.md` for the rationale and the
+reopen-recipe.
 
 Key results:
 
@@ -30,8 +35,12 @@ Key results:
 - Rejection-accuracy curves increase across the evaluated conditions, so
   sampling-based entropy is useful for selective abstention even when absolute
   accuracy differs by model and dataset.
-- Kernel Language Entropy with the tested sentence encoder does not outperform
-  discrete semantic entropy on the recorded runs.
+- Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
+  regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
+  does not flip the qualitative story.
+- Kernel Language Entropy with the tested sentence encoder
+  (`all-MiniLM-L6-v2`) does not outperform discrete semantic entropy on any
+  of the four posthoc runs.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does
@@ -109,5 +118,8 @@ are intentionally kept out of git. Small fixtures, summary tables, and selected
 figures are tracked when they support thesis reproducibility.
 
 The recorded metric summary is available at
-`results/tables/metric_summary.csv`; thesis figures are under
+`results/tables/metric_summary.csv` (rows are tagged by
+`clustering = exact-match`, `nli`, `posthoc-kle`, or
+`posthoc-nli-deberta-v3-large`). Generated figures are under
+`results/figures/`; the figures used in the thesis are committed under
 `thesis/figures/`.
