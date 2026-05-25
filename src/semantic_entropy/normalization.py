@@ -7,8 +7,8 @@ datasets require: it performs only case folding, internal-whitespace
 collapsing, and a closed-vocabulary substitution of the English number words
 ``zero``--``ten`` to their digit form. Punctuation, articles, alias lookup,
 and the wider numeric vocabulary needed by real evaluation are intentionally
-out of scope and will be supplied by the dataset-specific normalizer
-introduced in Stage 3 of ``PLANS.md``.
+out of scope and are supplied by the dataset-specific normalizers in
+``semantic_entropy.eval_normalize``.
 
 Keeping the synthetic normalizer in a separate module makes the boundary
 between smoke-test plumbing and real evaluation logic explicit and prevents

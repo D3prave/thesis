@@ -20,8 +20,7 @@ the same model--dataset grid with bidirectional Natural Language Inference
 clustering using DeBERTa-v3-base. Posthoc sensitivity checks on the Fritz
 cluster compare DeBERTa-v3-large reclustering and Kernel Language Entropy.
 Semantic Entropy Probes (SEP) are scaffolded but were not run within the
-thesis scope; see Chapter~7 and `PLANS.md` for the rationale and the
-reopen-recipe.
+thesis scope; Chapter~7 explains the rationale.
 
 Key results:
 

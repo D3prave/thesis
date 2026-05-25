@@ -20,9 +20,8 @@ alternatives (Miller--Madow, NSB) are deliberately deferred to the Phase 2
 extension work and are not invoked here.
 
 Probability-weighted semantic entropy, which substitutes per-sequence
-generation probabilities for empirical frequencies, is the optional Phase 2
-extension noted in ``AGENTS.md`` and is intentionally not implemented in this
-module.
+generation probabilities for empirical frequencies, is an optional Phase 2
+extension that is intentionally not implemented in this module.
 """
 
 from __future__ import annotations
