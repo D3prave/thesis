@@ -30,7 +30,6 @@
 *.nlo
 *.nls
 *.pdf
-!external/papers/*.pdf
 !thesis/logos/*.pdf
 
 # Python caches
@@ -71,11 +70,14 @@ tmp*.tmp
 
 # Local working files (kept locally, not in public repo)
 MANIFEST_REORG.md
-docs/hpc_workflow.md
-docs/hpc_notes.md
-docs/hpc_quickref.md
-docs/writing_integrity.md
-docs/thesis_plan.md
+*.doc
+*.docx
+*.md
+!/README.md
+docs/
+external/notes/
+external/papers/
+external/templates_original/
 Seminar_Talk_Brief.docx
 Semantic_Entropy_Seminar.pptx
 finalize_history_rewrite.sh
