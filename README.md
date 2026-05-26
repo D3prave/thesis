@@ -31,9 +31,13 @@ Key results:
   consistent.
 - NLI clustering is mixed: it improves Mistral-7B on TriviaQA by 1.3 AUROC
   points but slightly reduces Llama-3.1-70B on TriviaQA by 1.8 points.
-- Rejection-accuracy curves increase across the evaluated conditions, so
-  sampling-based entropy is useful for selective abstention even when absolute
-  accuracy differs by model and dataset.
+- Rejection-accuracy curves generally trend upward across the evaluated
+  conditions, so sampling-based entropy is useful for selective abstention even
+  when absolute accuracy differs by model and dataset. The curves are not
+  monotonic: local drops occur when a rejected high-uncertainty record was
+  actually correct, and the final few retained records are unstable. Additional
+  0-95% rejection plots in the thesis separate the practical range from this
+  right-tail instability.
 - Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
   does not flip the qualitative story.
