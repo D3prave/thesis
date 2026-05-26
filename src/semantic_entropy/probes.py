@@ -10,12 +10,12 @@ et al. (2024).
 The motivation is test-time cost: discrete semantic entropy requires
 sampling ``M = 10`` generations per prompt plus pairwise entailment, while
 SEP requires only a single forward pass per prompt.  When the probe
-generalises, it gives a cheap stand-in for the full entropy pipeline.
+generalizes, it gives a cheap stand-in for the full entropy pipeline.
 
-This module provides two top-level functions and a serialisation-friendly
+This module provides two top-level functions and a serialization-friendly
 dataclass:
 
-* :func:`train_probe` — fit an L2-regularised logistic regression from a
+* :func:`train_probe` — fit an L2-regularized logistic regression from a
   set of scored records that include per-sample hidden states.
 * :func:`score_probe` — return ``p(uncertain)`` in ``[0, 1]`` for a fresh
   hidden state vector.
@@ -88,7 +88,7 @@ class SEPProbe:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serialisable representation of the probe."""
+        """Return a JSON-serializable representation of the probe."""
         return {
             "coef": list(self.coef),
             "intercept": float(self.intercept),
@@ -185,9 +185,9 @@ def train_probe(
               have ``M`` samples and we want to give the trainer the
               denoised mean.
 
-        C: Inverse-regularisation strength forwarded to
+        C: Inverse-regularization strength forwarded to
             ``sklearn.linear_model.LogisticRegression``.  Larger means
-            weaker L2 regularisation.
+            weaker L2 regularization.
         seed: Random seed forwarded to the scikit-learn solver.
 
     Returns:
