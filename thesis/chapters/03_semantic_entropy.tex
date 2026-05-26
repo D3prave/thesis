@@ -139,11 +139,11 @@ clustering step. We use two:
 $y_i \sim_{\mathrm{exact}} y_j$ iff their normalized strings are
 identical, where ``normalization'' means lowercasing, stripping
 whitespace and obvious answer prefixes such as ``the answer is''. This
-is a \emph{surface-form} grouping, not a semantic one. As emphasised in
+is a \emph{surface-form} grouping, not a semantic one. As emphasized in
 the introduction, the Phase~1 baseline is therefore not true semantic
 entropy in the sense of~\cite{semantic_entropy_nature_2024}; it just
 collapses spelling and formatting variation. Throughout the thesis,
-results from Phase~1 will be labelled as either ``surface entropy''
+results from Phase~1 will be labeled as either ``surface entropy''
 (when the underlying distinct strings are counted) or as
 ``exact-match-clustered entropy''.
 
@@ -161,7 +161,7 @@ the same semantic answer:
 This bidirectional-entailment rule is the practical approximation of
 ``meaning equivalence'' proposed by Farquhar et
 al.~\cite{semantic_entropy_nature_2024}; it is an approximation rather
-than a definition, because NLI judgements made by a small cross-encoder
+than a definition, because NLI judgments made by a small cross-encoder
 can be noisy. In particular it may split answers that differ only in
 harmless detail and merge answers that hide important factual
 differences. The empirical impact of these errors is what the cluster
@@ -324,7 +324,7 @@ Chapter~4). Intentionally, this contract is minimal:
         $\widehat{H}_{\mathrm{sem}}(x)$ over cluster frequencies.
 \end{enumerate}
 
-Correctness labelling and selective-prediction evaluation use these
+Correctness labeling and selective-prediction evaluation use these
 outputs but are part of the surrounding evaluation pipeline, not of the
 method itself.
 

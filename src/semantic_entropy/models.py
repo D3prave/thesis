@@ -527,7 +527,7 @@ def make_embedding_fn(
         normalize_embeddings: If ``True`` the encoder returns unit-norm
             embeddings, which makes the RBF kernel equivalent to a
             cosine-similarity kernel up to a monotone transform.  Leave
-            ``False`` for the default RBF behaviour.
+            ``False`` for the default RBF behavior.
 
     Returns:
         A callable as described above.

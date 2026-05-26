@@ -2,7 +2,7 @@
 
 SEP trains a small linear classifier on a generation model's *internal*
 hidden states to predict whether the generation is uncertain — proxied
-either by the correctness label, or by a binarisation of an already-computed
+either by the correctness label, or by a binarization of an already-computed
 semantic entropy score.  Reference: Slobodkin et al. (2023), "The Curious
 Case of Hallucinatory (Un)answerability"; probing baseline in Farquhar
 et al. (2024).
@@ -27,7 +27,7 @@ invoked with a ``ModelFnWithStates`` adapter (see
 :mod:`semantic_entropy.models`).  Each record must carry a
 ``hidden_states`` array of shape ``(num_samples, hidden_dim)``; the probe
 labels can either be ``correctness_label`` (already a per-record bool) or
-the *binarised* version of an existing entropy score using a
+the *binarized* version of an existing entropy score using a
 caller-supplied threshold.
 
 ``numpy`` and ``scikit-learn`` are deferred imports so the rest of the
@@ -65,12 +65,12 @@ class SEPProbe:
         label_source: Either ``"correctness"`` (probe trained from
             ``correctness_label``, *uncertain = incorrect*) or
             ``"semantic_entropy_threshold"`` (probe trained from a
-            binarised entropy score).
+            binarized entropy score).
         label_threshold: For ``label_source == "semantic_entropy_threshold"``,
-            the threshold that was used to binarise the source entropy.
+            the threshold that was used to binarize the source entropy.
             ``None`` otherwise.
         source_score_field: For ``label_source == "semantic_entropy_threshold"``,
-            the name of the entropy score that was binarised.  ``None``
+            the name of the entropy score that was binarized.  ``None``
             otherwise.
         train_size: Number of (sample, label) pairs used to fit the probe.
         positive_rate: Empirical fraction of *uncertain* labels in the
@@ -170,9 +170,9 @@ def train_probe(
               rather than the correctness label.
 
         source_score_field: Name of the entropy score under
-            ``records[i]["scores"]`` to binarise.  Required when
+            ``records[i]["scores"]`` to binarize.  Required when
             ``label_source == "semantic_entropy_threshold"``.
-        label_threshold: Threshold for the entropy binarisation.
+        label_threshold: Threshold for the entropy binarization.
             Required when ``label_source == "semantic_entropy_threshold"``.
         aggregate: How to convert the per-sample hidden states of a single
             record into one feature vector for training.

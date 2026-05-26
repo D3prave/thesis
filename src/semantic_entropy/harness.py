@@ -426,7 +426,7 @@ def run_pipeline(
 
             if model_fn_with_states is not None:
                 # SEP path: sample answers and hidden states in one call,
-                # then run normalisation + clustering on the answers as
+                # then run normalization + clustering on the answers as
                 # usual.  We thread the hidden states into the record
                 # before scoring so they can also feed SEP inference.
                 hidden_record = _sample_with_states(

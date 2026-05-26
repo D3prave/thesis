@@ -4,7 +4,7 @@ KLE is the soft-clustering counterpart of discrete semantic entropy
 (:mod:`semantic_entropy.scoring`).  Rather than committing each sampled
 generation to a hard cluster via NLI, KLE embeds every answer in a sentence
 embedding space, builds a positive-semi-definite kernel matrix ``K`` over
-the answer set, and returns the *von Neumann* entropy of the normalised
+the answer set, and returns the *von Neumann* entropy of the normalized
 density matrix ``K / trace(K)``.
 
 Reference: Nikitin, Petrov, Janowski, Janik (2024), "Kernel Language
@@ -44,9 +44,9 @@ an install hint pointing at the ``kle`` optional dependency group.
     embed = make_embedding_fn("sentence-transformers/all-MiniLM-L6-v2")
     score = compute_kle(["paris", "Paris, France", "lyon"], embed)
 
-KLE is content-free with respect to dataset normalisation: it operates on
+KLE is content-free with respect to dataset normalization: it operates on
 the raw sampled answers (or any string list).  Pass the *sampled* answers
-rather than the normalised forms to match the spirit of the original paper.
+rather than the normalized forms to match the spirit of the original paper.
 """
 
 from __future__ import annotations
@@ -97,7 +97,7 @@ def compute_kle(
             Ignored when ``kernel="cosine"``.
 
     Returns:
-        The von Neumann entropy of the normalised kernel matrix, in nats.
+        The von Neumann entropy of the normalized kernel matrix, in nats.
         The value is non-negative and is bounded above by ``log(n)`` where
         ``n = len(answers)``.
 
@@ -201,7 +201,7 @@ def _cosine_kernel(embeddings: "EmbeddingArray") -> "EmbeddingArray":
 
 
 # ---------------------------------------------------------------------------
-# Von Neumann entropy of a normalised kernel matrix
+# Von Neumann entropy of a normalized kernel matrix
 # ---------------------------------------------------------------------------
 
 
@@ -226,7 +226,7 @@ def _von_neumann_entropy(kmat: "EmbeddingArray") -> float:
     eigvals = np.linalg.eigvalsh(rho)
     # Clip negative noise and tiny positive values that would log to -inf.
     eigvals = np.clip(eigvals, 1e-12, None)
-    # Re-normalise so that the eigenvalues sum to exactly 1 after clipping.
+    # Re-normalize so that the eigenvalues sum to exactly 1 after clipping.
     eigvals = eigvals / float(np.sum(eigvals))
     # Exclude effectively-zero eigenvalues from the sum to avoid the
     # 0 * log(0) limit producing NaN under some BLAS implementations.

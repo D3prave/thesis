@@ -63,9 +63,9 @@ Phase~1 records the surface-form baseline. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
 on the normalized string. This is \emph{not} the bidirectional-NLI
 clustering rule used by Farquhar et al.; it just collapses whitespace,
-prefix and capitalisation variation. Phase~1 therefore acts both as a
+prefix and capitalization variation. Phase~1 therefore acts both as a
 sanity check on the full pipeline --- generation, normalization,
-clustering, entropy scoring, correctness labelling, JSONL output ---
+clustering, entropy scoring, correctness labeling, JSONL output ---
 and as the surface-form reference against which the Phase~2 numbers are
 compared. Throughout the thesis, the Phase~1 entropy score is
 reported as a surface-form baseline and \emph{not} described as
@@ -85,7 +85,7 @@ configuration that corresponds most directly to the original
 semantic-entropy method.
 
 Phase~2 introduces no new research question; it only tests whether the
-ranking behaviour seen in Phase~1 survives the replacement of
+ranking behavior seen in Phase~1 survives the replacement of
 exact-match clustering by NLI-defined semantic clustering. Two posthoc
 extensions are run on top of the Phase~2 outputs (a larger NLI backend
 and Kernel Language Entropy); they are described next.
@@ -125,13 +125,13 @@ spread out the resulting embedding cloud is: a tight cloud means low
 semantic uncertainty, a diffuse cloud means high uncertainty. The
 mathematical definition is given in Chapter~\ref{ch:extensions}. KLE
 was applied to all four Phase~2 JSONL output sets using the
-\texttt{sentence-transformers/all-MiniLM-L6-v2} sentence
+all-MiniLM-L6-v2 sentence
 encoder~\cite{nikitin_kernel_language_entropy_2024,%
 sentence_transformers_all_minilm_l6_v2_2022}.
 
 \textbf{DeBERTa-v3-large reclustering.} The Phase~2 NLI clustering step
-was re-run with a larger cross-encoder
-(\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
+was re-run with the larger DeBERTa-v3-large NLI cross-encoder to test
+whether the
 70B/TriviaQA regression observed under the base model disappeared with
 a stronger NLI backend~\cite{sentence_transformers_nli_deberta_v3_large_2022}.
 

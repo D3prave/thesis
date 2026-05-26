@@ -48,7 +48,7 @@ def surface_entropy(normalized_answers: Sequence[str]) -> float:
     Implements the surface-form uncertainty baseline of the Phase 1 protocol:
     each unique normalized answer string is treated as its own category, and
     the entropy of the empirical categorical distribution is returned. The
-    function makes no semantic equivalence judgement -- strings that are
+    function makes no semantic equivalence judgment -- strings that are
     paraphrases but not character-identical after normalization are counted
     as distinct categories. This is by design, since the contrast against
     :func:`discrete_semantic_entropy` is the central comparison of the
