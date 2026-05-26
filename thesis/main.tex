@@ -47,6 +47,11 @@
 \clubpenalty=10000
 \displaywidowpenalty=10000
 
+% Trim the TOC: show chapters and sections only, suppress sub-subsections
+% (and deeper). Subsections inside chapters still appear via the per-chapter
+% margin TOC where useful.
+\setcounter{tocdepth}{1}
+
 \makenoidxglossaries
 \input{frontmatter/glossary.tex}
 
@@ -60,9 +65,12 @@
 
 \subject{Bachelor thesis}
 \title[Semantic entropy hallucination detection]{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
+% TODO: fill in the four placeholders before submission.
 \author[Jakub Wiśniewski]{%
 \textsc{Jakub Wiśniewski}\\
-Matriculation number: [removed]
+Matriculation number: [removed]\\
+Study programme: Data Science (Bachelor), \textit{[X-th semester]}\\
+Date of birth: \textit{[DD.MM.YYYY]}
 }
 \date{\textit{[submission date]}}
 
@@ -70,7 +78,7 @@ Matriculation number: [removed]
 \textsc{Supervisor: Prof.\ Dr.\ Felix Voigtländer}\\[0.4em]
 \textsc{Mathematical Institute for Machine Learning and Data Science}\\
 \textsc{Katholische Universität Eichstätt-Ingolstadt}\\[0.6em]
-\textsc{Examiner: \textit{[examiner name and affiliation]}}
+\textsc{Examiner: Prof.\ Dr.\ Felix Voigtländer}
 }
 
 \begin{document}

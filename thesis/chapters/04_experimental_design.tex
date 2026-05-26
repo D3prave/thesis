@@ -1,173 +1,170 @@
 \chapter{Experimental Design}
+\label{ch:experimental_design}
 
 This chapter specifies the experimental design used to evaluate whether
 semantic entropy provides a better hallucination and abstention signal
-than surface-form uncertainty. The design is split into two phases. Phase
-1 establishes an exact-match clustering baseline that is small enough to
-debug locally before being run at evaluation scale. Phase 2 repeats the
-same measurement plan with NLI clustering on NHR@FAU resources, with Alex
-used for the primary GPU runs and Fritz for posthoc CPU reclustering and KLE.
-Helma remained outside the recorded execution scope. Chapter 3
-defines the semantic entropy method itself; this chapter fixes the
-experimental variables, comparisons, and records; Chapter 5 covers execution,
-storage, and reproducibility.
-
-\section{Research Question}
-
-The main question is whether uncertainty over semantic answers identifies
-incorrect or unreliable generations better than uncertainty over sampled
-strings. The target phenomenon is semantic uncertainty or confabulation,
-not every form of hallucination. This follows the distinction made in the
-semantic entropy literature: a model can be wrong because it is
-semantically uncertain, but it can also be confidently and systematically
-wrong \cite{semantic_entropy_nature_2024,
-kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
+than surface-form uncertainty. The design is split into two phases.
+Phase~1 establishes an exact-match clustering baseline that is small
+enough to debug locally before being run at evaluation scale. Phase~2
+repeats the same measurement plan with NLI clustering on NHR@FAU
+resources. Chapter~5 then covers execution, storage, and reproducibility
+on the cluster.
 
 \section{Datasets}
 
-The first datasets are TriviaQA and SVAMP. TriviaQA provides open-domain
-question answering examples with short factual answers
-\cite{joshi_triviaqa_2017}. SVAMP provides math word problems for which
-answer normalization and semantic equivalence matter, particularly for
-numeric or near-numeric answers \cite{patel_svamp_2021}. These datasets
-are small enough to support repeated sampling during Phase 1 while still
-exercising two distinct failure modes: factual recall and structured
-arithmetic reasoning.
+The thesis uses two datasets: TriviaQA and SVAMP. TriviaQA provides
+open-domain question answering with short factual answers, e.g.\
+\textit{``What is the capital of France?''} \cite{joshi_triviaqa_2017}.
+SVAMP provides short math word problems for which answer normalization
+and semantic equivalence matter at the level of numbers rather than
+phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
+apples does she have now?''}~\cite{patel_svamp_2021}. These two
+datasets are small enough to support repeated sampling while still
+exercising two distinct failure modes --- factual recall and structured
+arithmetic reasoning. Example records are reproduced in
+Appendix~\ref{app:experiment-details}.
 
-The original semantic entropy evaluation \cite{semantic_entropy_nature_2024}
-reports results across five datasets: TriviaQA, SQuAD, BioASQ, NQ-Open, and
-SVAMP\@. Of these, three---BioASQ, NQ-Open, and TriviaQA---are open-domain
-factual question-answering tasks that differ primarily in domain rather than in
-task structure, and TriviaQA is the most widely used and the primary reference
-dataset in the original experiments. SQuAD is a reading-comprehension dataset
-whose original benchmark design includes source passages; Farquhar et al. make
-it context-free by withholding those passages, which still leaves a different
-dataset origin and prompt assumption from open-domain recall tasks. The
-two-dataset scope therefore covers the two qualitatively distinct task
-types---open-domain factual recall and short-answer arithmetic---within a
-compute budget appropriate for a bachelor-thesis pilot. Expanding to NQ-Open or
-BioASQ remains a straightforward extension because both share the same short
-free-text answer format and normalization approach as TriviaQA.
+The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
+reports results across five datasets: TriviaQA, SQuAD, BioASQ, NQ-Open,
+and SVAMP. Of these, three (BioASQ, NQ-Open, TriviaQA) are open-domain
+factual question-answering tasks that differ primarily in domain rather
+than in task structure, and TriviaQA is the most widely used and the
+primary reference dataset in the original experiments. SQuAD is a
+reading-comprehension dataset whose original benchmark design includes
+source passages; Farquhar et al.\ make it context-free by withholding
+those passages, which still leaves a different dataset origin and
+prompt assumption from open-domain recall tasks. The two-dataset scope
+used here therefore covers the two qualitatively distinct task types
+--- open-domain factual recall and short-answer arithmetic --- within a
+compute budget appropriate for a bachelor-thesis pilot. Expanding to
+NQ-Open or BioASQ remains a straightforward extension because both
+share the same short free-text answer format and normalization
+approach as TriviaQA. SQuAD, BioASQ, and NQ-Open are not used here
+\cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,lee_nq_open_2019};
+TruthfulQA is likewise omitted because the design isolates semantic
+clustering on short-answer tasks rather than broader
+truthfulness~\cite{lin_truthfulqa_2022}.
 
-The completed runs do not add SQuAD, BioASQ, or NQ-Open; these datasets remain
-future extensions that would broaden the evaluation setting beyond the two
-reported tasks \cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,
-lee_nq_open_2019}. TruthfulQA is relevant to broader truthfulness, but it
-is not part of the completed pipeline, because the design isolates semantic
-clustering on short-answer tasks
-\cite{lin_truthfulqa_2022}.
+\section{Models and the two phases}
 
-\section{Model Tiers}
+The two language models used as generators in both phases are
+Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023} and
+Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. They were chosen
+to give one small open model and one large open model on the same
+benchmarks. Note that Farquhar et al.\ use LLaMA-2-Chat-7B and rely on
+GPT-3.5 as their NLI judge; the present setup substitutes more recent
+open models and a local NLI judge so that the whole pipeline can be
+reproduced without relying on a proprietary API. The implications of
+this substitution are discussed in Section~8.5.
 
-\subsection{Phase 1: Exact-Match Baselines}
+\subsection{Phase 1: exact-match (surface-form) baseline}
 
-Phase 1 records exact-match clustering baselines for the evaluated generation
-models. The aim is not to maximize semantic-judge quality, but to verify
-generation, answer normalization, exact-match clustering, entropy scoring, and
-correctness labeling end to end. The recorded Phase~1 runs use Mistral-7B and
-Llama-3.1-70B on TriviaQA and SVAMP; Appendix~\ref{app:runs} lists the Slurm
-job identifiers. TinyGPU remains a debug option in the repository workflow, but
-it is not the source of any reported Phase~1 result
-\cite{jiang_mistral_2023,grattafiori_llama3_2024}.
+Phase~1 records the surface-form baseline. For each prompt, $M=10$
+answers are sampled, lightly normalized, and clustered by exact-match
+on the normalized string. This is \emph{not} the bidirectional-NLI
+clustering rule used by Farquhar et al.; it just collapses whitespace,
+prefix and capitalisation variation. Phase~1 therefore acts both as a
+sanity check on the full pipeline --- generation, normalization,
+clustering, entropy scoring, correctness labelling, JSONL output ---
+and as the surface-form reference against which the Phase~2 numbers are
+compared. Throughout the thesis, the Phase~1 entropy score is
+reported as a surface-form baseline and \emph{not} described as
+semantic entropy. The Slurm job identifiers are listed in
+Appendix~\ref{app:runs}.
 
-The first NLI backend enters in Phase~2. A DeBERTa-v3 cross-encoder fine-tuned
-on NLI is the preferred local semantic judge because it is practical to run and
-supplies the entailment, contradiction, and neutral labels needed for
-bidirectional semantic clustering \cite{he_debertav3_2021,
-sentence_transformers_nli_deberta_v3_base_2022,williams_multinli_2018}.
+\subsection{Phase 2: NLI clustering}
 
-\subsection{Phase 2: Alex NLI Runs}
+Phase~2 keeps the same model--dataset grid, the same sampled answers,
+and the same correctness labels, but replaces the exact-match
+clustering step with the bidirectional-NLI rule from
+Chapter~\ref{ch:semantic_entropy}. The NLI backend used is a
+Sentence-Transformers DeBERTa-v3-base cross-encoder fine-tuned on SNLI
+and MultiNLI~\cite{he_debertav3_2021,williams_multinli_2018,%
+sentence_transformers_nli_deberta_v3_base_2022}. This is the
+configuration that corresponds most directly to the original
+semantic-entropy method.
 
-Phase 2 repeats the same model--dataset grid with NLI clustering. The primary
-Phase~2 runs are executed on Alex, with DeBERTa-v3-base used as the NLI backend
-for semantic clustering. The later DeBERTa-v3-large and KLE checks are posthoc
-experiments on the Phase~2 outputs rather than separate primary phases. The
-important constraint is that Phase 2 introduces no new research question; it
-tests whether the Phase 1 ranking behavior survives NLI-defined semantic
-clusters.
+Phase~2 introduces no new research question; it only tests whether the
+ranking behaviour seen in Phase~1 survives the replacement of
+exact-match clustering by NLI-defined semantic clustering. Two posthoc
+extensions are run on top of the Phase~2 outputs (a larger NLI backend
+and Kernel Language Entropy); they are described next.
 
-\section{Sampling Settings}
+\section{Sampling settings}
 
-For each prompt \(x\), the model produces \(M\) sampled answers. All recorded
-Phase~1 and Phase~2 runs use \(M=10\), matching the first meaningful
-comparison after smoke testing. Each run logs its decoding configuration.
+All Phase~1 and Phase~2 runs use $M=10$ samples per prompt, temperature
+$T=0.7$, top-$p=0.95$, and a short maximum answer length appropriate
+for sentence-length question answering. These values are the ones used
+in Farquhar et al.~\cite{semantic_entropy_nature_2024}. The meaning of
+$M$, $T$, and top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}.
+Each run logs its decoding configuration into the JSONL record.
 
-The default generation setting is temperature \(T=0.7\), top-\(p=0.95\),
-and a short maximum answer length appropriate for sentence-length
-question answering. The completed experiments keep decoding fixed at
-\(T=0.7\) and top-\(p=0.95\); temperature sweeps remain future work.
+\section{Baselines and methods}
 
-\section{Baselines and Methods}
+The minimum baseline is surface-form uncertainty: the naive entropy
+over distinct normalized strings. It addresses a single question --- does
+semantic clustering add value beyond observing that sampled outputs
+differ lexically?
 
-The minimum baseline is surface-form uncertainty: naive entropy or
-diversity over exact or lightly normalized answer strings. It addresses
-a single question: does semantic clustering add value beyond the
-observation that sampled outputs differ lexically?
+The core method is discrete semantic entropy with bidirectional NLI
+clustering. SelfCheckGPT-style sampling consistency and P(True) are
+related sampling-based baselines~\cite{manakul_selfcheckgpt_2023,%
+kadavath_language_models_know_2022} but were not included in the
+recorded runs.
 
-The core method is discrete semantic entropy. Phase~1 clusters samples by
-exact-match normalization, while Phase~2 uses bidirectional entailment clusters;
-in both cases entropy is computed over cluster frequencies
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. This is the
-first method evaluated. Full
-probability-weighted semantic entropy remains outside the completed extension
-set.
-The released semantic uncertainty codebase serves as a methodological
-reference point \cite{kossen_semantic_uncertainty_code_2024}.
-
-Secondary baselines such as SelfCheckGPT-style sampling consistency and P(True)
-are relevant comparisons but are not included in the recorded runs
-\cite{manakul_selfcheckgpt_2023,kadavath_language_models_know_2022}.
-
-\section{Advanced Metrics and Extensions}
+\section{Advanced metrics and extensions}
 
 Following the Phase~2 main runs, two posthoc extensions were completed
 and are reported in Section~\ref{sec:posthoc}.
 
-\textbf{Kernel Language Entropy (KLE)} replaces hard semantic clusters
-with a kernel-based entropy objective computed over sentence-embedding
-similarities \cite{nikitin_kernel_language_entropy_2024}.  KLE was run
-on all four Phase~2 JSONL output sets (Fritz cluster, posthoc jobs) using
-\texttt{sentence-transformers/all-MiniLM-L6-v2}
-\cite{sentence_transformers_all_minilm_l6_v2_2022}.
+\textbf{Kernel Language Entropy (KLE).} KLE replaces the hard semantic
+clusters with a continuous, kernel-based entropy computed directly from
+sentence embeddings: instead of grouping answers into discrete clusters
+and counting them, it embeds each answer as a vector and computes the
+``softness'' of the embedding cloud, where a tighter cloud means lower
+uncertainty~\cite{nikitin_kernel_language_entropy_2024}. KLE was run on
+all four Phase~2 JSONL output sets using the
+\texttt{sentence-transformers/all-MiniLM-L6-v2} sentence
+encoder~\cite{sentence_transformers_all_minilm_l6_v2_2022}. The
+mathematical definition is given in Chapter~\ref{ch:extensions}.
 
-\textbf{DeBERTa-v3-large reclustering} re-ran the Phase~2 NLI
-clustering step with a larger cross-encoder
+\textbf{DeBERTa-v3-large reclustering.} The Phase~2 NLI clustering step
+was re-run with a larger cross-encoder
 (\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
-70B/TriviaQA regression observed under the base model disappeared with a
-larger NLI backend
-\cite{sentence_transformers_nli_deberta_v3_large_2022}.
+70B/TriviaQA regression observed under the base model disappeared with
+a stronger NLI backend~\cite{sentence_transformers_nli_deberta_v3_large_2022}.
 
-The following extensions were not run within the thesis scope: Semantic
-Energy \cite{ma_semantic_energy_2025}, Semantic Volume
-\cite{li_semantic_volume_2025}, Adaptive Bayesian semantic entropy
-\cite{sun_adaptive_bayesian_semantic_entropy_2026}, and Semantic Entropy
-Probes \cite{kossen_semantic_entropy_probes_2024}.  None is required for
-the Phase~1 claim or the primary Phase~2 scale-up.
+The following extensions were not run within the thesis scope and are
+listed for completeness only: Semantic Energy~\cite{ma_semantic_energy_2025},
+Semantic Volume~\cite{li_semantic_volume_2025}, Adaptive Bayesian
+semantic entropy~\cite{sun_adaptive_bayesian_semantic_entropy_2026}, and
+Semantic Entropy Probes~\cite{kossen_semantic_entropy_probes_2024}.
 
-\section{Output Schema}
+\section{Output schema}
 
-Each recorded run writes JSONL with one record per prompt. The shared fields
-below make generation, clustering, scoring, and evaluation auditable
-while leaving extensions free to add method-specific fields:
+Each recorded run writes JSONL --- one JSON object per line --- with
+exactly one record per prompt. The schema below makes generation,
+clustering, scoring, and evaluation auditable while leaving extensions
+free to add method-specific fields:
 
 \begin{verbatim}
 {
   "run_id": "string",
   "phase": "phase1|phase2",
-  "cluster": "local|tinygpu|alex|helma",
+  "cluster": "local|tinygpu|alex|fritz",
   "prompt_id": "string",
   "dataset": "triviaqa|svamp|...",
   "split": "validation",
   "prompt": "string",
   "reference_answers": ["string"],
   "model": "string",
-  "model_tier": "small|7b_8b|70b_plus",
+  "model_tier": "7b_8b|70b_plus",
   "decoding": {
     "num_samples": 10,
     "temperature": 0.7,
     "top_p": 0.95,
     "max_new_tokens": 64,
-    "seed": 0
+    "seed": 42
   },
   "sampled_answers": ["string"],
   "normalized_answers": ["string"],
@@ -175,7 +172,6 @@ while leaving extensions free to add method-specific fields:
   "cluster_representatives": ["string"],
   "scores": {
     "naive_sample_entropy": 0.0,
-    "surface_entropy": 0.0,
     "discrete_semantic_entropy": 0.0
   },
   "entailment_backend": "string",
@@ -183,38 +179,59 @@ while leaving extensions free to add method-specific fields:
 }
 \end{verbatim}
 
-Large raw generations, model caches, checkpoints, and full intermediate
-outputs are handled by the storage and reproducibility policy in
-Chapter 5.
+In Phase~1 \texttt{naive\_sample\_entropy} and
+\texttt{discrete\_semantic\_entropy} coincide by construction --- both
+count distinct normalized strings --- so the schema contains a single
+\texttt{naive\_sample\_entropy} score and uses it as the surface-form
+baseline. Larger raw generations, model caches, and full intermediate
+outputs are described by the storage and reproducibility policy in
+Chapter~5.
 
-\section{Validation Checks}
+\section{Validation checks}
 
-Every recorded run is checked against the following structural requirements:
+Every recorded run is checked against the following structural
+requirements:
 
 \begin{enumerate}
-  \item every prompt has exactly \(M\) sampled answers;
+  \item every prompt has exactly $M$ sampled answers;
   \item every sampled answer has a normalized form;
   \item every answer receives a semantic cluster identifier, and the
     cluster list contains one identifier per sampled answer;
   \item entropy scores are finite and non-negative;
   \item correctness labels are present for all evaluated prompts;
-  \item decoding settings, model names, clustering backend, dataset split, and
-    random seeds are recorded;
-  \item a small manual audit confirms that several clusters are
-    reasonable.
+  \item decoding settings, model names, clustering backend, dataset
+    split, and random seeds are recorded.
 \end{enumerate}
 
-The additional HPC checks for Slurm jobs, cache locations, output paths, GPU
-metadata, and failure logging are execution concerns covered in Chapter 5 and
-Appendix~\ref{app:experiment-details}.
+A manual audit on a handful of records additionally checks that the
+clusters look reasonable; the audit is reported in Section~6.4.
 
-\section{Evaluation Metrics}
+\section{Evaluation metrics}
 
-The main evaluation is selective prediction. Each uncertainty score
-ranks examples from most to least uncertain. The thesis reports AUROC,
-AURAC, and rejection-accuracy curves to measure whether high-uncertainty
-examples are more likely to be incorrect. Raw answer accuracy is
-reported as context, but it is not sufficient on its own, because the
-practical goal is to decide when a model should answer, abstain, or
-route the prompt to a more expensive verification procedure
-\cite{semantic_entropy_nature_2024}.
+The main evaluation framework is \emph{selective prediction}. The idea
+is to use the uncertainty score as a ranking signal: examples with the
+highest uncertainty scores are flagged as ``probably wrong'' and would
+in deployment be rejected, deferred to a human, or routed to a more
+expensive verification step. The thesis reports three quantities.
+
+\begin{itemize}
+  \item \emph{AUROC} (area under the receiver operating characteristic
+        curve). Treating ``incorrect'' as the positive class, AUROC is
+        the probability that a randomly chosen incorrect record
+        receives a higher uncertainty score than a randomly chosen
+        correct record. An AUROC of 0.5 corresponds to random ranking;
+        1.0 is perfect ranking.
+  \item \emph{Rejection-accuracy curve}. For each rejection fraction
+        $f\in[0,1]$, the curve shows the accuracy obtained on the
+        remaining $1-f$ fraction of records after rejecting the $f$
+        fraction with the highest uncertainty. A useful uncertainty
+        signal makes the curve rise above the flat ``raw accuracy''
+        baseline.
+  \item \emph{AURAC} (area under the rejection-accuracy curve). A
+        single-number summary of the rejection-accuracy curve.
+\end{itemize}
+
+Raw answer accuracy is reported only as context; it is not sufficient
+on its own, because the practical goal is to decide when a model
+should answer, abstain, or route the prompt to a more expensive
+verification procedure~\cite{semantic_entropy_nature_2024}.
