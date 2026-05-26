@@ -112,33 +112,28 @@ related sampling-based baselines~\cite{manakul_selfcheckgpt_2023,%
 kadavath_language_models_know_2022} but were not included in the
 recorded runs.
 
-\section{Advanced metrics and extensions}
+\section{Posthoc extensions}
 
 Following the Phase~2 main runs, two posthoc extensions were completed
 and are reported in Section~\ref{sec:posthoc}.
 
-\textbf{Kernel Language Entropy (KLE).} KLE replaces the hard semantic
-clusters with a continuous, kernel-based entropy computed directly from
-sentence embeddings: instead of grouping answers into discrete clusters
-and counting them, it embeds each answer as a vector and computes the
-``softness'' of the embedding cloud, where a tighter cloud means lower
-uncertainty~\cite{nikitin_kernel_language_entropy_2024}. KLE was run on
-all four Phase~2 JSONL output sets using the
+\textbf{Kernel Language Entropy (KLE).} KLE is a continuous,
+kernel-based alternative to discrete semantic entropy. Instead of
+grouping answers into hard clusters and counting them, it embeds each
+answer as a vector using a sentence-embedding model and measures how
+spread out the resulting embedding cloud is: a tight cloud means low
+semantic uncertainty, a diffuse cloud means high uncertainty. The
+mathematical definition is given in Chapter~\ref{ch:extensions}. KLE
+was applied to all four Phase~2 JSONL output sets using the
 \texttt{sentence-transformers/all-MiniLM-L6-v2} sentence
-encoder~\cite{sentence_transformers_all_minilm_l6_v2_2022}. The
-mathematical definition is given in Chapter~\ref{ch:extensions}.
+encoder~\cite{nikitin_kernel_language_entropy_2024,%
+sentence_transformers_all_minilm_l6_v2_2022}.
 
 \textbf{DeBERTa-v3-large reclustering.} The Phase~2 NLI clustering step
 was re-run with a larger cross-encoder
 (\texttt{cross-encoder/nli-deberta-v3-large}) to test whether the
 70B/TriviaQA regression observed under the base model disappeared with
 a stronger NLI backend~\cite{sentence_transformers_nli_deberta_v3_large_2022}.
-
-The following extensions were not run within the thesis scope and are
-listed for completeness only: Semantic Energy~\cite{ma_semantic_energy_2025},
-Semantic Volume~\cite{li_semantic_volume_2025}, Adaptive Bayesian
-semantic entropy~\cite{sun_adaptive_bayesian_semantic_entropy_2026}, and
-Semantic Entropy Probes~\cite{kossen_semantic_entropy_probes_2024}.
 
 \section{Output schema}
 
