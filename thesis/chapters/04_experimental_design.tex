@@ -74,21 +74,23 @@ Appendix~\ref{app:runs}.
 
 \subsection{Phase 2: NLI clustering}
 
-Phase~2 keeps the same model--dataset grid, the same sampled answers,
-and the same correctness labels, but replaces the exact-match
-clustering step with the bidirectional-NLI rule from
-Chapter~\ref{ch:semantic_entropy}. The NLI backend used is a
+Phase~2 keeps the same model--dataset grid, prompt subset, decoding
+settings, and seed, but writes a separate output record in which the
+exact-match clustering step is replaced with the bidirectional-NLI rule
+from Chapter~\ref{ch:semantic_entropy}. Correctness labels are
+recomputed for the Phase~2 records. The NLI backend used is a
 Sentence-Transformers DeBERTa-v3-base cross-encoder fine-tuned on SNLI
 and MultiNLI~\cite{he_debertav3_2021,williams_multinli_2018,%
 sentence_transformers_nli_deberta_v3_base_2022}. This is the
 configuration that corresponds most directly to the original
 semantic-entropy method.
 
-Phase~2 introduces no new research question; it only tests whether the
-ranking behavior seen in Phase~1 survives the replacement of
-exact-match clustering by NLI-defined semantic clustering. Two posthoc
-extensions are run on top of the Phase~2 outputs (a larger NLI backend
-and Kernel Language Entropy); they are described next.
+Phase~2 introduces no new research question; it tests whether the
+ranking behavior seen in Phase~1 survives when exact-match clustering is
+replaced by NLI-defined semantic clustering under the same evaluation
+grid. Two posthoc extensions are run on top of the Phase~2 outputs (a
+larger NLI backend and Kernel Language Entropy); they are described
+next.
 
 \section{Sampling settings}
 

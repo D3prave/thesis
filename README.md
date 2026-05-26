@@ -12,25 +12,31 @@ Mistral-7B-Instruct-v0.3 and Llama-3.1-70B-Instruct.
 
 ## Thesis Status
 
-The thesis is complete. All nine chapters, the abstract, the
-acknowledgements, the appendix, the bibliography, and all figures are
-written, and the PDF builds cleanly with `latexmk -pdf main.tex`. Phase~1
-evaluates exact-match clustering after answer normalization. Phase~2 repeats
-the same model--dataset grid with bidirectional Natural Language Inference
-clustering using DeBERTa-v3-base. Posthoc sensitivity checks on the Fritz
-cluster compare DeBERTa-v3-large reclustering and Kernel Language Entropy.
-Semantic Entropy Probes (SEP) are scaffolded but were not run within the
-thesis scope; Chapter~7 explains the rationale.
+The thesis draft is complete apart from final administrative fields such as
+the submission date. All nine chapters, the abstract, the acknowledgements,
+the appendix, the bibliography, and all figures are written, and the PDF
+builds cleanly with `latexmk -pdf main.tex`. Phase~1 evaluates exact-match
+clustering after answer normalization. Phase~2 repeats the same
+model--dataset grid with bidirectional Natural Language Inference clustering
+using DeBERTa-v3-base. Posthoc sensitivity checks on the Fritz cluster compare
+DeBERTa-v3-large reclustering and Kernel Language Entropy. Semantic Entropy
+Probes (SEP) are scaffolded but were not run within the thesis scope;
+Chapter~7 explains the rationale.
 
 Key results:
 
-- Llama-3.1-70B benefits from discrete semantic entropy over naive sample
-  entropy: AUROC 0.696 vs. 0.644 on TriviaQA and 0.842 vs. 0.827 on SVAMP.
+- In the Phase~1 exact-match baseline, Llama-3.1-70B's normalized
+  surface-cluster score ranks errors better than naive sample entropy: AUROC
+  0.696 vs. 0.644 on TriviaQA and 0.842 vs. 0.827 on SVAMP. This is not, by
+  itself, evidence for true semantic entropy because Phase~1 does not use NLI
+  semantic clustering.
 - Mistral-7B shows little or no gain from semantic clustering, suggesting that
   the method is most useful when the generator is already reasonably
   consistent.
-- NLI clustering is mixed: it improves Mistral-7B on TriviaQA by 1.3 AUROC
-  points but slightly reduces Llama-3.1-70B on TriviaQA by 1.8 points.
+- NLI clustering is mixed: it nominally raises Mistral-7B on TriviaQA by
+  1.3 AUROC points but slightly reduces Llama-3.1-70B on TriviaQA by
+  1.8 points; neither difference is statistically significant in the recorded
+  bootstrap check.
 - Rejection-accuracy curves generally trend upward across the evaluated
   conditions, so sampling-based entropy is useful for selective abstention even
   when absolute accuracy differs by model and dataset. The curves are not
