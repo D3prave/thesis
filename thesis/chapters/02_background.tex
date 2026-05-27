@@ -130,9 +130,20 @@ relation by labeling each pair of sentences as
 Phase~2 is a Sentence-Transformers DeBERTa-v3-base
 cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}
 based on DeBERTa/DeBERTa-v3~\cite{he_deberta_2021,he_debertav3_2021}
-and trained on SNLI and MultiNLI~\cite{williams_multinli_2018}. The exact
-bidirectional-entailment rule and the recorded backend choices are
-settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
+and trained on SNLI and MultiNLI~\cite{williams_multinli_2018}.
+A \emph{cross-encoder} is a neural network architecture in which both
+input texts --- here, a candidate answer pair together with the question
+--- are concatenated into a single sequence and processed jointly by the
+transformer, allowing the model to attend across both texts at once.
+This contrasts with a \emph{bi-encoder} (also called a \emph{dual
+encoder}), which encodes each text independently and then compares the
+resulting embedding vectors.
+Cross-encoders are generally more accurate for pairwise classification
+tasks such as NLI, because the model sees the full interaction between
+the two inputs; the trade-off is speed, since every pair must be encoded
+separately rather than pre-computing a single embedding per text.
+The exact bidirectional-entailment rule and the recorded backend choices
+are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
 \section{Research Gap}
 

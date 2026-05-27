@@ -67,10 +67,15 @@ open instruction-tuned models rather than reproducing the LLaMA-2
 generation thus moves the experiments to a regime that is closer to
 how current chat models are actually deployed, while keeping the
 seven-billion-vs-seventy-billion contrast that motivates Phase~1 and
-Phase~2 in the first place. The NLI judge in Phase~2 is a local
-DeBERTa-v3 cross-encoder rather than the proprietary GPT-3.5 used by
-Farquhar et al., so the whole pipeline runs without dependence on a
-closed API; a posthoc rerun in which this cross-encoder is replaced
+Phase~2 in the first place. The NLI judge in Phase~2 is a local DeBERTa-v3 cross-encoder rather
+than the proprietary GPT-3.5 used by Farquhar et al.
+Using a local model rather than a closed API matters for several
+reasons: the model version is fixed and publicly available, so results
+are fully reproducible without requiring access to any external service;
+there are no per-call costs or rate limits; and no prompt or response
+data leaves the local system.
+The whole pipeline therefore runs without dependence on a closed API;
+a posthoc rerun in which this cross-encoder is replaced
 with a large open instruction-tuned judge is reported in
 Section~\ref{sec:posthoc}. The methodological implications of these
 substitutions are discussed in Section~8.5.
