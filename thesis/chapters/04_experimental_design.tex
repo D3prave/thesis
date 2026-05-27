@@ -31,7 +31,7 @@ factual question-answering tasks that differ primarily in domain rather
 than in task structure, and TriviaQA is the most widely used and the
 primary reference dataset in the original experiments. SQuAD is a
 reading-comprehension dataset whose original benchmark design includes
-source passages; Farquhar et al.\ make it context-free by withholding
+source passages; Farquhar et al.~\cite{semantic_entropy_nature_2024} make it context-free by withholding
 those passages, which still leaves a different dataset origin and
 prompt assumption from open-domain recall tasks. The two-dataset scope
 used here therefore covers the two qualitatively distinct task types
@@ -49,20 +49,35 @@ truthfulness~\cite{lin_truthfulqa_2022}.
 
 The two language models used as generators in both phases are
 Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023} and
-Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. They were chosen
-to give one small open model and one large open model on the same
-benchmarks. Note that Farquhar et al.\ use LLaMA-2-Chat-7B and rely on
-GPT-3.5 as their NLI judge; the present setup substitutes more recent
-open models and a local NLI judge so that the whole pipeline can be
-reproduced without relying on a proprietary API. The implications of
-this substitution are discussed in Section~8.5.
+Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. They span the
+same small/large open-weights pairing that Farquhar et
+al.~\cite{semantic_entropy_nature_2024} use within the LLaMA-2 family
+(LLaMA-2-Chat-7B and LLaMA-2-Chat-70B), but both substitutions are
+deliberately upward: Mistral-7B-Instruct-v0.3 reports a substantial
+improvement over LLaMA-2-Chat-7B on standard knowledge-recall and
+reasoning benchmarks~\cite{jiang_mistral_2023}, sitting in
+approximately the open-weights analogue of the GPT-3.5 capability
+band that Farquhar et al.\ assume for their judge model, and
+Llama-3.1-70B-Instruct sits above LLaMA-2-Chat-70B across MMLU,
+TriviaQA, and GSM8K~\cite{grattafiori_llama3_2024}. Choosing newer
+open instruction-tuned models rather than reproducing the LLaMA-2
+generation thus moves the experiments to a regime that is closer to
+how current chat models are actually deployed, while keeping the
+seven-billion-vs-seventy-billion contrast that motivates Phase~1 and
+Phase~2 in the first place. The NLI judge in Phase~2 is a local
+DeBERTa-v3 cross-encoder rather than the proprietary GPT-3.5 used by
+Farquhar et al., so the whole pipeline runs without dependence on a
+closed API; a posthoc rerun in which this cross-encoder is replaced
+with a large open instruction-tuned judge is reported in
+Section~\ref{sec:posthoc}. The methodological implications of these
+substitutions are discussed in Section~8.5.
 
 \subsection{Phase 1: exact-match (surface-form) baseline}
 
 Phase~1 records the surface-form baseline. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
 on the normalized string. This is \emph{not} the bidirectional-NLI
-clustering rule used by Farquhar et al.; it just collapses whitespace,
+clustering rule used by Farquhar et al.~\cite{semantic_entropy_nature_2024}; it just collapses whitespace,
 prefix and capitalization variation. Phase~1 therefore acts both as a
 sanity check on the full pipeline --- generation, normalization,
 clustering, entropy scoring, correctness labeling, JSONL output ---
@@ -96,10 +111,21 @@ next.
 
 All Phase~1 and Phase~2 runs use $M=10$ samples per prompt, temperature
 $T=0.7$, top-$p=0.95$, and a short maximum answer length appropriate
-for sentence-length question answering. These values are the ones used
-in Farquhar et al.~\cite{semantic_entropy_nature_2024}. The meaning of
-$M$, $T$, and top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}.
-Each run logs its decoding configuration into the JSONL record.
+for sentence-length question answering. The sample count $M=10$ matches
+Farquhar et al.~\cite{semantic_entropy_nature_2024}; the temperature and
+top-$p$ values do not. Farquhar et al.\ use $T=1.0$, top-$p=0.9$, and
+$\textit{top-k}=50$. The thesis uses $T=0.7$ and top-$p=0.95$ because
+those are the default decoding settings for current
+instruction-tuned chat models including Mistral-7B-Instruct and the
+Llama-3.1 instruct family, so they correspond to the regime in which
+these models are normally deployed. We fix one configuration across
+both phases and both models rather than running a temperature sweep:
+the goal is to compare clustering rules and judges under a single
+sampling regime, not to characterize the temperature sensitivity of
+semantic entropy. The implications of this choice are revisited in
+Section~8.5. The meaning of $M$, $T$, and top-$p$ is explained in
+Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
+configuration into the JSONL record.
 
 \section{Baselines and methods}
 

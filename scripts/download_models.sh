@@ -121,6 +121,10 @@ else
     echo "  SKIP: HF_TOKEN not set. Re-run with HF_TOKEN=hf_... bash $0"
 fi
 
+echo ""
+echo "=== Instruction-tuned judge models (posthoc LLM-as-judge) ==="
+download_model "Qwen/Qwen2.5-72B-Instruct"
+
 # ---------- Summary ----------
 echo ""
 echo "=== Cache summary ==="

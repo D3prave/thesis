@@ -28,7 +28,8 @@ outcomes (we are very uncertain which outcome will come next). The
 maximum value for $K$ outcomes is $\log K$, achieved by the uniform
 distribution. The base of the logarithm changes the unit but not the
 ordering of distributions, so the choice between $\ln$, $\log_2$ and
-$\log_{10}$ does not affect AUROC. The thesis uses natural log
+$\log_{10}$ does not affect AUROC (area under the receiver operating
+characteristic curve). The thesis uses natural log
 throughout.
 
 For semantic entropy we use the same formula, but the ``outcomes'' are
@@ -81,7 +82,10 @@ Section~\ref{sec:worked_example}.
 \begin{enumerate}
   \item \textbf{Sampling.} For a prompt $x$, draw $M$ candidate answers
         $y_1,\ldots,y_M$ from the language model under a fixed
-        decoding configuration.
+        decoding configuration (temperature, nucleus-sampling
+        threshold top-$p$, and maximum token length held constant
+        across all $M$ draws; the concrete values are given in the
+        Sampling Setup section below).
   \item \textbf{Clustering.} Group the $M$ answers into $K$ clusters
         $c_1,\ldots,c_K$, where two answers are placed in the same
         cluster if they are considered equivalent in the context of
@@ -107,20 +111,23 @@ Concretely, the language model defines a conditional distribution
 $p_\theta(\cdot\mid x)$ over output token sequences, and sampling means
 drawing token sequences from this distribution rather than taking the
 single most-likely sequence. The randomness is controlled by two
-parameters, both of which are taken directly from
-\cite{semantic_entropy_nature_2024}:
+parameters:
 
 \begin{itemize}
   \item \emph{temperature} $T$. The model's token logits are divided by
         $T$ before applying the softmax. $T=0$ collapses sampling to
         the deterministic ``greedy'' choice and produces zero
         diversity, while larger $T$ flattens the distribution and
-        produces more diverse samples. The thesis uses $T=0.7$, which
-        is the value used in the original semantic entropy paper.
+        produces more diverse samples. The thesis uses $T=0.7$, the
+        default chat-decoding temperature for the instruction-tuned
+        models used here; Farquhar et
+        al.~\cite{semantic_entropy_nature_2024} use $T=1.0$. Chapter~4
+        records the reason for the difference.
   \item \emph{nucleus sampling} (top-$p$). At each token step only the
         smallest set of tokens whose probability mass adds to at
         least $p$ is kept; the rest are discarded. The thesis uses
-        $p=0.95$.
+        $p=0.95$; Farquhar et al.~use $p=0.9$ together with
+        $\textit{top-k}=50$.
 \end{itemize}
 
 The choice of $M$ controls a trade-off between statistical resolution
