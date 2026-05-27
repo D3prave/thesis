@@ -103,6 +103,27 @@ except Exception as e:
 PYEOF
 }
 
+# sentence-transformers models must also be cached via SentenceTransformer() so
+# that SENTENCE_TRANSFORMERS_HOME (set by _common.sh on compute nodes) is
+# populated.  snapshot_download alone only fills the HF hub cache, which
+# compute nodes can't use when SENTENCE_TRANSFORMERS_HOME is set and offline.
+download_st_model() {
+    local model="$1"
+    download_model "${model}"   # HF hub cache first
+    echo "  Warming sentence-transformers cache: ${model}"
+    python - <<PYEOF
+import sys, os
+from sentence_transformers import SentenceTransformer
+model = "${model}"
+try:
+    SentenceTransformer(model, device="cpu")
+    print(f"  OK (ST cache): {model}")
+except Exception as e:
+    print(f"  FAILED (ST cache): {model}: {e}", file=sys.stderr)
+    sys.exit(1)
+PYEOF
+}
+
 # ---------- Models ----------
 echo "=== 7B / 8B generation models ==="
 download_model "mistralai/Mistral-7B-Instruct-v0.3"
@@ -111,8 +132,8 @@ echo ""
 echo "=== NLI entailment + KLE embedding models ==="
 download_model "cross-encoder/nli-deberta-v3-base"
 download_model "cross-encoder/nli-deberta-v3-large"
-download_model "sentence-transformers/all-MiniLM-L6-v2"
-download_model "sentence-transformers/nli-roberta-large"
+download_st_model "sentence-transformers/all-MiniLM-L6-v2"
+download_st_model "sentence-transformers/nli-roberta-large"
 
 echo ""
 echo "=== 70B generation models (gated — requires accepted license + HF_TOKEN) ==="
