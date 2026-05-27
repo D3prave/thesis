@@ -80,8 +80,7 @@ with a large open instruction-tuned judge is reported in
 Section~\ref{sec:posthoc}. The methodological implications of these
 substitutions are discussed in Section~\ref{sec:comparison-farquhar}.
 
-\subsection{Phase 1: exact-match (surface-form) baseline}
-
+\paragraph{Phase~1: exact-match surface-form baseline.}
 Phase~1 records the surface-form baseline. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
 on the normalized string, as defined in
@@ -94,8 +93,7 @@ Phase~1 entropy score is reported as a surface-form baseline rather
 than as semantic entropy. The corresponding run artifacts are summarized in
 Appendix~\ref{app:runs}.
 
-\subsection{Phase 2: NLI clustering}
-
+\paragraph{Phase~2: NLI clustering.}
 Phase~2 keeps the same model--dataset grid, prompt subset, decoding
 settings, and seed, but writes a separate output record in which the
 exact-match clustering step is replaced with the bidirectional-NLI rule
@@ -136,27 +134,23 @@ Section~\ref{sec:comparison-farquhar}. The meaning of $M$, $T$, and
 top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
-\section{Baselines and methods}
+\section{Baselines, methods, and posthoc checks}
 
 The surface-form baseline is entropy over distinct normalized strings.
 It addresses a single question: does semantic clustering add value
-beyond observing that sampled outputs differ lexically?
-
-The core method is discrete semantic entropy with bidirectional NLI
-clustering. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
+beyond observing that sampled outputs differ lexically? The core method
+is discrete semantic entropy with bidirectional NLI clustering.
+SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
 P(True)~\cite{kadavath_language_models_know_2022} are related
 sampling-based baselines but were not included in the recorded runs.
 
-\section{Posthoc extensions}
-
 Following the Phase~2 main runs, three posthoc checks were completed:
 KLE with an all-MiniLM-L6-v2 sentence encoder, DeBERTa-v3-large
-reclustering, and Qwen2.5-72B-Instruct reclustering. This section
-records only the comparison design: all three checks reuse the saved
-Phase~2 answer samples, so any metric change comes from the semantic
-judge or entropy estimator rather than from new generations. The KLE
-method is defined in Chapter~\ref{ch:extensions}; all posthoc results
-are reported in Section~\ref{sec:posthoc}.
+reclustering, and Qwen2.5-72B-Instruct reclustering. These checks reuse
+the saved Phase~2 answer samples, so any metric change comes from the
+semantic judge or entropy estimator rather than from new generations.
+The KLE method is defined in Chapter~\ref{ch:extensions}; all posthoc
+results are reported in Section~\ref{sec:posthoc}.
 
 \section{Output schema}
 
