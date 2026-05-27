@@ -15,12 +15,13 @@ verification step, can act on it.
 
 Empirical evidence confirms the scale of the risk. Hallucination rates
 in clinical decision-support settings have been measured at
-50--82\,\% under adversarial prompting, and the broader landscape of
-factuality failures in deployed LLMs presents substantial challenges
-for automated verification
-\cite{omar_adversarial_hallucination_clinical_2025,%
-augenstein_factuality_challenges_2024}. The central technical difficulty
-is that free-form natural language has many valid surface forms. Two
+50--82\,\% under adversarial prompting~\cite{omar_adversarial_hallucination_clinical_2025},
+while the broader landscape of
+factuality failures in deployed
+LLMs~\cite{augenstein_factuality_challenges_2024} presents substantial
+challenges for automated verification.
+The central technical difficulty is that free-form natural language has
+many valid surface forms. Two
 sampled answers may use very different words while expressing the same
 underlying claim, and two similar-looking answers may make incompatible
 claims.
@@ -34,8 +35,9 @@ the underlying \emph{meanings} of those strings vary. If repeated samples
 from the model mostly express the same meaning, the model may be
 uncertain only about phrasing; if the samples split across genuinely
 different meanings, the model is semantically uncertain and the answer
-should be treated as riskier
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}. The
+should be treated as riskier, following the semantic uncertainty
+framing of Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023} and
+Farquhar et al.~\cite{semantic_entropy_nature_2024}. The
 goal of the present thesis is not to invent this idea, but to
 re-implement it under a smaller, locally reproducible setup and to study
 how reliably it works in that setting.
@@ -51,11 +53,13 @@ targets \emph{confabulation}-like failures, where the model's answer
 varies semantically across samples drawn under the same prompt. It does
 not claim that semantic entropy detects every type of hallucination, and
 in particular it cannot flag high-confidence systematic errors where
-the model is consistently wrong
-\cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
+the model is consistently wrong, a failure mode discussed by
+Kalai et al.~\cite{kalai_why_language_models_hallucinate_2025} and
+Simhi et al.~\cite{simhi_choke_2025}.
 
-The working hypothesis, taken from~\cite{semantic_entropy_nature_2024},
-is that discrete semantic entropy computed over bidirectional
+The working hypothesis from Farquhar et
+al.~\cite{semantic_entropy_nature_2024} is that discrete semantic
+entropy computed over bidirectional
 entailment-based clusters achieves a higher AUROC for hallucination
 detection than surface-form entropy computed over sampled answer
 strings on the same prompts. A secondary hypothesis is that the
@@ -75,7 +79,7 @@ normalized, and two answers are grouped together only if their
 normalized strings are identical. We call this \emph{exact-match}
 clustering. The purpose of Phase~1 is to make the full pipeline
 auditable end to end. It does \emph{not} implement true semantic
-entropy in the sense of~\cite{semantic_entropy_nature_2024}, because
+entropy in Farquhar et al.'s sense~\cite{semantic_entropy_nature_2024}, because
 exact-match grouping ignores paraphrases; throughout the thesis the
 Phase~1 number is therefore reported as a surface-form baseline rather
 than as semantic entropy.
@@ -91,7 +95,8 @@ Kernel Language Entropy~\cite{nikitin_kernel_language_entropy_2024}.
 
 \section{Contributions}
 
-The substantive method comes from~\cite{semantic_entropy_nature_2024};
+The substantive method comes from Farquhar et
+al.~\cite{semantic_entropy_nature_2024};
 the contributions of this thesis are therefore mainly implementation,
 evaluation, and scope choices:
 

@@ -12,13 +12,14 @@ on the cluster.
 
 \section{Datasets}
 
-The thesis uses two datasets: TriviaQA and SVAMP. TriviaQA provides
+The thesis uses two datasets: TriviaQA~\cite{joshi_triviaqa_2017} and
+SVAMP~\cite{patel_svamp_2021}. TriviaQA provides
 open-domain question answering with short factual answers, e.g.\
-\textit{``What is the capital of France?''} \cite{joshi_triviaqa_2017}.
+\textit{``What is the capital of France?''}.
 SVAMP provides short math word problems for which answer normalization
 and semantic equivalence matter at the level of numbers rather than
 phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
-apples does she have now?''}~\cite{patel_svamp_2021}. These two
+apples does she have now?''}. These two
 datasets are small enough to support repeated sampling while still
 exercising two distinct failure modes --- factual recall and structured
 arithmetic reasoning. Example records are reproduced in
@@ -39,11 +40,13 @@ used here therefore covers the two qualitatively distinct task types
 compute budget appropriate for a bachelor-thesis pilot. Expanding to
 NQ-Open or BioASQ remains a straightforward extension because both
 share the same short free-text answer format and normalization
-approach as TriviaQA. SQuAD, BioASQ, and NQ-Open are not used here
-\cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,lee_nq_open_2019};
-TruthfulQA is likewise omitted because the design isolates semantic
+approach as TriviaQA. SQuAD~\cite{rajpurkar_squad_2016},
+BioASQ~\cite{tsatsaronis_bioasq_2015}, and
+NQ-Open~\cite{lee_nq_open_2019} are not used here;
+TruthfulQA~\cite{lin_truthfulqa_2022} is likewise omitted because the
+design isolates semantic
 clustering on short-answer tasks rather than broader
-truthfulness~\cite{lin_truthfulqa_2022}.
+truthfulness.
 
 \section{Models and the two phases}
 
@@ -77,7 +80,8 @@ substitutions are discussed in Section~8.5.
 Phase~1 records the surface-form baseline. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
 on the normalized string. This is \emph{not} the bidirectional-NLI
-clustering rule used by Farquhar et al.~\cite{semantic_entropy_nature_2024}; it just collapses whitespace,
+clustering rule used by Farquhar et
+al.~\cite{semantic_entropy_nature_2024}; it just collapses whitespace,
 prefix and capitalization variation. Phase~1 therefore acts both as a
 sanity check on the full pipeline --- generation, normalization,
 clustering, entropy scoring, correctness labeling, JSONL output ---
@@ -94,9 +98,10 @@ settings, and seed, but writes a separate output record in which the
 exact-match clustering step is replaced with the bidirectional-NLI rule
 from Chapter~\ref{ch:semantic_entropy}. Correctness labels are
 recomputed for the Phase~2 records. The NLI backend used is a
-Sentence-Transformers DeBERTa-v3-base cross-encoder fine-tuned on SNLI
-and MultiNLI~\cite{he_debertav3_2021,williams_multinli_2018,%
-sentence_transformers_nli_deberta_v3_base_2022}. This is the
+Sentence-Transformers DeBERTa-v3-base
+cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022},
+a DeBERTa-v3 model~\cite{he_debertav3_2021} fine-tuned on SNLI and
+MultiNLI~\cite{williams_multinli_2018}. This is the
 configuration that corresponds most directly to the original
 semantic-entropy method.
 
@@ -135,17 +140,17 @@ semantic clustering add value beyond observing that sampled outputs
 differ lexically?
 
 The core method is discrete semantic entropy with bidirectional NLI
-clustering. SelfCheckGPT-style sampling consistency and P(True) are
-related sampling-based baselines~\cite{manakul_selfcheckgpt_2023,%
-kadavath_language_models_know_2022} but were not included in the
-recorded runs.
+clustering. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
+P(True)~\cite{kadavath_language_models_know_2022} are related
+sampling-based baselines but were not included in the recorded runs.
 
 \section{Posthoc extensions}
 
 Following the Phase~2 main runs, three posthoc checks were completed
 and are reported in Section~\ref{sec:posthoc}.
 
-\textbf{Kernel Language Entropy (KLE).} KLE is a continuous,
+\textbf{Kernel Language Entropy (KLE).} KLE~\cite{nikitin_kernel_language_entropy_2024}
+is a continuous,
 kernel-based alternative to discrete semantic entropy. Instead of
 grouping answers into hard clusters and counting them, it embeds each
 answer as a vector using a sentence-embedding model and measures how
@@ -154,18 +159,18 @@ semantic uncertainty, a diffuse cloud means high uncertainty. The
 mathematical definition is given in Chapter~\ref{ch:extensions}. KLE
 was applied to all four Phase~2 JSONL output sets using the
 all-MiniLM-L6-v2 sentence
-encoder~\cite{nikitin_kernel_language_entropy_2024,%
-sentence_transformers_all_minilm_l6_v2_2022}.
+encoder~\cite{sentence_transformers_all_minilm_l6_v2_2022}.
 
 \textbf{DeBERTa-v3-large reclustering.} The Phase~2 NLI clustering step
-was re-run with the larger DeBERTa-v3-large NLI cross-encoder to test
-whether the
-70B/TriviaQA regression observed under the base model disappeared with
-a stronger NLI backend~\cite{sentence_transformers_nli_deberta_v3_large_2022}.
+was re-run with the larger DeBERTa-v3-large NLI
+cross-encoder~\cite{sentence_transformers_nli_deberta_v3_large_2022} to
+test whether the 70B/TriviaQA regression observed under the base model
+disappeared with a stronger NLI backend.
 
 \textbf{Qwen2.5-72B LLM-judge reclustering.} The same saved Phase~2
-answer samples were also re-clustered with Qwen2.5-72B-Instruct as an
-instruction-tuned open LLM judge~\cite{yang_qwen25_2024}. This tests
+answer samples were also re-clustered with
+Qwen2.5-72B-Instruct~\cite{yang_qwen25_2024} as an
+instruction-tuned open LLM judge. This tests
 whether moving from a compact NLI cross-encoder to a much larger
 instruction-tuned judge changes the uncertainty ranking without
 changing the generator outputs.
@@ -264,4 +269,5 @@ expensive verification step. The thesis reports three quantities.
 Raw answer accuracy is reported only as context; it is not sufficient
 on its own, because the practical goal is to decide when a model
 should answer, abstain, or route the prompt to a more expensive
-verification procedure~\cite{semantic_entropy_nature_2024}.
+verification procedure, as in the selective-prediction framing of
+semantic entropy~\cite{semantic_entropy_nature_2024}.

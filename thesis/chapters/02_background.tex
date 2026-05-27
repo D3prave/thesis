@@ -7,8 +7,9 @@ under the broad label of ``hallucination'', although the term spans
 several distinct mechanisms: unfaithfulness to source material,
 unsupported factual claims, mistakes caused by gaps in the model's
 knowledge, systematic reasoning errors, and answers encouraged by
-evaluation incentives that reward guessing over abstention
-\cite{ji_hallucination_survey_2023,huang_llm_hallucination_survey_2023,%
+evaluation incentives that reward guessing over abstention, as
+surveyed in hallucination and factuality
+work~\cite{ji_hallucination_survey_2023,huang_llm_hallucination_survey_2023,%
 maynez_faithfulness_factuality_2020,%
 kalai_why_language_models_hallucinate_2025,%
 augenstein_factuality_challenges_2024}. Throughout this thesis we will
@@ -32,16 +33,18 @@ these cases; it specifically detects instability across sampled
 meanings.
 
 This narrower framing motivates the central hypothesis of the thesis,
-again taken from~\cite{semantic_entropy_nature_2024}: if the model knows
+again taken from Farquhar et
+al.~\cite{semantic_entropy_nature_2024}: if the model knows
 the answer, stochastic samples should vary mostly in wording while
 preserving meaning. If the model is confabulating, the samples should
 split across several incompatible meanings. Measuring uncertainty over
 meanings rather than over surface strings should therefore be a more
-informative signal for free-form question answering
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+informative signal for free-form question answering, following
+semantic uncertainty and semantic entropy
+work~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
 In particular, uncertainty-based detection is, by construction, unable
-to flag high-certainty hallucinations or systematic errors
-\cite{simhi_choke_2025,ma_semantic_energy_2025}.
+to flag high-certainty hallucinations or systematic
+errors~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
 
 \section{Uncertainty in Free-Form Generation}
 
@@ -55,7 +58,9 @@ can be expressed by many different sequences (``Paris'', ``Paris,
 France'', ``the capital is Paris''), while superficially similar
 sequences can express different facts. Sequence-level entropy or
 token-level variation can therefore be misleading for natural-language
-answers \cite{baan_uncertainty_nlg_2023,kuhn_semantic_uncertainty_2023}.
+answers, as discussed in work on uncertainty in natural language
+generation~\cite{baan_uncertainty_nlg_2023} and semantic
+uncertainty~\cite{kuhn_semantic_uncertainty_2023}.
 The thesis distinguishes three levels of variation accordingly:
 
 \begin{enumerate}
@@ -70,11 +75,12 @@ The thesis distinguishes three levels of variation accordingly:
 Semantic entropy operates at the second level. It estimates uncertainty
 over semantic answers, not over truth directly; correctness evaluation
 is a separate step that compares the selected answer against a reference
-or a judge \cite{semantic_entropy_nature_2024}. Recent surveys place
+or a judge in semantic entropy~\cite{semantic_entropy_nature_2024}.
+Recent surveys~\cite{shorinwa_uq_llm_survey_2024,liu_uq_confidence_calibration_survey_2025}
+place
 this family of methods within uncertainty quantification for LLMs,
 alongside calibration, verbalized confidence, internal-state methods,
-and other sampling-based estimators
-\cite{shorinwa_uq_llm_survey_2024,liu_uq_confidence_calibration_survey_2025}.
+and other sampling-based estimators.
 
 \section{Confidence, Calibration, and Abstention}
 
@@ -84,59 +90,62 @@ defer to retrieval, request human review, or invoke a more expensive
 verification procedure. This makes selective prediction and
 rejection-based evaluation the natural evaluation lens for the thesis.
 Accuracy alone is insufficient, because many benchmarks reward a lucky
-guess more than an honest admission of uncertainty
-\cite{kalai_why_language_models_hallucinate_2025}. Rejection-accuracy
-curves and AURAC (area under the rejection-accuracy curve) are better aligned with the practical question of
-whether uncertain answers can be filtered out. Related work has also
+guess more than an honest admission of uncertainty, a problem discussed
+by Kalai et al.~\cite{kalai_why_language_models_hallucinate_2025}.
+Rejection-accuracy curves and AURAC (area under the rejection-accuracy
+curve) are better aligned with the practical question of whether
+uncertain answers can be filtered out. Related work has also
 examined whether semantic entropy can be used as a training signal to
 encourage abstention, but the present thesis treats that line as a
-downstream mitigation rather than a primary target
-\cite{tjandra_abstain_semantic_entropy_2024}.
+downstream mitigation rather than a primary target; Tjandra et
+al.~\cite{tjandra_abstain_semantic_entropy_2024} study
+semantic-entropy abstention directly.
 
 A number of related works have approached the same problem without
-explicit semantic clustering. P(True) asks the model to judge whether
+explicit semantic clustering. P(True)~\cite{kadavath_language_models_know_2022}
+asks the model to judge whether
 its own answer is correct, probing verbalized self-knowledge rather than
-sample diversity~\cite{kadavath_language_models_know_2022}. SelfCheckGPT
+sample diversity. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023}
 instead samples multiple responses and checks them for consistency
 without relying on external databases or access to token
-probabilities~\cite{manakul_selfcheckgpt_2023}. Semantic entropy is
+probabilities. Semantic entropy is
 closest in spirit to these sampling-based methods, but, unlike them, it
 explicitly aggregates samples into semantic clusters before computing
-an entropy score
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
 
 \section{Semantic Equivalence and Entailment}
 
 For computing the semantic entropy, the key operational step is
 deciding when two sampled answers should be treated as the same answer.
 Semantic entropy adopts semantic equivalence rather than exact string
-equality: in the original formulation, two answers belong to the same
-group when they entail one another in the context of the question
-\cite{semantic_entropy_nature_2024}. This bidirectional-entailment
+equality: in Farquhar et al.'s original
+formulation~\cite{semantic_entropy_nature_2024}, two answers belong to
+the same group when they entail one another in the context of the question.
+This bidirectional-entailment
 criterion is a practical approximation to equality of meaning.
 
 Natural Language Inference (NLI) supplies a way to approximate this
 relation by labeling each pair of sentences as
-\emph{entailment}, \emph{contradiction}, or \emph{neutral}
-\cite{williams_multinli_2018}. The primary NLI backend used in
-Phase~2 is a Sentence-Transformers DeBERTa-v3-base cross-encoder trained
-on SNLI and MultiNLI
-\cite{he_deberta_2021,he_debertav3_2021,%
-sentence_transformers_nli_deberta_v3_base_2022}. The exact
+\emph{entailment}, \emph{contradiction}, or \emph{neutral}. The primary NLI backend used in
+Phase~2 is a Sentence-Transformers DeBERTa-v3-base
+cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}
+based on DeBERTa/DeBERTa-v3~\cite{he_deberta_2021,he_debertav3_2021}
+and trained on SNLI and MultiNLI~\cite{williams_multinli_2018}. The exact
 bidirectional-entailment rule and the recorded backend choices are
 settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
 \section{Research Gap}
 
-For the empirical experiments we use the following datasets: TriviaQA,
+For the empirical experiments we use the following datasets:
+TriviaQA~\cite{joshi_triviaqa_2017},
 which provides open-domain question answering with short factual
-answers \cite{joshi_triviaqa_2017}, and SVAMP, which provides math word
+answers, and SVAMP~\cite{patel_svamp_2021}, which provides math word
 problems in which equivalent numerical answers and concise reasoning
-matter \cite{patel_svamp_2021}. Other datasets that could be studied as,
+matter. Other datasets that could be studied as,
 e.g., NLI-style extensions or longer-form factual benchmarks include
-SQuAD, BioASQ, and NQ-Open
-\cite{rajpurkar_squad_2016,tsatsaronis_bioasq_2015,lee_nq_open_2019}, and
-TruthfulQA \cite{lin_truthfulqa_2022}. The two datasets actually used
+SQuAD~\cite{rajpurkar_squad_2016}, BioASQ~\cite{tsatsaronis_bioasq_2015},
+NQ-Open~\cite{lee_nq_open_2019}, and
+TruthfulQA~\cite{lin_truthfulqa_2022}. The two datasets actually used
 here are short examples like
 ``\textit{What is the capital of France?}'' (TriviaQA) and
 ``\textit{Mia has 3 apples. She buys 4 more. How many apples does she

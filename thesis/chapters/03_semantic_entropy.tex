@@ -6,8 +6,10 @@ semantic entropy over sampled answers. The aim is to preserve the
 central idea of semantic entropy from
 Farquhar et al.~\cite{semantic_entropy_nature_2024} --- that uncertainty
 should be measured over meanings rather than over surface strings ---
-while keeping the implementation small enough to verify
-\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+while keeping the implementation small enough to verify. This
+meaning-level framing follows Kuhn et
+al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
+al.~\cite{semantic_entropy_nature_2024}.
 Chapter~4 then turns the method into an experimental design, and
 Chapter~7 covers the Kernel Language Entropy variant.
 
@@ -134,7 +136,8 @@ The choice of $M$ controls a trade-off between statistical resolution
 and compute cost: larger $M$ can reveal more semantic alternatives but
 also requires more generation and (in the NLI condition) more pairwise
 semantic comparisons. The completed experiments use $M=10$ samples per
-prompt, again following \cite{semantic_entropy_nature_2024}.
+prompt, again following Farquhar et
+al.~\cite{semantic_entropy_nature_2024}.
 
 \section{Clustering by equivalence}
 \label{sec:clustering}
@@ -148,7 +151,8 @@ identical, where ``normalization'' means lowercasing, stripping
 whitespace and obvious answer prefixes such as ``the answer is''. This
 is a \emph{surface-form} grouping, not a semantic one. As emphasized in
 the introduction, the Phase~1 baseline is therefore not true semantic
-entropy in the sense of~\cite{semantic_entropy_nature_2024}; it just
+entropy in Farquhar et
+al.'s sense~\cite{semantic_entropy_nature_2024}; it just
 collapses spelling and formatting variation. Throughout the thesis,
 results from Phase~1 will be labeled as either ``surface entropy''
 (when the underlying distinct strings are counted) or as
@@ -195,9 +199,10 @@ meaning, while a high score means the samples spread across several
 clusters. Since outcomes correspond to clusters, entropy is at most
 $\log K \le \log M$; for the worked example with $M=10$ this gives a
 maximum possible value of $\ln 10 \approx 2.30$. The thesis reports
-this cluster-frequency entropy; the probability-weighted variant
+this cluster-frequency entropy; the probability-weighted semantic
+entropy variant~\cite{semantic_entropy_nature_2024,%
+kossen_semantic_uncertainty_code_2024}
 that uses token-likelihoods to weight the clusters
-\cite{semantic_entropy_nature_2024,kossen_semantic_uncertainty_code_2024}
 is not included in the completed evaluation.
 
 For comparison, the principal baseline is naive entropy, or diversity,
