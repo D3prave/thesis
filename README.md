@@ -18,10 +18,10 @@ the appendix, the bibliography, and all figures are written, and the PDF
 builds cleanly with `latexmk -pdf main.tex`. Phase~1 evaluates exact-match
 clustering after answer normalization. Phase~2 repeats the same
 model--dataset grid with bidirectional Natural Language Inference clustering
-using DeBERTa-v3-base. Posthoc sensitivity checks on the Fritz cluster compare
-DeBERTa-v3-large reclustering and Kernel Language Entropy. Semantic Entropy
-Probes (SEP) are scaffolded but were not run within the thesis scope;
-Chapter~7 explains the rationale.
+using DeBERTa-v3-base. Posthoc sensitivity checks compare
+DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
+Kernel Language Entropy. Semantic Entropy Probes (SEP) are scaffolded but
+were not run within the thesis scope; Chapter~7 explains the rationale.
 
 Key results:
 
@@ -47,6 +47,9 @@ Key results:
 - Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
   does not flip the qualitative story.
+- Qwen2.5-72B LLM-judge reclustering does not improve the picture: it remains
+  below surface entropy in all four posthoc cells, so judge scale alone is not
+  sufficient in this setup.
 - Kernel Language Entropy with the tested sentence encoder
   (`all-MiniLM-L6-v2`) does not outperform discrete semantic entropy on any
   of the four posthoc runs.
@@ -128,7 +131,8 @@ figures are tracked when they support thesis reproducibility.
 
 The recorded metric summary is available at
 `results/tables/metric_summary.csv` (rows are tagged by
-`clustering = exact-match`, `nli`, `posthoc-kle`, or
-`posthoc-nli-deberta-v3-large`). Generated figures are under
+`clustering = exact-match`, `nli`, `posthoc-kle`,
+`posthoc-nli-deberta-v3-large`, or
+`posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are under
 `results/figures/`; the figures used in the thesis are committed under
 `thesis/figures/`.
