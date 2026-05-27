@@ -103,9 +103,9 @@ semantic-entropy method.
 Phase~2 introduces no new research question; it tests whether the
 ranking behavior seen in Phase~1 survives when exact-match clustering is
 replaced by NLI-defined semantic clustering under the same evaluation
-grid. Two posthoc extensions are run on top of the Phase~2 outputs (a
-larger NLI backend and Kernel Language Entropy); they are described
-next.
+grid. Three posthoc checks are run on top of the Phase~2 outputs (a
+larger NLI backend, an LLM-as-judge backend, and Kernel Language
+Entropy); they are described next.
 
 \section{Sampling settings}
 
@@ -142,7 +142,7 @@ recorded runs.
 
 \section{Posthoc extensions}
 
-Following the Phase~2 main runs, two posthoc extensions were completed
+Following the Phase~2 main runs, three posthoc checks were completed
 and are reported in Section~\ref{sec:posthoc}.
 
 \textbf{Kernel Language Entropy (KLE).} KLE is a continuous,
@@ -162,6 +162,13 @@ was re-run with the larger DeBERTa-v3-large NLI cross-encoder to test
 whether the
 70B/TriviaQA regression observed under the base model disappeared with
 a stronger NLI backend~\cite{sentence_transformers_nli_deberta_v3_large_2022}.
+
+\textbf{Qwen2.5-72B LLM-judge reclustering.} The same saved Phase~2
+answer samples were also re-clustered with Qwen2.5-72B-Instruct as an
+instruction-tuned open LLM judge~\cite{yang_qwen25_2024}. This tests
+whether moving from a compact NLI cross-encoder to a much larger
+instruction-tuned judge changes the uncertainty ranking without
+changing the generator outputs.
 
 \section{Output schema}
 

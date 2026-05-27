@@ -84,9 +84,10 @@ than as semantic entropy.
 high-performance computing cluster and replaces exact-match clustering
 with a bidirectional NLI clustering step using a DeBERTa-v3-base
 cross-encoder. This is the configuration that corresponds most directly
-to the method of Farquhar et al. Two posthoc checks then test whether
-the observed pattern survives a stronger NLI backend (DeBERTa-v3-large)
-or a continuous, kernel-based variant called Kernel Language Entropy.
+to the method of Farquhar et al. Three posthoc checks then test whether
+the observed pattern survives stronger semantic judges (DeBERTa-v3-large
+and Qwen2.5-72B-Instruct) or a continuous, kernel-based variant called
+Kernel Language Entropy~\cite{yang_qwen25_2024}.
 
 \section{Contributions}
 
@@ -110,9 +111,10 @@ evaluation, and scope choices:
     estimator that writes a score field to the shared schema;
   \item method descriptions, implementation scaffolding, and evaluation
     criteria for two extensions --- Semantic Entropy Probes and Kernel
-    Language Entropy --- as cost-versus-quality comparators against the
-    NLI-based baseline. Of the two, only Kernel Language Entropy was
-    actually run on the recorded data.
+    Language Entropy --- plus completed posthoc semantic-judge
+    sensitivity checks using DeBERTa-v3-large and Qwen2.5-72B-Instruct.
+    Of the two extensions, only Kernel Language Entropy was actually
+    run on the recorded data.
 \end{enumerate}
 
 \section{Thesis Structure}
