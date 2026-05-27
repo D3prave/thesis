@@ -112,6 +112,7 @@ echo "=== NLI entailment + KLE embedding models ==="
 download_model "cross-encoder/nli-deberta-v3-base"
 download_model "cross-encoder/nli-deberta-v3-large"
 download_model "sentence-transformers/all-MiniLM-L6-v2"
+download_model "sentence-transformers/nli-roberta-large"
 
 echo ""
 echo "=== 70B generation models (gated — requires accepted license + HF_TOKEN) ==="

@@ -154,10 +154,35 @@ SVAMP~\cite{patel_svamp_2021}. This scope leaves several natural
 extensions outside the recorded study, including
 SQuAD~\cite{rajpurkar_squad_2016}, BioASQ~\cite{tsatsaronis_bioasq_2015},
 NQ-Open~\cite{lee_nq_open_2019}, and
-TruthfulQA~\cite{lin_truthfulqa_2022}. The dataset rationale and exact
-prompt construction are given in
-Chapter~\ref{ch:experimental_design} and
-Appendix~\ref{app:prompts}.
+TruthfulQA~\cite{lin_truthfulqa_2022}. Table~\ref{tab:dataset-samples}
+shows representative records from each dataset; the dataset rationale
+and exact prompt construction are given in
+Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Illustrative records from TriviaQA and SVAMP. TriviaQA
+  prompts are the raw question string; SVAMP prompts concatenate the
+  \texttt{Body} and \texttt{Question} fields. TriviaQA reference
+  answers include accepted aliases separated by semicolons; SVAMP
+  reference answers are the single numeric value.}
+\label{tab:dataset-samples}
+\begin{tabular}{@{}p{1.5cm}p{7.0cm}p{3.2cm}@{}}
+\toprule
+Dataset & Prompt & Reference answer(s) \\
+\midrule
+TriviaQA & What is the capital city of France?                        & Paris; Paris, France \\[4pt]
+TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
+TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
+\midrule
+SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
+SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
+SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 Taken together, the literature positions semantic entropy as a middle
 ground between cheap surface-level uncertainty signals and expensive
