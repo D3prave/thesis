@@ -214,13 +214,14 @@ free to add method-specific fields:
 }
 \end{verbatim}
 
-In Phase~1 \texttt{naive\_sample\_entropy} and
-\texttt{discrete\_semantic\_entropy} coincide by construction --- both
-count distinct normalized strings --- so the schema contains a single
-\texttt{naive\_sample\_entropy} score and uses it as the surface-form
-baseline. Larger raw generations, model caches, and full intermediate
-outputs are described by the storage and reproducibility policy in
-Chapter~5.
+In Phase~1 \texttt{surface\_entropy} and
+\texttt{discrete\_semantic\_entropy} coincide by construction, because
+both count clusters induced by normalized exact-match strings.
+\texttt{naive\_sample\_entropy} is kept as a separate raw-string
+baseline, where unnormalized spelling, casing, punctuation, and
+whitespace variants remain distinct. Larger raw generations, model
+caches, and full intermediate outputs are described by the storage and
+reproducibility policy in Chapter~5.
 
 \section{Validation checks}
 
