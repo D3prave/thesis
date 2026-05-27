@@ -32,6 +32,9 @@ exact-match clustering (Phase~1) and NLI clustering (Phase~2) is small
 on both datasets and even slightly negative for the 70B model on
 TriviaQA. The results therefore provide only limited evidence for the
 added value of NLI-based clustering over a normalized exact-match
-baseline in this specific configuration. The thesis therefore should
-not be read as a close replication of Farquhar et al.; the differences
-from that setup and the remaining gap are discussed in Chapter~8.
+baseline in this specific configuration. A held-out Semantic Entropy
+Probe check is task-dependent, trailing entropy baselines on TriviaQA
+but improving over them on SVAMP for Mistral-7B. The thesis therefore
+should not be read as a close replication of Farquhar et al.; the
+differences from that setup and the remaining gap are discussed in
+Chapter~8.

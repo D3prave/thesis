@@ -20,8 +20,8 @@ clustering after answer normalization. Phase~2 repeats the same
 model--dataset grid with bidirectional Natural Language Inference clustering
 using DeBERTa-v3-base. Posthoc sensitivity checks compare
 DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
-Kernel Language Entropy. Semantic Entropy Probes (SEP) are scaffolded but
-were not run within the thesis scope; Chapter~7 explains the rationale.
+Kernel Language Entropy, plus held-out Mistral-7B Semantic Entropy Probe
+(SEP) checks on TriviaQA and SVAMP.
 
 Key results:
 
