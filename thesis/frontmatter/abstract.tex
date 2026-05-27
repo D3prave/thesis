@@ -33,8 +33,10 @@ on both datasets and even slightly negative for the 70B model on
 TriviaQA. The results therefore provide only limited evidence for the
 added value of NLI-based clustering over a normalized exact-match
 baseline in this specific configuration. A held-out Semantic Entropy
-Probe check is task-dependent, trailing entropy baselines on TriviaQA
-but improving over them on SVAMP for Mistral-7B. The thesis therefore
+Probe check is inconclusive but suggests that scale may matter:
+Mistral-7B trails entropy baselines on TriviaQA and improves on SVAMP,
+while Llama-3.1-70B has higher SEP point estimates on both tasks, with
+confidence intervals that still include zero. The thesis therefore
 should not be read as a close replication of Farquhar et al.; the
 differences from that setup and the remaining gap are discussed in
 Chapter~\ref{ch:discussion}.
