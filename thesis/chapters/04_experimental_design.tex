@@ -7,8 +7,8 @@ than surface-form uncertainty. The design is split into two phases.
 Phase~1 establishes an exact-match clustering baseline that is small
 enough to debug locally before being run at evaluation scale. Phase~2
 repeats the same measurement plan with NLI clustering on NHR@FAU
-resources. Chapter~5 then covers execution, storage, and reproducibility
-on the cluster.
+resources. Chapter~\ref{ch:hpc} then covers execution, storage, and
+reproducibility on the cluster.
 
 \section{Datasets}
 
@@ -78,22 +78,20 @@ The whole pipeline therefore runs without dependence on a closed API;
 a posthoc rerun in which this cross-encoder is replaced
 with a large open instruction-tuned judge is reported in
 Section~\ref{sec:posthoc}. The methodological implications of these
-substitutions are discussed in Section~8.5.
+substitutions are discussed in Section~\ref{sec:comparison-farquhar}.
 
 \subsection{Phase 1: exact-match (surface-form) baseline}
 
 Phase~1 records the surface-form baseline. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
-on the normalized string. This is \emph{not} the bidirectional-NLI
-clustering rule used by Farquhar et
-al.~\cite{semantic_entropy_nature_2024}; it just collapses whitespace,
-prefix and capitalization variation. Phase~1 therefore acts both as a
+on the normalized string, as defined in
+Chapter~\ref{ch:semantic_entropy}. Phase~1 therefore acts both as a
 sanity check on the full pipeline --- generation, normalization,
 clustering, entropy scoring, correctness labeling, JSONL output ---
 and as the surface-form reference against which the Phase~2 numbers are
-compared. Throughout the thesis, the Phase~1 entropy score is
-reported as a surface-form baseline and \emph{not} described as
-semantic entropy. The corresponding run artifacts are summarized in
+compared. Because exact-match clustering ignores paraphrases, the
+Phase~1 entropy score is reported as a surface-form baseline rather
+than as semantic entropy. The corresponding run artifacts are summarized in
 Appendix~\ref{app:runs}.
 
 \subsection{Phase 2: NLI clustering}
@@ -133,16 +131,15 @@ both phases and both models rather than running a temperature sweep:
 the goal is to compare clustering rules and judges under a single
 sampling regime, not to characterize the temperature sensitivity of
 semantic entropy. The implications of this choice are revisited in
-Section~8.5. The meaning of $M$, $T$, and top-$p$ is explained in
-Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
+Section~\ref{sec:comparison-farquhar}. The meaning of $M$, $T$, and
+top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
 \section{Baselines and methods}
 
-The minimum baseline is surface-form uncertainty: the naive entropy
-over distinct normalized strings. It addresses a single question --- does
-semantic clustering add value beyond observing that sampled outputs
-differ lexically?
+The surface-form baseline is entropy over distinct normalized strings.
+It addresses a single question: does semantic clustering add value
+beyond observing that sampled outputs differ lexically?
 
 The core method is discrete semantic entropy with bidirectional NLI
 clustering. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
@@ -155,14 +152,9 @@ Following the Phase~2 main runs, three posthoc checks were completed
 and are reported in Section~\ref{sec:posthoc}.
 
 \textbf{Kernel Language Entropy (KLE).} KLE~\cite{nikitin_kernel_language_entropy_2024}
-is a continuous,
-kernel-based alternative to discrete semantic entropy. Instead of
-grouping answers into hard clusters and counting them, it embeds each
-answer as a vector using a sentence-embedding model and measures how
-spread out the resulting embedding cloud is: a tight cloud means low
-semantic uncertainty, a diffuse cloud means high uncertainty. The
-mathematical definition is given in Chapter~\ref{ch:extensions}. KLE
-was applied to all four Phase~2 JSONL output sets using the
+is the continuous kernel-based comparator defined in
+Chapter~\ref{ch:extensions}. It was applied to all four Phase~2 JSONL
+output sets using the
 all-MiniLM-L6-v2 sentence
 encoder~\cite{sentence_transformers_all_minilm_l6_v2_2022}.
 
@@ -226,9 +218,10 @@ both count clusters induced by normalized exact-match strings.
 baseline, where unnormalized spelling, casing, punctuation, and
 whitespace variants remain distinct. Larger raw generations, model
 caches, and full intermediate outputs are described by the storage and
-reproducibility policy in Chapter~5.
+reproducibility policy in Chapter~\ref{ch:hpc}.
 
 \section{Validation checks}
+\label{sec:validation-checks}
 
 Every recorded run is checked against the following structural
 requirements:
@@ -245,9 +238,11 @@ requirements:
 \end{enumerate}
 
 A manual audit on a handful of records additionally checks that the
-clusters look reasonable; the audit is reported in Section~6.4.
+clusters look reasonable; the audit is reported in
+Section~\ref{sec:cluster-audit}.
 
 \section{Evaluation metrics}
+\label{sec:evaluation-metrics}
 
 The main evaluation framework is \emph{selective prediction}. The idea
 is to use the uncertainty score as a ranking signal: examples with the

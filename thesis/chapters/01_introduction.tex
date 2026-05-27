@@ -60,10 +60,11 @@ Simhi et al.~\cite{simhi_choke_2025}.
 The working hypothesis from Farquhar et
 al.~\cite{semantic_entropy_nature_2024} is that discrete semantic
 entropy computed over bidirectional
-entailment-based clusters achieves a higher AUROC for hallucination
-detection than surface-form entropy computed over sampled answer
-strings on the same prompts. A secondary hypothesis is that the
-improvement, if present, is at least directionally consistent across
+entailment-based clusters achieves a higher AUROC --- a ranking metric
+for placing incorrect answers above correct ones --- than surface-form
+entropy computed over sampled answer strings on the same prompts. A
+secondary hypothesis is that the improvement, if present, is at least
+directionally consistent across
 both TriviaQA and SVAMP, despite the very different answer formats of
 the two tasks (open-domain factual recall vs.\ short numeric
 arithmetic).
@@ -86,12 +87,13 @@ than as semantic entropy.
 
 \textbf{Phase~2} repeats the same model--dataset grid on the NHR@FAU
 high-performance computing cluster and replaces exact-match clustering
-with a bidirectional NLI clustering step using a DeBERTa-v3-base
-cross-encoder. This is the configuration that corresponds most directly
-to the method of Farquhar et al. Three posthoc checks then test whether
-the observed pattern survives stronger semantic judges (DeBERTa-v3-large
-and Qwen2.5-72B-Instruct) or a continuous, kernel-based variant called
-Kernel Language Entropy~\cite{nikitin_kernel_language_entropy_2024}.
+with a bidirectional Natural Language Inference (NLI) clustering step
+using a DeBERTa-v3-base cross-encoder. This is the configuration that
+corresponds most directly to the method of Farquhar et al. Three
+posthoc checks then test whether the observed pattern survives stronger
+semantic judges (DeBERTa-v3-large and Qwen2.5-72B-Instruct) or a
+continuous, kernel-based variant called Kernel Language
+Entropy~\cite{nikitin_kernel_language_entropy_2024}.
 
 \section{Contributions}
 
@@ -111,13 +113,15 @@ evaluation, and scope choices:
   \item an auditable JSONL output schema recording sampled answers,
     semantic clusters, cluster representatives, entropy scores, and
     correctness labels for every evaluated prompt;
-  \item a selective-prediction evaluation framework using AUROC, AURAC,
-    and rejection-accuracy curves, applicable to any uncertainty
-    estimator that writes a score field to the shared schema;
+  \item an evaluation framework for selective prediction, using AUROC,
+    rejection-accuracy curves, and their area summary (AURAC),
+    applicable to any uncertainty estimator that writes a score field to
+    the shared schema;
   \item method descriptions, implementation scaffolding, and evaluation
-    criteria for two extensions --- Semantic Entropy Probes and Kernel
-    Language Entropy --- plus completed posthoc semantic-judge
-    sensitivity checks using DeBERTa-v3-large and Qwen2.5-72B-Instruct.
+    criteria for two extensions --- Semantic Entropy Probes
+    (hidden-state classifiers) and Kernel Language Entropy --- plus
+    completed posthoc semantic-judge sensitivity checks using
+    DeBERTa-v3-large and Qwen2.5-72B-Instruct.
     The extension checks also cover Kernel Language Entropy and a
     held-out Mistral-7B Semantic Entropy Probe evaluation.
 \end{enumerate}
@@ -128,10 +132,12 @@ Chapter~\ref{ch:background} reviews the different forms of
 LLM hallucination, the role of uncertainty estimation, the notion of
 semantic equivalence, and related semantic uncertainty methods.
 Chapter~\ref{ch:semantic_entropy} defines the discrete semantic entropy
-method on which the empirical work is based. Chapter~4 turns the method
-into a two-phase experimental design. Chapter~5 documents the
-implementation and HPC execution. Chapter~6 reports the empirical
-results. Chapter~7 describes Kernel Language Entropy as a completed
-posthoc check and Semantic Entropy Probes as a held-out Mistral-7B
-extension. Chapter~8 discusses interpretation and limitations, and
-Chapter~9 states the final conclusion.
+method on which the empirical work is based.
+Chapter~\ref{ch:experimental_design} turns the method into a two-phase
+experimental design, and Chapter~\ref{ch:hpc} documents the
+implementation and HPC execution. Chapter~\ref{ch:extensions}
+describes Kernel Language Entropy as a completed posthoc check and
+Semantic Entropy Probes as a held-out Mistral-7B extension.
+Chapter~\ref{ch:results} reports the empirical results,
+Chapter~\ref{ch:discussion} discusses interpretation and limitations,
+and Chapter~\ref{ch:conclusion} states the final conclusion.

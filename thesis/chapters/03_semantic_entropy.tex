@@ -10,8 +10,9 @@ while keeping the implementation small enough to verify. This
 meaning-level framing follows Kuhn et
 al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
 al.~\cite{semantic_entropy_nature_2024}.
-Chapter~4 then turns the method into an experimental design, and
-Chapter~7 covers the Kernel Language Entropy variant.
+Chapter~\ref{ch:experimental_design} then turns the method into an
+experimental design, and Chapter~\ref{ch:extensions} covers the Kernel
+Language Entropy variant.
 
 \section{Entropy as a measure of uncertainty}
 
@@ -30,9 +31,8 @@ outcomes (we are very uncertain which outcome will come next). The
 maximum value for $K$ outcomes is $\log K$, achieved by the uniform
 distribution. The base of the logarithm changes the unit but not the
 ordering of distributions, so the choice between $\ln$, $\log_2$ and
-$\log_{10}$ does not affect AUROC (area under the receiver operating
-characteristic curve). The thesis uses natural log
-throughout.
+$\log_{10}$ does not affect ranking metrics such as AUROC. The thesis
+uses natural log throughout.
 
 For semantic entropy we use the same formula, but the ``outcomes'' are
 not raw strings: they are groups of strings that are considered to mean
@@ -100,7 +100,8 @@ Section~\ref{sec:worked_example}.
 An optional fourth step --- attaching a correctness label and using
 $\widehat{H}_{\mathrm{sem}}(x)$ as a selective-prediction signal ---
 belongs to the \emph{evaluation} of the method rather than to the
-method itself, and is treated separately in Chapter~4.
+method itself, and is treated separately in
+Chapter~\ref{ch:experimental_design}.
 
 \section{Sampling setup}
 
@@ -123,8 +124,9 @@ parameters:
         produces more diverse samples. The thesis uses $T=0.7$, the
         default chat-decoding temperature for the instruction-tuned
         models used here; Farquhar et
-        al.~\cite{semantic_entropy_nature_2024} use $T=1.0$. Chapter~4
-        records the reason for the difference.
+        al.~\cite{semantic_entropy_nature_2024} use $T=1.0$.
+        Chapter~\ref{ch:experimental_design} records the reason for
+        the difference.
   \item \emph{nucleus sampling} (top-$p$). At each token step only the
         smallest set of tokens whose probability mass adds to at
         least $p$ is kept; the rest are discarded. The thesis uses
@@ -176,7 +178,8 @@ than a definition, because NLI judgments made by a small cross-encoder
 can be noisy. In particular it may split answers that differ only in
 harmless detail and merge answers that hide important factual
 differences. The empirical impact of these errors is what the cluster
-audit in Section~6.4 and the discussion in Chapter~8 address. The
+audit in Section~\ref{sec:cluster-audit} and the discussion in
+Chapter~\ref{ch:discussion} address. The
 backend used to compute $e(\cdot,\cdot\mid x)$ is a DeBERTa-v3-base NLI
 cross-encoder.
 
@@ -316,7 +319,8 @@ score implies.
 A ``method contract'' here means the inputs and outputs that the
 discrete-semantic-entropy algorithm \emph{itself} requires, independent
 of the larger pipeline that wraps it (which is the topic of
-Chapter~4). Intentionally, this contract is minimal:
+Chapter~\ref{ch:experimental_design}). Intentionally, this contract is
+minimal:
 
 \begin{enumerate}
   \item \emph{Input.} A benchmark prompt $x$ together with $M$ sampled
