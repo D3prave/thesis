@@ -121,25 +121,18 @@ parameters:
         $T$ before applying the softmax. $T=0$ collapses sampling to
         the deterministic ``greedy'' choice and produces zero
         diversity, while larger $T$ flattens the distribution and
-        produces more diverse samples. The thesis uses $T=0.7$, the
-        default chat-decoding temperature for the instruction-tuned
-        models used here; Farquhar et
-        al.~\cite{semantic_entropy_nature_2024} use $T=1.0$.
-        Chapter~\ref{ch:experimental_design} records the reason for
-        the difference.
+        produces more diverse samples.
   \item \emph{nucleus sampling} (top-$p$). At each token step only the
         smallest set of tokens whose probability mass adds to at
-        least $p$ is kept; the rest are discarded. The thesis uses
-        $p=0.95$; Farquhar et al.~use $p=0.9$ together with
-        $\textit{top-k}=50$.
+        least $p$ is kept; the rest are discarded.
 \end{itemize}
 
 The choice of $M$ controls a trade-off between statistical resolution
 and compute cost: larger $M$ can reveal more semantic alternatives but
 also requires more generation and (in the NLI condition) more pairwise
-semantic comparisons. The completed experiments use $M=10$ samples per
-prompt, again following Farquhar et
-al.~\cite{semantic_entropy_nature_2024}.
+semantic comparisons. The concrete values of $M$, $T$, and top-$p$ used
+in the recorded runs are part of the experimental design in
+Section~\ref{sec:sampling-settings}.
 
 \section{Clustering by equivalence}
 \label{sec:clustering}

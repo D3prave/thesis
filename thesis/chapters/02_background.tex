@@ -147,21 +147,17 @@ are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
 \section{Research Gap}
 
-For the empirical experiments we use the following datasets:
-TriviaQA~\cite{joshi_triviaqa_2017},
-which provides open-domain question answering with short factual
-answers, and SVAMP~\cite{patel_svamp_2021}, which provides math word
-problems in which equivalent numerical answers and concise reasoning
-matter. Other datasets that could be studied as,
-e.g., NLI-style extensions or longer-form factual benchmarks include
+The empirical design later fixes the scope to two short-answer tasks:
+open-domain factual question answering with
+TriviaQA~\cite{joshi_triviaqa_2017} and arithmetic word problems with
+SVAMP~\cite{patel_svamp_2021}. This scope leaves several natural
+extensions outside the recorded study, including
 SQuAD~\cite{rajpurkar_squad_2016}, BioASQ~\cite{tsatsaronis_bioasq_2015},
 NQ-Open~\cite{lee_nq_open_2019}, and
-TruthfulQA~\cite{lin_truthfulqa_2022}. The two datasets actually used
-here are short examples like
-``\textit{What is the capital of France?}'' (TriviaQA) and
-``\textit{Mia has 3 apples. She buys 4 more. How many apples does she
-have now?}'' (SVAMP); the precise prompt formats are reproduced in
-Appendix~A.1.
+TruthfulQA~\cite{lin_truthfulqa_2022}. The dataset rationale and exact
+prompt construction are given in
+Chapter~\ref{ch:experimental_design} and
+Appendix~\ref{app:prompts}.
 
 Taken together, the literature positions semantic entropy as a middle
 ground between cheap surface-level uncertainty signals and expensive

@@ -116,6 +116,7 @@ larger NLI backend, an LLM-as-judge backend, and Kernel Language
 Entropy); they are described next.
 
 \section{Sampling settings}
+\label{sec:sampling-settings}
 
 All Phase~1 and Phase~2 runs use $M=10$ samples per prompt, temperature
 $T=0.7$, top-$p=0.95$, and a short maximum answer length appropriate
@@ -148,29 +149,14 @@ sampling-based baselines but were not included in the recorded runs.
 
 \section{Posthoc extensions}
 
-Following the Phase~2 main runs, three posthoc checks were completed
-and are reported in Section~\ref{sec:posthoc}.
-
-\textbf{Kernel Language Entropy (KLE).} KLE~\cite{nikitin_kernel_language_entropy_2024}
-is the continuous kernel-based comparator defined in
-Chapter~\ref{ch:extensions}. It was applied to all four Phase~2 JSONL
-output sets using the
-all-MiniLM-L6-v2 sentence
-encoder~\cite{sentence_transformers_all_minilm_l6_v2_2022}.
-
-\textbf{DeBERTa-v3-large reclustering.} The Phase~2 NLI clustering step
-was re-run with the larger DeBERTa-v3-large NLI
-cross-encoder~\cite{sentence_transformers_nli_deberta_v3_large_2022} to
-test whether the 70B/TriviaQA regression observed under the base model
-disappeared with a stronger NLI backend.
-
-\textbf{Qwen2.5-72B LLM-judge reclustering.} The same saved Phase~2
-answer samples were also re-clustered with
-Qwen2.5-72B-Instruct~\cite{yang_qwen25_2024} as an
-instruction-tuned open LLM judge. This tests
-whether moving from a compact NLI cross-encoder to a much larger
-instruction-tuned judge changes the uncertainty ranking without
-changing the generator outputs.
+Following the Phase~2 main runs, three posthoc checks were completed:
+KLE with an all-MiniLM-L6-v2 sentence encoder, DeBERTa-v3-large
+reclustering, and Qwen2.5-72B-Instruct reclustering. This section
+records only the comparison design: all three checks reuse the saved
+Phase~2 answer samples, so any metric change comes from the semantic
+judge or entropy estimator rather than from new generations. The KLE
+method is defined in Chapter~\ref{ch:extensions}; all posthoc results
+are reported in Section~\ref{sec:posthoc}.
 
 \section{Output schema}
 
