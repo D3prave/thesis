@@ -20,8 +20,8 @@ clustering after answer normalization. Phase~2 repeats the same
 model--dataset grid with bidirectional Natural Language Inference clustering
 using DeBERTa-v3-base. Posthoc sensitivity checks compare
 DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
-Kernel Language Entropy, plus held-out Mistral-7B Semantic Entropy Probe
-(SEP) checks on TriviaQA and SVAMP.
+Kernel Language Entropy, plus held-out Semantic Entropy Probe (SEP)
+checks for both generators on TriviaQA and SVAMP.
 
 Key results:
 
@@ -131,7 +131,7 @@ figures are tracked when they support thesis reproducibility.
 
 The recorded metric summary is available at
 `results/tables/metric_summary.csv` (rows are tagged by
-`clustering = exact-match`, `nli`, `posthoc-kle`,
+`clustering = exact-match`, `nli`, `sep`, `posthoc-kle`,
 `posthoc-nli-deberta-v3-large`, or
 `posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are under
 `results/figures/`; the figures used in the thesis are committed under
