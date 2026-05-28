@@ -99,6 +99,26 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     p.add_argument(
+        "--pooling",
+        choices=["last", "mean", "mean_last_k"],
+        default="last",
+        help=(
+            "Hidden-state pooling strategy. "
+            "'last' (default): use the last generated token's state — "
+            "appropriate for QA. "
+            "'mean': average over all generated token positions — "
+            "recommended for long-form bio. "
+            "'mean_last_k': average over the last k token positions (ablation)."
+        ),
+    )
+    p.add_argument(
+        "--mean-last-k",
+        type=int,
+        default=8,
+        dest="mean_last_k",
+        help="k for --pooling=mean_last_k (default: 8).",
+    )
+    p.add_argument(
         "--C",
         type=float,
         default=1.0,
@@ -145,6 +165,8 @@ def main() -> None:
             source_score_field=args.source_score_field,
             label_threshold=args.label_threshold,
             aggregate=args.aggregate,
+            pooling=args.pooling,
+            mean_last_k=args.mean_last_k,
             C=args.C,
             seed=args.seed,
         )
@@ -155,7 +177,7 @@ def main() -> None:
     probe.save(args.output)
     print(
         f"Done. hidden_dim={probe.hidden_dim} train_size={probe.train_size} "
-        f"positive_rate={probe.positive_rate:.3f} → {args.output}",
+        f"positive_rate={probe.positive_rate:.3f} pooling={probe.pooling} → {args.output}",
         flush=True,
     )
 

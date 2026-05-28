@@ -60,3 +60,46 @@ def normalize_answers(answers: Sequence[str]) -> list[str]:
     """Apply :func:`normalize_answer` element-wise to a sequence of answers."""
 
     return [normalize_answer(answer) for answer in answers]
+
+
+# ---------------------------------------------------------------------------
+# Free-form normalizer for long-form generation (bio task)
+# ---------------------------------------------------------------------------
+
+
+def normalize_freeform(answer: str) -> str:
+    """Minimal normalization for free-form / long-form answers.
+
+    Designed for multi-sentence paragraph responses where dataset-specific
+    normalization (TriviaQA punctuation stripping, SVAMP numeric extraction)
+    is inappropriate. Applies only:
+
+    1. Strip leading/trailing whitespace.
+    2. Lowercase.
+    3. Collapse runs of internal whitespace to a single space.
+    4. Strip leading and trailing ASCII punctuation (periods, commas,
+       colons, etc.) that frequently appear at paragraph boundaries.
+
+    The output retains all substantive content, making it suitable as the
+    ``normalized_answers`` input to exact-match clustering (which will
+    produce near-degenerate clusters — one per sample — as expected for
+    long-form text, demonstrating exact-match collapse on long-form tasks).
+
+    Args:
+        answer: Raw model output string.
+
+    Returns:
+        Normalized string. Empty input returns an empty string.
+    """
+    if not isinstance(answer, str):
+        raise TypeError("answer must be a string")
+    # Lowercase + collapse whitespace.
+    result = re.sub(r"\s+", " ", answer.strip().lower())
+    # Strip boundary punctuation.
+    result = result.strip(".,;:!?\"'")
+    return result
+
+
+def normalize_freeform_answers(answers: Sequence[str]) -> list[str]:
+    """Apply :func:`normalize_freeform` element-wise."""
+    return [normalize_freeform(a) for a in answers]

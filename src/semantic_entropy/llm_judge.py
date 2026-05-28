@@ -53,6 +53,29 @@ DEFAULT_USER_TEMPLATE = (
     "Reply with exactly one word: \"yes\" or \"no\"."
 )
 
+# ---------------------------------------------------------------------------
+# Equivalence mode — for long-form / bio clustering
+# ---------------------------------------------------------------------------
+
+EQUIVALENCE_SYSTEM_PROMPT = (
+    "You are a careful semantic judge. You are given a question and two "
+    "candidate responses. Your job is to decide whether the two responses "
+    "convey the same set of factual claims."
+)
+
+EQUIVALENCE_USER_TEMPLATE = (
+    "Question: {question}\n"
+    "Response A: {premise}\n"
+    "Response B: {hypothesis}\n\n"
+    "Do A and B convey the same set of factual claims about the subject?\n"
+    "Treat A and B as equivalent if every specific factual claim made by A is "
+    "also made (or trivially implied) by B, AND every specific factual claim "
+    "made by B is also made (or trivially implied) by A. Stylistic differences, "
+    "ordering, and verbosity do NOT affect equivalence. A claim only present in "
+    "one of the two responses breaks equivalence.\n"
+    "Answer with exactly one token: YES or NO."
+)
+
 
 def parse_judgment(raw: str) -> str:
     """Map a raw LLM response to :data:`NLI_ENTAILMENT` or :data:`NLI_NEUTRAL`.
@@ -229,6 +252,8 @@ __all__ = [
     "JudgeTriple",
     "DEFAULT_SYSTEM_PROMPT",
     "DEFAULT_USER_TEMPLATE",
+    "EQUIVALENCE_SYSTEM_PROMPT",
+    "EQUIVALENCE_USER_TEMPLATE",
     "parse_judgment",
     "enumerate_ordered_pairs",
 ]

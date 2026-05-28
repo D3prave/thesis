@@ -49,6 +49,12 @@ from semantic_entropy.harness import ModelFn, RunConfig, run_pipeline
 from semantic_entropy.models import SyntheticModel
 from semantic_entropy.schema import SchemaError
 
+# Default max_new_tokens by task type.
+_MAX_NEW_TOKENS_BY_TASK: dict[str, int] = {
+    "qa": 64,
+    "bio": 256,
+}
+
 
 # ---------------------------------------------------------------------------
 # Dynamic module loading
@@ -98,7 +104,35 @@ def load_callable(spec: str) -> Any:
 # Dataset loading helpers
 # ---------------------------------------------------------------------------
 
-_DATASET_CHOICES = ("triviaqa", "svamp", "all")
+_DATASET_CHOICES = ("triviaqa", "svamp", "bio", "all")
+
+
+def _load_bio_records(path: Path) -> list[PromptItem]:
+    """Load bio PromptItems from a prepared JSONL file (bio_train/eval/smoke.jsonl)."""
+    import json
+
+    items: list[PromptItem] = []
+    with path.open("r", encoding="utf-8") as fh:
+        for line_number, line in enumerate(fh, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise DatasetError(
+                    f"{path}:{line_number}: invalid JSON: {exc}"
+                ) from exc
+            items.append(
+                PromptItem(
+                    prompt_id=obj["prompt_id"],
+                    dataset=obj.get("dataset", "bio"),
+                    split=obj.get("split", "eval"),
+                    prompt=obj["prompt"],
+                    reference_answers=list(obj.get("reference_answers", [""])),
+                )
+            )
+    return items
 
 
 def _load_items(
@@ -110,7 +144,7 @@ def _load_items(
     """Load prompt items from the requested dataset(s).
 
     Args:
-        dataset: One of ``"triviaqa"``, ``"svamp"``, or ``"all"``.
+        dataset: One of ``"triviaqa"``, ``"svamp"``, ``"bio"``, or ``"all"``.
         data_path: Optional path override for the dataset file.  When
             *dataset* is ``"all"`` this flag is ignored and both stubs
             are used.
@@ -120,6 +154,14 @@ def _load_items(
         A list of :class:`PromptItem` objects.
     """
     items: list[PromptItem] = []
+
+    if dataset == "bio":
+        if data_path is None:
+            raise DatasetError(
+                "dataset='bio' requires --data-path pointing to bio_train.jsonl, "
+                "bio_eval.jsonl, or bio_smoke.jsonl"
+            )
+        items.extend(_load_bio_records(Path(data_path)))
 
     if dataset in ("triviaqa", "all"):
         path = Path(data_path) if data_path and dataset != "all" else TRIVIAQA_STUB_PATH
@@ -324,6 +366,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--max-new-tokens", type=int, default=64, dest="max_new_tokens"
     )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--task",
+        choices=("qa", "bio"),
+        default="qa",
+        help=(
+            "Task type. 'bio' selects long-form biography codepath: "
+            "free-form normalization, max_new_tokens=256 default, and "
+            "correctness_label=False placeholder (filled posthoc). "
+            "(default: qa)"
+        ),
+    )
 
     args = parser.parse_args(argv)
 
@@ -409,6 +462,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.exit(status=1, message="error: no prompt items loaded\n")
 
     # -- Build RunConfig -------------------------------------------------------
+    # When the user did not explicitly pass --max-new-tokens we use the
+    # task-appropriate default: 64 for QA, 256 for bio.
+    effective_max_new_tokens = args.max_new_tokens
+    if effective_max_new_tokens == 64 and args.task == "bio":
+        # 64 is the argparse default (i.e. user did not override); switch to
+        # the bio default of 256 without requiring an explicit flag.
+        effective_max_new_tokens = _MAX_NEW_TOKENS_BY_TASK[args.task]
+
     config = RunConfig(
         run_id=args.run_id,
         phase=args.phase,
@@ -419,8 +480,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         num_samples=args.num_samples,
         temperature=args.temperature,
         top_p=args.top_p,
-        max_new_tokens=args.max_new_tokens,
+        max_new_tokens=effective_max_new_tokens,
         seed=args.seed,
+        task=args.task,
     )
 
     # -- Run pipeline ----------------------------------------------------------

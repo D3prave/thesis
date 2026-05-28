@@ -75,6 +75,21 @@ class SEPProbe:
         train_size: Number of (sample, label) pairs used to fit the probe.
         positive_rate: Empirical fraction of *uncertain* labels in the
             training set.  Useful for sanity-checking class balance.
+        pooling: Hidden-state aggregation strategy used during both training
+            and inference.
+
+            * ``"last"`` (default) — use the last generated token's hidden
+              state. Matches the original SEP paper and is appropriate for
+              short-answer QA.
+            * ``"mean"`` — mean over all generated token positions. Recommended
+              for long-form bio responses where the last token (often a period
+              or EOS) is a noisy summary of the whole generation.
+            * ``"mean_last_k"`` — mean over the last *k* generated token
+              positions. Useful as a sensitivity ablation; *k* is stored in
+              ``metadata["mean_last_k_k"]``.
+        mean_last_k: Number of final tokens to average when
+            ``pooling == "mean_last_k"``. Stored in ``metadata`` at save time
+            and also as a standalone field for convenience.
     """
 
     coef: list[float]
@@ -86,6 +101,8 @@ class SEPProbe:
     train_size: int = 0
     positive_rate: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
+    pooling: Literal["last", "mean", "mean_last_k"] = "last"
+    mean_last_k: int = 8  # used only when pooling == "mean_last_k"
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the probe."""
@@ -101,6 +118,8 @@ class SEPProbe:
             "train_size": int(self.train_size),
             "positive_rate": float(self.positive_rate),
             "metadata": dict(self.metadata),
+            "pooling": self.pooling,
+            "mean_last_k": int(self.mean_last_k),
         }
 
     @classmethod
@@ -120,6 +139,8 @@ class SEPProbe:
             train_size=int(payload.get("train_size", 0)),
             positive_rate=float(payload.get("positive_rate", 0.0)),
             metadata=dict(payload.get("metadata", {})),
+            pooling=payload.get("pooling", "last"),
+            mean_last_k=int(payload.get("mean_last_k", 8)),
         )
 
     def save(self, path: Path | str) -> None:
@@ -140,6 +161,34 @@ class SEPProbe:
 # ---------------------------------------------------------------------------
 
 
+def _pool_hidden_states(
+    arr: "np.ndarray",  # shape (num_samples, hidden_dim)
+    pooling: str,
+    mean_last_k: int = 8,
+) -> "np.ndarray | None":
+    """Pool a 2-D hidden-state array into a 1-D feature vector.
+
+    Args:
+        arr: ``(num_samples, hidden_dim)`` array.
+        pooling: One of ``"last"``, ``"mean"``, ``"mean_last_k"``.
+        mean_last_k: Number of last samples to average for ``"mean_last_k"``.
+
+    Returns:
+        1-D feature vector, or ``None`` when *pooling* is ``"last"`` (so the
+        caller can fall through to the legacy ``aggregate`` logic).
+    """
+    if pooling == "last":
+        return None  # let caller handle via aggregate keyword
+    if pooling == "mean":
+        return arr.mean(axis=0)
+    if pooling == "mean_last_k":
+        k = max(1, min(mean_last_k, arr.shape[0]))
+        return arr[-k:].mean(axis=0)
+    raise ValueError(
+        f"unknown pooling: {pooling!r}; expected 'last', 'mean', or 'mean_last_k'"
+    )
+
+
 def train_probe(
     records: Sequence[Mapping[str, Any]],
     *,
@@ -147,6 +196,8 @@ def train_probe(
     source_score_field: str | None = None,
     label_threshold: float | None = None,
     aggregate: Literal["first", "mean"] = "first",
+    pooling: Literal["last", "mean", "mean_last_k"] = "last",
+    mean_last_k: int = 8,
     C: float = 1.0,
     seed: int = 0,
 ) -> SEPProbe:
@@ -247,14 +298,18 @@ def train_probe(
                 f"the first record's hidden_dim {hidden_dim}"
             )
 
-        if aggregate == "first":
-            feature = arr[0]
-        elif aggregate == "mean":
-            feature = arr.mean(axis=0)
-        else:
-            raise ValueError(
-                f"unknown aggregate: {aggregate!r}; expected 'first' or 'mean'"
-            )
+        feature = _pool_hidden_states(arr, pooling=pooling, mean_last_k=mean_last_k)
+        if feature is None:
+            # Legacy path: aggregate keyword takes precedence when pooling=="last"
+            # and aggregate is explicitly "mean".
+            if aggregate == "first":
+                feature = arr[0]
+            elif aggregate == "mean":
+                feature = arr.mean(axis=0)
+            else:
+                raise ValueError(
+                    f"unknown aggregate: {aggregate!r}; expected 'first' or 'mean'"
+                )
         features.append(feature.tolist())
 
         if label_source == "correctness":
@@ -311,6 +366,8 @@ def train_probe(
         source_score_field=source_score_field,
         train_size=int(x_train.shape[0]),
         positive_rate=float(y_train.mean()),
+        pooling=pooling,
+        mean_last_k=mean_last_k,
     )
 
 
@@ -397,13 +454,24 @@ def score_probe_for_record(
             f"hidden_states must be 2D; got shape {arr.shape}"
         )
 
-    if aggregate == "first":
-        feature = arr[0]
-    elif aggregate == "mean":
-        feature = arr.mean(axis=0)
+    # Use the probe's stored pooling strategy (new) falling back to the
+    # legacy aggregate keyword for backward compatibility with probes that
+    # pre-date the pooling field.
+    probe_pooling = getattr(probe, "pooling", "last")
+    probe_mean_last_k = getattr(probe, "mean_last_k", 8)
+
+    pooled = _pool_hidden_states(arr, pooling=probe_pooling, mean_last_k=probe_mean_last_k)
+    if pooled is None:
+        # pooling == "last": fall back to aggregate keyword
+        if aggregate == "first":
+            feature = arr[0]
+        elif aggregate == "mean":
+            feature = arr.mean(axis=0)
+        else:
+            raise ValueError(
+                f"unknown aggregate: {aggregate!r}; expected 'first' or 'mean'"
+            )
     else:
-        raise ValueError(
-            f"unknown aggregate: {aggregate!r}; expected 'first' or 'mean'"
-        )
+        feature = pooled
 
     return score_probe(feature.tolist(), probe)

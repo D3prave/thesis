@@ -51,7 +51,10 @@ TRIVIAQA_DATASET: str = "triviaqa"
 SVAMP_DATASET: str = "svamp"
 
 #: Set of dataset names that have a dedicated faithful normalizer.
-KNOWN_DATASETS: frozenset[str] = frozenset({TRIVIAQA_DATASET, SVAMP_DATASET})
+BIO_DATASET: str = "bio"
+
+#: Set of dataset names that have a dedicated faithful normalizer.
+KNOWN_DATASETS: frozenset[str] = frozenset({TRIVIAQA_DATASET, SVAMP_DATASET, BIO_DATASET})
 
 
 # ---------------------------------------------------------------------------
@@ -215,6 +218,9 @@ def normalize_answer_for_dataset(answer: str, dataset: str) -> str:
         return normalize_triviaqa_answer(answer)
     if dataset == SVAMP_DATASET:
         return normalize_svamp_answer(answer)
+    if dataset == BIO_DATASET:
+        from semantic_entropy.normalization import normalize_freeform
+        return normalize_freeform(answer)
     # Generic fallback: lowercase + whitespace normalization.
     return " ".join(answer.lower().split())
 

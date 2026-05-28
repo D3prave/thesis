@@ -73,6 +73,10 @@ OPTIONAL_SCORE_FIELDS = {
     # Stored as a probability of "uncertain" in [0, 1]; finite and
     # non-negative, so the same validation rule applies.
     "probe_uncertainty",
+    # Long-form correctness confidence from the LLM judge (§5 of the bio
+    # study plan).  Optional float in [0, 1]; the binary correctness_label
+    # remains the AUROC label.
+    "correctness_score",
 }
 
 

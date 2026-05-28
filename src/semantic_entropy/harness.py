@@ -111,6 +111,10 @@ class RunConfig:
         top_p: Nucleus sampling threshold.
         max_new_tokens: Maximum number of new tokens per sample.
         seed: Global RNG seed for reproducibility.
+        task: Task type: ``"qa"`` (default, TriviaQA/SVAMP) or ``"bio"``
+            (long-form biography generation). When ``"bio"``, the default
+            ``max_new_tokens`` rises to 256 and free-form normalization is
+            applied instead of dataset-specific normalization.
     """
 
     run_id: str
@@ -124,6 +128,7 @@ class RunConfig:
     top_p: float = 0.95
     max_new_tokens: int = 64
     seed: int = 0
+    task: str = "qa"  # "qa" or "bio"
 
 
 # ---------------------------------------------------------------------------
@@ -436,7 +441,14 @@ def run_pipeline(
             else:
                 record = sample_record(record, model_fn, entailment_fn)
 
-            record = evaluate_correctness(record)
+            # For bio task, correctness_label is set to a placeholder
+            # (False) here and filled posthoc by score_longform_correctness.py
+            # after a separate LLM-judge sbatch.  For QA tasks, use the
+            # standard string-overlap heuristic.
+            if config.task == "bio":
+                record = {**record, "correctness_label": False}
+            else:
+                record = evaluate_correctness(record)
             record["scores"] = score_record(
                 record["sampled_answers"],
                 record["normalized_answers"],
