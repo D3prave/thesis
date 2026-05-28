@@ -164,10 +164,10 @@ free to add method-specific fields:
 {
   "run_id": "string",
   "phase": "phase1|phase2",
-  "cluster": "local|tinygpu|alex|fritz",
+  "cluster": "local|alex",
   "prompt_id": "string",
   "dataset": "triviaqa|svamp|...",
-  "split": "validation",
+  "split": "validation|train|test",
   "prompt": "string",
   "reference_answers": ["string"],
   "model": "string",
@@ -176,7 +176,7 @@ free to add method-specific fields:
     "num_samples": 10,
     "temperature": 0.7,
     "top_p": 0.95,
-    "max_new_tokens": 64,
+    "max_new_tokens": 64,   // 64 for TriviaQA, 32 for SVAMP
     "seed": 42
   },
   "sampled_answers": ["string"],
@@ -185,9 +185,17 @@ free to add method-specific fields:
   "cluster_representatives": ["string"],
   "scores": {
     "naive_sample_entropy": 0.0,
+    "surface_entropy": 0.0,
     "discrete_semantic_entropy": 0.0
+    // optional posthoc/extension fields:
+    // "kle": 0.0,
+    // "probe_uncertainty": 0.0
   },
-  "entailment_backend": "string",
+  // optional (SEP collection runs only):
+  // "hidden_states": [[float, ...], ...],  // (num_samples, hidden_dim)
+  "entailment_backend":
+    "exact-match|nli-deberta-v3-base|nli-deberta-v3-large|"
+    "llm-judge-qwen2.5-72b-instruct",
   "correctness_label": "boolean"
 }
 \end{verbatim}
@@ -197,9 +205,14 @@ In Phase~1 \texttt{surface\_entropy} and
 both count clusters induced by normalized exact-match strings.
 \texttt{naive\_sample\_entropy} is kept as a separate raw-string
 baseline, where unnormalized spelling, casing, punctuation, and
-whitespace variants remain distinct. Larger raw generations, model
-caches, and full intermediate outputs are described by the storage and
-reproducibility policy in Chapter~\ref{ch:hpc}.
+whitespace variants remain distinct. The SEP collection runs use the
+exact-match clustering backend (so \texttt{discrete\_semantic\_entropy}
+again equals \texttt{surface\_entropy} on those records) and additionally
+write a \texttt{hidden\_states} array per record; held-out evaluation
+splits also carry a \texttt{probe\_uncertainty} score in $[0,1]$.
+Larger raw generations, model caches, and full intermediate outputs
+are described by the storage and reproducibility policy in
+Chapter~\ref{ch:hpc}.
 
 \section{Validation checks}
 \label{sec:validation-checks}
