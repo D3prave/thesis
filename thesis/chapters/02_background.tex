@@ -169,9 +169,11 @@ Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
   answers include accepted aliases separated by semicolons; SVAMP
   reference answers are the single numeric value.}
 \label{tab:dataset-samples}
-\begin{tabular}{@{}p{1.5cm}p{7.0cm}p{3.2cm}@{}}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{1.45cm}>{\raggedright\arraybackslash}p{5.8cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
 \toprule
-Dataset & Prompt & Reference answer(s) \\
+Dataset & Prompt & \makecell[l]{Reference\\answer(s)} \\
 \midrule
 TriviaQA & What is the capital city of France?                        & Paris; Paris, France \\[4pt]
 TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
@@ -182,6 +184,7 @@ SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges 
 SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
 \bottomrule
 \end{tabular}
+\endgroup
 \end{table}
 
 Taken together, the literature positions semantic entropy as a middle
