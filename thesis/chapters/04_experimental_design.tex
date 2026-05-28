@@ -144,9 +144,10 @@ SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
 P(True)~\cite{kadavath_language_models_know_2022} are related
 sampling-based baselines but were not included in the recorded runs.
 
-Following the Phase~2 main runs, three posthoc checks were completed:
-KLE with an all-MiniLM-L6-v2 sentence encoder, DeBERTa-v3-large
-reclustering, and Qwen2.5-72B-Instruct reclustering. These checks reuse
+Following the Phase~2 main runs, three posthoc check families were
+completed: KLE with all-MiniLM-L6-v2 and nli-roberta-large sentence
+encoders, DeBERTa-v3-large reclustering, and Qwen2.5-72B-Instruct
+reclustering. These checks reuse
 the saved Phase~2 answer samples, so any metric change comes from the
 semantic judge or entropy estimator rather than from new generations.
 The KLE method is defined in Chapter~\ref{ch:extensions}; all posthoc

@@ -50,9 +50,10 @@ Key results:
 - Qwen2.5-72B LLM-judge reclustering does not improve the picture: it remains
   below surface entropy in all four posthoc cells, so judge scale alone is not
   sufficient in this setup.
-- Kernel Language Entropy with the tested sentence encoder
-  (`all-MiniLM-L6-v2`) does not outperform discrete semantic entropy on any
-  of the four posthoc runs.
+- Kernel Language Entropy with `all-MiniLM-L6-v2` does not outperform
+  discrete semantic entropy on any of the four posthoc runs. The
+  `nli-roberta-large` KLE ablation improves the two Mistral-7B cells but
+  does not uniformly close the gap on Llama-3.1-70B.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does
@@ -131,8 +132,8 @@ figures are tracked when they support thesis reproducibility.
 
 The recorded metric summary is available at
 `results/tables/metric_summary.csv` (rows are tagged by
-`clustering = exact-match`, `nli`, `sep`, `posthoc-kle`,
-`posthoc-nli-deberta-v3-large`, or
+`clustering = exact-match`, `nli`, `sep`, `posthoc-kle-all-minilm-l6-v2`,
+`posthoc-kle-nli-roberta-large`, `posthoc-nli-deberta-v3-large`, or
 `posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are under
 `results/figures/`; the figures used in the thesis are committed under
 `thesis/figures/`.
