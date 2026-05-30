@@ -61,6 +61,7 @@ logs/
 # Raw scored model outputs — large, regenerable from the cluster
 results/phase1/*/scored.jsonl
 results/phase2/*/scored.jsonl
+results/phase2/*/scored_sep.jsonl
 results/smoke/*/scored.jsonl
 
 # Per-run rejection-accuracy figures (flat copies in results/figures/ are tracked)
