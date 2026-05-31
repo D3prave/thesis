@@ -24,19 +24,25 @@ re-implement and evaluate it on a smaller, locally reproducible setup.
 A two-phase pipeline is built on the NHR@FAU high-performance computing
 cluster. Phase~1 uses exact-match clustering; Phase~2 replaces it with
 NLI clustering. The evaluation covers Mistral-7B and Llama-3.1-70B on
-two short-answer datasets, TriviaQA and SVAMP, using AUROC and
-rejection-accuracy curves as the main quality metrics.
+three datasets: the short-answer benchmarks TriviaQA and SVAMP, and a
+FactScore-style long-form biography task graded by an LLM judge against
+Wikipedia. AUROC and rejection-accuracy curves are the main quality
+metrics.
 
-The main finding is that, in this setting, the difference between
-exact-match clustering (Phase~1) and NLI clustering (Phase~2) is small
-on both datasets and even slightly negative for the 70B model on
-TriviaQA. The results therefore provide only limited evidence for the
-added value of NLI-based clustering over a normalized exact-match
-baseline in this specific configuration. A held-out Semantic Entropy
-Probe check is inconclusive but suggests that scale may matter:
-Mistral-7B trails entropy baselines on TriviaQA and improves on SVAMP,
-while Llama-3.1-70B has higher SEP point estimates on both tasks, with
-confidence intervals that still include zero. The thesis therefore
+The main finding is that the value of meaning-level uncertainty over
+surface-level uncertainty depends strongly on the surface-form
+variability of the task. On the two short-answer datasets the difference
+between exact-match clustering (Phase~1) and NLI clustering (Phase~2) is
+small, and even slightly negative for the 70B model on TriviaQA, so
+those results give only limited evidence for the added value of NLI
+clustering over a normalized exact-match baseline. On the long-form
+biography task, where the sampled paragraphs are almost always
+surface-distinct, the exact-match baseline drops near chance and
+meaning-level methods separate from it: semantic clustering helps the
+smaller model substantially, and a held-out Semantic Entropy Probe is
+decisive for both models (AUROC~0.83--0.84), the clearest positive
+result in the thesis and the one regime where a single-pass hidden-state
+signal clearly beats sampling-based entropy. The short-answer numbers
 should not be read as a close replication of Farquhar et al.; the
 differences from that setup and the remaining gap are discussed in
 Chapter~\ref{ch:discussion}.

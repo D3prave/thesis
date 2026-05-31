@@ -1,6 +1,27 @@
+# ===========================================================================
+# Operating system / editor cruft
+# ===========================================================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*~
+*.swp
+*.swo
+*.bak
+*.orig
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
 
-# LaTeX auxiliary files
+# ===========================================================================
+# LaTeX auxiliary / build files
+# ===========================================================================
 *.aux
 *.bbl
 *.bcf
@@ -11,6 +32,7 @@
 *.out
 *.run.xml
 *.synctex.gz
+*.synctex(busy)
 *.toc
 *.lof
 *.lot
@@ -29,48 +51,88 @@
 *.glsdefs
 *.nlo
 *.nls
+*.fdb_latexmk
 *.pdf
 !thesis/logos/*.pdf
 
-# Python caches
+# ===========================================================================
+# Python
+# ===========================================================================
 __pycache__/
+*.py[cod]
+*$py.class
 *.egg-info/
+*.egg
+build/
+dist/
+.eggs/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.ipynb_checkpoints/
 
+# ===========================================================================
 # Environments
+# ===========================================================================
 .venv/
 venv/
+env/
 .env
+.python-version
 
-# Large outputs and local artifacts
+# ===========================================================================
+# Large data, model weights, and regenerable outputs
+# ===========================================================================
 data/raw/*
 data/processed/*
 results/raw/*
 outputs/
 checkpoints/
 models/
+*.ckpt
+*.safetensors
+*.bin
+*.pt
+*.pth
 
 !data/raw/triviaqa_stub.jsonl
 !data/raw/svamp_stub.jsonl
 
-# Slurm logs (transient cluster outputs)
+# Slurm / cluster transient logs
 logs/
+*.slurm.out
+slurm-*.out
 
 # Raw scored model outputs — large, regenerable from the cluster
-results/phase1/*/scored.jsonl
-results/phase2/*/scored.jsonl
-results/phase2/*/scored_sep.jsonl
-results/smoke/*/scored.jsonl
+results/**/scored.jsonl
+results/**/scored_sep.jsonl
+results/**/scored_graded.jsonl
+results/**/hidden_states*.npy
+results/**/*.npz
+results/**/sep_probe.json
+results/**/probe.json
 
 # Per-run rejection-accuracy figures (flat copies in results/figures/ are tracked)
 results/phase1/*/figures/
 results/phase2/*/figures/
-tmp*.tmp
 
-# Local working files (kept locally, not in public repo)
+# Temp scratch files
+tmp*.tmp
+*.tmp
+.~lock.*
+
+# ===========================================================================
+# Local working files (kept local, not in public repo)
+# ===========================================================================
 MANIFEST_REORG.md
+CLEANUP_GUIDE.md
+CLEANUP_SUMMARY.md
 *.doc
 *.docx
 *.md
@@ -79,6 +141,11 @@ docs/
 external/notes/
 external/papers/
 external/templates_original/
-Seminar_Talk_Brief.docx
-Semantic_Entropy_Seminar.pptx
 finalize_history_rewrite.sh
+_figure_vault/
+
+# Office binaries (large; share out-of-band rather than via git)
+*.pptx
+*.ppt
+*.xlsx
+!Semantic_Entropy_Seminar_updated_v2.pptx

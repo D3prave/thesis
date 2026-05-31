@@ -39,6 +39,12 @@ scripts can override them without editing Python code:
 * ``SE_TEMPERATURE`` — sampling temperature (fallback: ``0.7``).
 * ``SE_TOP_P`` — nucleus sampling threshold (fallback: ``0.95``).
 * ``SE_MAX_NEW_TOKENS`` — max new tokens per sample (fallback: ``64``).
+* ``SE_SYSTEM_PROMPT`` — overrides the model system message. Unset keeps the
+  terse QA default ("answer in a word or short phrase"); set it to a
+  long-form instruction for the biography task (see
+  :data:`BIO_SYSTEM_PROMPT`), or to ``"none"`` to disable the system message
+  entirely. **Required for bio runs** — without it the model returns
+  one-sentence answers and the long-form regime collapses.
 * ``SE_DEVICE_MAP`` — device map string (fallback: ``"auto"``).
 * ``SE_NLI_MODEL`` — NLI model ID (fallback: ``"cross-encoder/nli-deberta-v3-base"``).
 * ``SE_NLI_DEVICE`` — NLI device (fallback: ``"cpu"``).
@@ -82,6 +88,7 @@ __all__ = [
     "make_phase1_model_with_states",
     "make_vllm_phase1_model",
     "make_nli",
+    "BIO_SYSTEM_PROMPT",
 ]
 
 
@@ -116,6 +123,48 @@ def _env_bool(key: str, default: bool) -> bool:
         f"Environment variable {key}={raw!r} is not a recognized boolean. "
         f"Use one of {sorted(truthy | falsy)}."
     )
+
+
+#: Recommended system prompt for the long-form biography task. The default
+#: QA system prompt forces single-word/short-phrase answers, which collapses
+#: the long-form regime: every "biography" comes back as one terse sentence,
+#: so the M sampled paragraphs the long-form study depends on never exist.
+#: Export ``SE_SYSTEM_PROMPT="$SE_BIO_SYSTEM_PROMPT"`` (or any custom string)
+#: in the bio Slurm jobs so generation actually produces paragraph-length text.
+BIO_SYSTEM_PROMPT = (
+    "Write a concise, factual biography of the person named in the prompt. "
+    "Cover their main life facts: when and where they were born, their "
+    "nationality, their field or occupation, and their most notable "
+    "achievements. Write a single coherent paragraph of about 120-150 words. "
+    "State only facts you are confident are accurate."
+)
+
+#: Sentinel meaning "SE_SYSTEM_PROMPT was not set, keep the adapter default".
+_SYSTEM_PROMPT_UNSET = object()
+
+
+def _env_system_prompt() -> object | str | None:
+    """Resolve an optional system-prompt override from ``SE_SYSTEM_PROMPT``.
+
+    Returns :data:`_SYSTEM_PROMPT_UNSET` when the variable is absent (so the
+    underlying ``make_*`` factory keeps its own default, the terse QA prompt).
+    Returns ``None`` when set to an empty string or ``"none"`` (disable the
+    system message entirely). Otherwise returns the literal string.
+    """
+    raw = os.environ.get("SE_SYSTEM_PROMPT")
+    if raw is None:
+        return _SYSTEM_PROMPT_UNSET
+    if raw.strip().lower() in {"", "none"}:
+        return None
+    return raw
+
+
+def _system_prompt_kwargs() -> dict[str, object]:
+    """Build a ``{"system_prompt": ...}`` kwargs dict, or ``{}`` if unset."""
+    resolved = _env_system_prompt()
+    if resolved is _SYSTEM_PROMPT_UNSET:
+        return {}
+    return {"system_prompt": resolved}
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +219,7 @@ def make_phase1_model() -> ModelFn:
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
+        **_system_prompt_kwargs(),
     )
 
 
@@ -207,6 +257,7 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
         torch_dtype="auto",
         hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),
         hidden_token=_env_int("SE_SEP_HIDDEN_TOKEN", -1),
+        **_system_prompt_kwargs(),
     )
 
 
@@ -247,6 +298,7 @@ def make_vllm_phase1_model() -> ModelFn:
         # triton's JIT compile of cuda_utils.c fails with Python.h missing.
         # See logs/phase1_70b_alex_3624187 for the canonical failure mode.
         enforce_eager=_env_bool("SE_VLLM_ENFORCE_EAGER", True),
+        **_system_prompt_kwargs(),
     )
 
 

@@ -12,17 +12,27 @@ reproducibility on the cluster.
 
 \section{Datasets}
 
-The thesis uses two datasets: TriviaQA~\cite{joshi_triviaqa_2017} and
-SVAMP~\cite{patel_svamp_2021}. TriviaQA provides
+The thesis uses three datasets: TriviaQA~\cite{joshi_triviaqa_2017},
+SVAMP~\cite{patel_svamp_2021}, and a FactScore-style biography
+generation task~\cite{min_factscore_2023}. TriviaQA provides
 open-domain question answering with short factual answers, e.g.\
 \textit{``What is the capital of France?''}.
 SVAMP provides short math word problems for which answer normalization
 and semantic equivalence matter at the level of numbers rather than
 phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
-apples does she have now?''}. These two
-datasets are small enough to support repeated sampling while still
-exercising two distinct failure modes --- factual recall and structured
-arithmetic reasoning. Example records are reproduced in
+apples does she have now?''}. The biography task prompts the model with
+\textit{``Tell me a bio of \{entity\}.''} for a held-out set of person
+entities and elicits a multi-sentence paragraph rather than a short
+answer. The first two datasets are small enough to support repeated
+sampling while exercising two distinct short-answer failure modes ---
+factual recall and structured arithmetic reasoning --- and the
+biography task adds a third, qualitatively different regime in which
+each sample is a free-form paragraph rather than a normalizable token
+string. This long-form regime is the setting in which surface-form and
+meaning-level uncertainty are most likely to diverge, because after
+normalization the ten samples for a biography prompt are almost always
+ten distinct strings, so exact-match clustering can no longer collapse
+them. Example records are reproduced in
 Appendix~\ref{app:experiment-details}.
 
 The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
@@ -34,13 +44,19 @@ primary reference dataset in the original experiments. SQuAD is a
 reading-comprehension dataset whose original benchmark design includes
 source passages; Farquhar et al.~\cite{semantic_entropy_nature_2024} make it context-free by withholding
 those passages, which still leaves a different dataset origin and
-prompt assumption from open-domain recall tasks. The two-dataset scope
-used here therefore covers the two qualitatively distinct task types
---- open-domain factual recall and short-answer arithmetic --- within a
-compute budget appropriate for a bachelor-thesis pilot. Expanding to
-NQ-Open or BioASQ remains a straightforward extension because both
-share the same short free-text answer format and normalization
-approach as TriviaQA. SQuAD~\cite{rajpurkar_squad_2016},
+prompt assumption from open-domain recall tasks. The scope
+used here therefore covers two qualitatively distinct short-answer task
+types --- open-domain factual recall and short-answer arithmetic ---
+together with one long-form generation task, biography, that probes the
+regime the original five short-answer datasets do not reach. Adding the
+biography task rather than a fourth short-answer benchmark is
+deliberate: the original semantic-entropy work~\cite{semantic_entropy_nature_2024}
+also evaluates a long-form biography setting, and it is precisely where
+the surface-form baseline is expected to break down, so it is the most
+informative single addition for testing whether meaning-level clustering
+earns its cost. Expanding to NQ-Open or BioASQ remains a straightforward
+extension because both share the same short free-text answer format and
+normalization approach as TriviaQA. SQuAD~\cite{rajpurkar_squad_2016},
 BioASQ~\cite{tsatsaronis_bioasq_2015}, and
 NQ-Open~\cite{lee_nq_open_2019} are not used here;
 TruthfulQA~\cite{lin_truthfulqa_2022} is likewise omitted because the
@@ -113,12 +129,43 @@ grid. Three posthoc checks are run on top of the Phase~2 outputs (a
 larger NLI backend, an LLM-as-judge backend, and Kernel Language
 Entropy); they are described next.
 
+\paragraph{The biography task under the same two phases.}
+The biography task is not a separate study but a third dataset evaluated
+under exactly the same Phase~1 and Phase~2 design. Phase~1 clusters its
+samples by exact-match and Phase~2 by semantic clustering, with the only
+differences being mechanical: the maximum answer length is raised to
+accommodate paragraph-length generations, and because free-form text has
+no dataset-specific normalization, the Phase~1 exact-match baseline is
+applied to the raw sampled strings. The semantic-clustering step is run
+both with the whole-response NLI cross-encoder and with the open
+instruction-tuned judge, since paragraph-length pairs are exactly the
+case where the two semantic-equivalence backends are most likely to
+disagree.
+
+\paragraph{Correctness labeling for long-form generations.}
+For TriviaQA and SVAMP a generation is marked correct by normalized
+string comparison against the reference answer, the same exact-string
+protocol used to cluster Phase~1. This is not available for
+paragraph-length biographies, which have no single short ground-truth
+string. The biography task therefore grades correctness with the open
+instruction-tuned judge (Qwen2.5-72B-Instruct) against the first
+paragraph of the entity's English Wikipedia article: the judge is asked
+whether the generated biography is factually consistent with the
+reference, and the binary verdict becomes the correctness label used for
+AUROC and AURAC. The reference revision is pinned per record so the
+label is reproducible. This protocol matches the long-form correctness
+setup of Farquhar et al.~\cite{semantic_entropy_nature_2024}; its main
+limitation, the judge standing in for ground truth, is discussed in
+Section~\ref{sec:discussion-limitations}.
+
 \section{Sampling settings}
 \label{sec:sampling-settings}
 
 All Phase~1 and Phase~2 runs use $M=10$ samples per prompt, temperature
-$T=0.7$, top-$p=0.95$, and a short maximum answer length appropriate
-for sentence-length question answering. The sample count $M=10$ matches
+$T=0.7$, and top-$p=0.95$. The maximum answer length is short for the
+two short-answer datasets, appropriate for sentence-length question
+answering, and is raised for the biography task so that paragraph-length
+generations are not truncated. The sample count $M=10$ matches
 Farquhar et al.~\cite{semantic_entropy_nature_2024}; the temperature and
 top-$p$ values do not. Farquhar et al.\ use $T=1.0$, top-$p=0.9$, and
 $\textit{top-k}=50$. The thesis uses $T=0.7$ and top-$p=0.95$ because
