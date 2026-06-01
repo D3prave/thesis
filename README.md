@@ -49,7 +49,8 @@ Key results:
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
   does not flip the short-answer story. On biography it has a material effect:
   AUROC rises from 0.643 to 0.732 for Mistral-7B and from 0.454 to 0.656 for
-  Llama-3.1-70B.
+  Llama-3.1-70B. These biography numbers are fixed-label reclustering
+  sensitivity checks, not fresh end-to-end correctness re-grades.
 - On the four short-answer cells, Qwen2.5-72B LLM-judge reclustering remains
   below surface entropy, so judge scale alone is not sufficient in this setup.
   Biography is different: the same judge recovers a useful clustering signal.
