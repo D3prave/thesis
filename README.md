@@ -54,6 +54,16 @@ Key results:
   discrete semantic entropy on any of the four posthoc runs. The
   `nli-roberta-large` KLE ablation improves the two Mistral-7B cells but
   does not uniformly close the gap on Llama-3.1-70B.
+- The long-form biography study is the clearest evidence for *semantic*
+  rather than surface uncertainty. Naive and surface entropy collapse to
+  chance (every paragraph sample is unique) and KLE falls below chance, while
+  only meaning-aware methods stay useful: the SEP probe reaches AUROC 0.763 on
+  Llama-3.1-70B and LLM-judge equivalence clustering reaches 0.805 on
+  Mistral-7B.
+- The 2026-06-01 reproducibility audit verified that every canonical run's
+  AUROC/AURAC recomputes from `scored.jsonl` to within 1e-6, and that the
+  corrected sentence-pair DeBERTa reruns reproduce the pre-fix numbers; see
+  `docs/results_audit_2026-06-01.md`.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does
