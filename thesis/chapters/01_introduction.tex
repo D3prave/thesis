@@ -46,14 +46,17 @@ how reliably it works in that setting.
 
 The main research question is whether semantic entropy provides a
 better signal for hallucination risk and selective abstention than
-surface-form uncertainty. The focus is deliberately narrow:
-short-answer question answering where sampled answers can be clustered
-by meaning and compared with reference answers. The thesis therefore
+surface-form uncertainty, and how that comparison changes when the
+output shifts from short answers to paragraph-length generation. The
+study covers TriviaQA and SVAMP as short-answer benchmarks and a
+FactScore-style biography task as the long-form regime. It therefore
 targets \emph{confabulation}-like failures, where the model's answer
-varies semantically across samples drawn under the same prompt. It does
-not claim that semantic entropy detects every type of hallucination, and
-in particular it cannot flag high-confidence systematic errors where
-the model is consistently wrong, a failure mode discussed by
+varies semantically across samples drawn under the same prompt, while
+also testing the harder case where surface variation is nearly
+universal. It does not claim that semantic entropy detects every type
+of hallucination, and in particular it cannot flag high-confidence
+systematic errors where the model is consistently wrong, a failure
+mode discussed by
 Kalai et al.~\cite{kalai_why_language_models_hallucinate_2025} and
 Simhi et al.~\cite{simhi_choke_2025}.
 
@@ -67,7 +70,9 @@ secondary hypothesis is that the improvement, if present, is at least
 directionally consistent across
 both TriviaQA and SVAMP, despite the very different answer formats of
 the two tasks (open-domain factual recall vs.\ short numeric
-arithmetic).
+arithmetic). The biography task tests the complementary hypothesis
+that meaning-aware uncertainty methods separate more clearly once raw
+surface diversity ceases to be informative.
 
 \section{Two-Phase Study}
 
@@ -104,9 +109,9 @@ evaluation, and scope choices:
 
 \begin{enumerate}
   \item an implementation of discrete semantic entropy for short-answer
-    hallucination detection, covering answer normalization, exact-match
-    clustering, bidirectional NLI clustering with DeBERTa-v3, entropy
-    scoring, and correctness labeling;
+    and long-form hallucination detection, covering answer normalization,
+    exact-match clustering, bidirectional NLI clustering with DeBERTa-v3,
+    entropy scoring, and correctness labeling;
   \item a two-phase experimental design that separates local pipeline
     validation from NHR@FAU HPC runs, with Slurm templates and
     reproducibility logging for each phase;
@@ -123,7 +128,11 @@ evaluation, and scope choices:
     completed posthoc semantic-judge sensitivity checks using
     DeBERTa-v3-large and Qwen2.5-72B-Instruct.
     The extension checks also cover Kernel Language Entropy and a
-    held-out Semantic Entropy Probe evaluation for both generators.
+    held-out Semantic Entropy Probe evaluation for both generators;
+  \item a controlled short-versus-long-form comparison that places the
+    FactScore-style biography task alongside TriviaQA and SVAMP and
+    exposes the regime where meaning-aware methods separate cleanly from
+    surface-form baselines.
 \end{enumerate}
 
 \section{Thesis Structure}

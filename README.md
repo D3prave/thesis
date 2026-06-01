@@ -3,12 +3,13 @@
 This repository contains the LaTeX source, Python research code, experiment
 configuration, and recorded small artifacts for a bachelor's thesis on semantic
 entropy as a training-free hallucination detection and selective abstention
-method for short-answer question answering.
+method for short-answer question answering and long-form biography generation.
 
 The central question is whether entropy over meanings separates likely
 incorrect answers from correct answers better than entropy over surface forms.
-The thesis studies this on TriviaQA and SVAMP using sampled answers from
-Mistral-7B-Instruct-v0.3 and Llama-3.1-70B-Instruct.
+The thesis studies this on TriviaQA, SVAMP, and a FactScore-style biography
+task using sampled answers from Mistral-7B-Instruct-v0.3 and
+Llama-3.1-70B-Instruct.
 
 ## Thesis Status
 
@@ -21,7 +22,7 @@ model--dataset grid with bidirectional Natural Language Inference clustering
 using DeBERTa-v3-base. Posthoc sensitivity checks compare
 DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
 Kernel Language Entropy, plus held-out Semantic Entropy Probe (SEP)
-checks for both generators on TriviaQA and SVAMP.
+checks for both generators across the short-answer and biography tasks.
 
 Key results:
 
@@ -60,10 +61,14 @@ Key results:
   only meaning-aware methods stay useful: the SEP probe reaches AUROC 0.763 on
   Llama-3.1-70B and LLM-judge equivalence clustering reaches 0.805 on
   Mistral-7B.
+- Across the verified three-dataset grid, SEP is the strongest single method
+  in five of six model-dataset cells: all four short-form cells and
+  Llama-3.1-70B biography. Mistral-7B biography is the exception, where
+  LLM-judge equivalence clustering reaches AUROC 0.805.
 - The 2026-06-01 reproducibility audit verified that every canonical run's
-  AUROC/AURAC recomputes from `scored.jsonl` to within 1e-6, and that the
-  corrected sentence-pair DeBERTa reruns reproduce the pre-fix numbers; see
-  `docs/results_audit_2026-06-01.md`.
+  AUROC/AURAC recomputes from `scored.labeled.jsonl` when present, otherwise
+  `scored.jsonl`, to within 1e-6, and that the corrected sentence-pair DeBERTa
+  reruns reproduce the pre-fix numbers; see `docs/results_audit_2026-06-01.md`.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does
@@ -127,25 +132,19 @@ uv run --extra plot python -m semantic_entropy.plotting \
   --basename mixed_rejection_accuracy
 ```
 
-To regenerate the tracked aggregate summary tables and figures from recorded
+To regenerate the aggregate summary tables and canonical figures from recorded
 run directories:
 
 ```sh
 uv run --extra plot python scripts/aggregate_results.py --plot
+uv run python scripts/build_canonical_analysis.py
 ```
 
-## Submit the Biography RoBERTa KLE Follow-up
+## Biography Post-Processing
 
-From the repository root on a Fritz login node, submit the missing
-paragraph-length biography `nli-roberta-large` KLE sensitivity jobs for both
-generators:
-
-```sh
-bash scripts/dispatch_bio_roberta_kle_fritz.sh
-```
-
-After both jobs complete, patch correctness labels and refresh the aggregate
-metrics:
+The paragraph-length biography `nli-roberta-large` KLE sensitivity jobs have
+completed. After syncing biography posthoc outputs from the cluster, write
+durable labeled artifacts and refresh the aggregate metrics:
 
 ```sh
 bash scripts/finalize_bio_study.sh
