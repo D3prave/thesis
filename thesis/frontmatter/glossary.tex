@@ -95,9 +95,8 @@
 \newglossaryentry{sep}{
   name={SEP},
   description={Semantic Entropy Probe: a lightweight linear classifier trained
-    on frozen hidden states of the generation model to predict whether a prompt
-    has high semantic entropy, without requiring multi-sample generation at
-    inference time}
+    on frozen hidden states of the generation model to predict incorrectness
+    risk without requiring multi-sample generation at inference time}
 }
 
 \newglossaryentry{kle}{
@@ -107,19 +106,4 @@
     sentence embeddings of sampled answers. The recorded thesis runs use the
     pipeline default RBF kernel. Replaces hard NLI clustering with a continuous
     soft measure of semantic spread}
-}
-
-\newglossaryentry{triviaqa}{
-  name={TriviaQA},
-  description={an open-domain question-answering benchmark consisting of
-    trivia questions with short free-text reference answers. Used in this
-    thesis as the primary factual recall evaluation dataset}
-}
-
-\newglossaryentry{svamp}{
-  name={SVAMP},
-  description={Simple Variations on Arithmetic Math word Problems: a dataset
-    of elementary arithmetic word problems with short numeric answers. Used
-    in this thesis as the arithmetic reasoning evaluation dataset, testing
-    answer normalization and semantic clustering for numeric outputs}
 }

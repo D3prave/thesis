@@ -32,9 +32,9 @@ Key results:
   0.696 vs. 0.644 on TriviaQA and 0.842 vs. 0.827 on SVAMP. This is not, by
   itself, evidence for true semantic entropy because exact match does not use NLI
   semantic clustering.
-- Mistral-7B shows little or no gain from semantic clustering, suggesting that
-  the method is most useful when the generator is already reasonably
-  consistent.
+- On the short-answer tasks, Mistral-7B shows little or no gain from semantic
+  clustering. Biography behaves differently because surface matching fails on
+  paragraph samples.
 - NLI clustering is mixed: it nominally raises Mistral-7B on TriviaQA by
   1.3 AUROC points but slightly reduces Llama-3.1-70B on TriviaQA by
   1.8 points; neither difference is statistically significant in the recorded
@@ -50,9 +50,9 @@ Key results:
   does not flip the short-answer story. On biography it has a material effect:
   AUROC rises from 0.643 to 0.732 for Mistral-7B and from 0.454 to 0.656 for
   Llama-3.1-70B.
-- Qwen2.5-72B LLM-judge reclustering does not improve the picture: it remains
-  below surface entropy in all four posthoc cells, so judge scale alone is not
-  sufficient in this setup.
+- On the four short-answer cells, Qwen2.5-72B LLM-judge reclustering remains
+  below surface entropy, so judge scale alone is not sufficient in this setup.
+  Biography is different: the same judge recovers a useful clustering signal.
 - Kernel Language Entropy with `all-MiniLM-L6-v2` does not outperform
   discrete semantic entropy on any of the four posthoc runs. The
   `nli-roberta-large` KLE ablation improves the two Mistral-7B cells but
@@ -60,13 +60,14 @@ Key results:
 - The long-form biography study is the clearest evidence for *semantic*
   rather than surface uncertainty. Naive and surface entropy collapse to
   chance (paragraph samples are almost always unique) and KLE falls below
-  chance, while meaning-aware methods stay useful: the SEP probe reaches AUROC
-  0.763 on Llama-3.1-70B and LLM-judge equivalence clustering reaches 0.805 on
-  Mistral-7B.
-- Across the verified three-dataset grid, SEP is the strongest single method
-  in five of six model-dataset cells: all four short-form cells and
-  Llama-3.1-70B biography. Mistral-7B biography is the exception, where
-  LLM-judge equivalence clustering reaches AUROC 0.805.
+  chance, while semantic clustering and the hidden-state probe stay useful:
+  SEP reaches AUROC 0.763 on Llama-3.1-70B and LLM-judge equivalence clustering
+  reaches 0.805 on Mistral-7B.
+- SEP should be compared with its same-split held-out baselines rather than
+  treated as a direct rescore of the replication rows. On short answers its
+  result is task-dependent for Mistral-7B and favorable but not statistically
+  separated from zero for Llama-3.1-70B. On biography it separates clearly
+  from the chance-level surface baseline for both generators.
 - The 2026-06-01 reproducibility audit verified that every canonical run's
   AUROC/AURAC recomputes from `scored.labeled.jsonl` when present, otherwise
   `scored.jsonl`, to within 1e-6, and that the corrected sentence-pair DeBERTa

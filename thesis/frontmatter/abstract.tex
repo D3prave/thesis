@@ -40,13 +40,14 @@ values to within rounding, so those values are confirmed. The main
 finding comes from the
 long-form biography task, where the sampled paragraphs are almost always
 surface-distinct, exact-match clustering, naive sample entropy, and
-surface entropy all drop to chance, and only meaning-level methods
-recover a usable signal: open-judge equivalence clustering lifts both
+surface entropy all drop to chance, while open-judge equivalence
+clustering and the hidden-state probe recover a usable signal. Open-judge
+equivalence clustering lifts both
 generators well above chance (AUROC up to 0.81), and a held-out Semantic
-Entropy Probe is the single strongest method for the 70B model
-(AUROC~0.76), the regime where pairwise clustering is weakest. The
+Entropy Probe has the highest reported AUROC for the 70B model
+(0.76), the regime where pairwise clustering is weakest. The
 long-form task, not the short-answer benchmarks, is where the value of
-meaning-level uncertainty is clearest. The short-answer numbers
+moving beyond surface-only uncertainty is clearest. The short-answer numbers
 should not be read as a close replication of Farquhar et al.; the
 differences from that setup and the remaining gap are discussed in
 Chapter~\ref{ch:discussion}.
