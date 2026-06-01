@@ -143,14 +143,14 @@ bash scripts/finalize_bio_study.sh
 
 ## Data and Artifacts
 
-Large datasets, model weights, raw model outputs, and bulk generated artifacts
-are intentionally kept out of git. Small fixtures, summary tables, and selected
-figures are tracked when they support thesis reproducibility.
+Large datasets, model weights, raw model outputs, generated result summaries,
+and generated figures are intentionally kept out of git for now. Small fixtures
+remain tracked when they support local checks.
 
-The recorded metric summary is available at
+The locally generated metric summary is written to
 `results/tables/metric_summary.csv` (rows are tagged by
 `clustering = exact-match`, `nli`, `sep`, `posthoc-kle-all-minilm-l6-v2`,
 `posthoc-kle-nli-roberta-large`, `posthoc-nli-deberta-v3-large`, or
-`posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are under
-`results/figures/`; the figures used in the thesis are committed under
-`thesis/figures/`.
+`posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are written under
+`results/figures/` and copied into `thesis/figures/` when needed for local
+LaTeX builds.

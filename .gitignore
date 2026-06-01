@@ -91,7 +91,9 @@ env/
 # ===========================================================================
 data/raw/*
 data/processed/*
-results/raw/*
+# Generated experiment outputs and thesis figures stay local for now.
+results/
+thesis/figures/
 outputs/
 checkpoints/
 models/
@@ -108,19 +110,6 @@ models/
 logs/
 *.slurm.out
 slurm-*.out
-
-# Raw scored model outputs — large, regenerable from the cluster
-results/**/scored.jsonl
-results/**/scored_sep.jsonl
-results/**/scored_graded.jsonl
-results/**/hidden_states*.npy
-results/**/*.npz
-results/**/sep_probe.json
-results/**/probe.json
-
-# Per-run rejection-accuracy figures (flat copies in results/figures/ are tracked)
-results/phase1/*/figures/
-results/phase2/*/figures/
 
 # Temp scratch files
 tmp*.tmp
@@ -148,4 +137,3 @@ _figure_vault/
 *.pptx
 *.ppt
 *.xlsx
-!Semantic_Entropy_Seminar_updated_v2.pptx
