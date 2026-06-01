@@ -223,7 +223,7 @@ free to add method-specific fields:
     "num_samples": 10,
     "temperature": 0.7,
     "top_p": 0.95,
-    "max_new_tokens": 64,   // 64 for TriviaQA, 32 for SVAMP
+    "max_new_tokens": 64,   // dataset-specific
     "seed": 42
   },
   "sampled_answers": ["string"],
@@ -239,7 +239,8 @@ free to add method-specific fields:
     // "probe_uncertainty": 0.0
   },
   // optional (SEP collection runs only):
-  // "hidden_states": [[float, ...], ...],  // (num_samples, hidden_dim)
+  // "hidden_states": [[float, ...], ...],
+  // shape: (num_samples, hidden_dim)
   "entailment_backend":
     "exact-match|nli-deberta-v3-base|nli-deberta-v3-large|"
     "llm-judge-qwen2.5-72b-instruct",

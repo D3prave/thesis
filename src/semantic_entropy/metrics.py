@@ -58,9 +58,9 @@ def auroc(positive_labels: Sequence[bool], scores: Sequence[float]) -> float:
     positive_rank_sum = sum(
         rank for is_positive, rank in zip(positive_labels, ranks) if is_positive
     )
-    return (
-        positive_rank_sum - positive_count * (positive_count + 1) / 2
-    ) / (positive_count * negative_count)
+    return (positive_rank_sum - positive_count * (positive_count + 1) / 2) / (
+        positive_count * negative_count
+    )
 
 
 def rejection_accuracy_curve(
@@ -100,9 +100,7 @@ def rejection_accuracy_curve(
     return points
 
 
-def aurac(
-    correctness_labels: Sequence[bool], uncertainty_scores: Sequence[float]
-) -> float:
+def aurac(correctness_labels: Sequence[bool], uncertainty_scores: Sequence[float]) -> float:
     """Return stepwise area under the rejection-accuracy curve.
 
     This scaffold uses the average retained-set accuracy over all non-empty
@@ -144,9 +142,7 @@ def summarize_records(
     }
 
 
-def summarize_jsonl(
-    input_path: Path, score_fields: Sequence[str] | None = None
-) -> dict[str, Any]:
+def summarize_jsonl(input_path: Path, score_fields: Sequence[str] | None = None) -> dict[str, Any]:
     """Load scored JSONL records from ``input_path`` and summarize metrics."""
 
     records = _load_records(input_path)
@@ -245,8 +241,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Compute raw accuracy, AUROC, and AURAC from scored "
-            "semantic-entropy JSONL records."
+            "Compute raw accuracy, AUROC, and AURAC from scored semantic-entropy JSONL records."
         )
     )
     parser.add_argument("input_jsonl", type=Path)
@@ -324,9 +319,7 @@ def _load_records(input_path: Path) -> list[dict[str, Any]]:
             try:
                 record = json.loads(line)
             except json.JSONDecodeError as error:
-                raise SchemaError(
-                    f"line {line_number}: invalid JSON: {error.msg}"
-                ) from error
+                raise SchemaError(f"line {line_number}: invalid JSON: {error.msg}") from error
             if not isinstance(record, dict):
                 raise SchemaError(f"line {line_number}: record must be a JSON object")
             records.append(record)
@@ -363,9 +356,7 @@ def _score_value(record: Mapping[str, Any], field: str) -> float:
     return float(value)
 
 
-def _write_curve_csv(
-    output_path: Path, rows: Sequence[Mapping[str, float | int | str]]
-) -> None:
+def _write_curve_csv(output_path: Path, rows: Sequence[Mapping[str, float | int | str]]) -> None:
     fieldnames = [
         "score_field",
         "rejected",
@@ -375,7 +366,7 @@ def _write_curve_csv(
         "accuracy",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as output_file:
-        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -393,20 +384,15 @@ def _write_summary_table_csv(
         "aurac",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as output_file:
-        writer = csv.DictWriter(output_file, fieldnames=fieldnames)
+        writer = csv.DictWriter(output_file, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow(
-                {
-                    field: "" if row[field] is None else row[field]
-                    for field in fieldnames
-                }
+                {field: "" if row[field] is None else row[field] for field in fieldnames}
             )
 
 
-def _validate_labels_and_scores(
-    labels: Sequence[bool], scores: Sequence[float]
-) -> None:
+def _validate_labels_and_scores(labels: Sequence[bool], scores: Sequence[float]) -> None:
     _validate_correctness_labels(labels)
     if len(labels) != len(scores):
         raise ValueError("labels and scores must have the same length")
@@ -431,10 +417,7 @@ def _average_ranks(scores: Sequence[float]) -> list[float]:
 
     while start < len(indexed_scores):
         end = start + 1
-        while (
-            end < len(indexed_scores)
-            and indexed_scores[end][1] == indexed_scores[start][1]
-        ):
+        while end < len(indexed_scores) and indexed_scores[end][1] == indexed_scores[start][1]:
             end += 1
         average_rank = (start + 1 + end) / 2
         for position in range(start, end):

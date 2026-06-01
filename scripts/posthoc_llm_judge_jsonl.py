@@ -30,14 +30,13 @@ from typing import Any
 from semantic_entropy.cluster_check import check_cluster_consistency
 from semantic_entropy.clustering import NLI_ENTAILMENT
 from semantic_entropy.llm_judge import (
-    BatchedLlmJudge,
-    JudgeTriple,
     EQUIVALENCE_SYSTEM_PROMPT,
     EQUIVALENCE_USER_TEMPLATE,
+    BatchedLlmJudge,
+    JudgeTriple,
 )
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import score_record
-
 
 OrderedPair = tuple[str, str]
 PairMap = dict[tuple[int, int], tuple[OrderedPair, OrderedPair]]
@@ -113,7 +112,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help=(
             "Judge mode. 'entailment' (default): asks whether answer A entails "
             "answer B as a correct response to the question (existing short-form "
-            "behaviour). 'equivalence': asks whether A and B convey the same set "
+            "behavior). 'equivalence': asks whether A and B convey the same set "
             "of factual claims — designed for long-form bio clustering where "
             "bidirectional entailment and factual equivalence are the same concept. "
             "Equivalence mode uses EQUIVALENCE_SYSTEM_PROMPT and "

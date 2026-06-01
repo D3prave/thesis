@@ -41,8 +41,10 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+if TYPE_CHECKING:
+    import numpy as np
 
 # ---------------------------------------------------------------------------
 # Public dataclass
@@ -51,7 +53,7 @@ from typing import Any, Literal
 
 @dataclass(frozen=True)
 class SEPProbe:
-    """Serialisable container for a trained SEP linear probe.
+    """Serializable container for a trained SEP linear probe.
 
     The probe is a single-layer logistic regression
     ``p(uncertain | h) = sigmoid(coef . h + intercept)`` over a hidden

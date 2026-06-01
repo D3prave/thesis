@@ -48,7 +48,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-
 # ---------------------------------------------------------------------------
 # NLI label constants and type alias
 # ---------------------------------------------------------------------------
@@ -71,7 +70,7 @@ NLI_CONTRADICTION: str = "contradiction"
 #:                     model="cross-encoder/nli-deberta-v3-base")
 #:
 #:     def deberta_entailment_fn(premise: str, hypothesis: str) -> str:
-#:         result = _nli(f"{premise} [SEP] {hypothesis}")[0]
+#:         result = _nli({"text": premise, "text_pair": hypothesis})[0]
 #:         label = result["label"].lower()  # "entailment", "neutral", "contradiction"
 #:         return label
 NliFn = Callable[[str, str], str]

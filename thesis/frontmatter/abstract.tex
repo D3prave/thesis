@@ -29,20 +29,20 @@ FactScore-style long-form biography task graded by an LLM judge against
 Wikipedia. AUROC and rejection-accuracy curves are the main quality
 metrics.
 
-The main finding is that the value of meaning-level uncertainty over
-surface-level uncertainty depends strongly on the surface-form
-variability of the task. On the two short-answer datasets the difference
-between exact-match clustering (Phase~1) and NLI clustering (Phase~2) is
-small, and even slightly negative for the 70B model on TriviaQA, so
-those results give only limited evidence for the added value of NLI
-clustering over a normalized exact-match baseline. On the long-form
-biography task, where the sampled paragraphs are almost always
-surface-distinct, the exact-match baseline drops near chance and
-meaning-level methods separate from it: semantic clustering helps the
-smaller model substantially, and a held-out Semantic Entropy Probe is
-decisive for both models (AUROC~0.83--0.84), the clearest positive
-result in the thesis and the one regime where a single-pass hidden-state
-signal clearly beats sampling-based entropy. The short-answer numbers
+The final reproducibility audit found that the DeBERTa adapter used for
+the original NLI runs supplied premise--hypothesis pairs through the
+wrong input interface. The adapter has been corrected, but the HPC
+reruns have not yet landed, so the pre-fix NLI values are retained only
+as superseded diagnostics. The validated main finding comes from the
+long-form biography task, where the sampled paragraphs are almost always
+surface-distinct, exact-match clustering, naive sample entropy, and
+surface entropy all drop to chance, and only meaning-level methods
+recover a usable signal: open-judge equivalence clustering lifts both
+generators well above chance (AUROC up to 0.81), and a held-out Semantic
+Entropy Probe is the single strongest method for the 70B model
+(AUROC~0.76), the regime where pairwise clustering is weakest. The
+long-form task, not the short-answer benchmarks, is where the value of
+meaning-level uncertainty is clearest. The short-answer numbers
 should not be read as a close replication of Farquhar et al.; the
 differences from that setup and the remaining gap are discussed in
 Chapter~\ref{ch:discussion}.

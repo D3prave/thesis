@@ -213,9 +213,12 @@ class _BatchedNli:
         for start in range(0, total, self.batch_size):
             end = min(start + self.batch_size, total)
             batch = pairs[start:end]
-            texts = [f"{premise} [SEP] {hypothesis}" for premise, hypothesis in batch]
+            inputs = [
+                {"text": premise, "text_pair": hypothesis}
+                for premise, hypothesis in batch
+            ]
             outputs = self.pipe(
-                texts,
+                inputs,
                 batch_size=self.batch_size,
                 truncation=True,
             )

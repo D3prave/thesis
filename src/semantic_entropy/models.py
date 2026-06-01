@@ -152,7 +152,8 @@ def make_hf_model(
     """
     try:
         import torch  # noqa: F401
-        from transformers import GenerationConfig, pipeline as hf_pipeline
+        from transformers import GenerationConfig
+        from transformers import pipeline as hf_pipeline
     except ImportError as exc:
         raise ImportError(
             "HuggingFace model adapter requires torch and transformers. "
@@ -573,9 +574,9 @@ def make_nli_fn(
 ) -> NliFn:
     """Return a :data:`NliFn` backed by a HuggingFace cross-encoder NLI model.
 
-    The returned function calls the cross-encoder with the concatenated
-    ``premise [SEP] hypothesis`` string and maps the model's output label to
-    one of :data:`~semantic_entropy.clustering.NLI_ENTAILMENT`,
+    The returned function calls the cross-encoder with separate premise and
+    hypothesis fields and maps the model's output label to one of
+    :data:`~semantic_entropy.clustering.NLI_ENTAILMENT`,
     :data:`~semantic_entropy.clustering.NLI_NEUTRAL`, or
     :data:`~semantic_entropy.clustering.NLI_CONTRADICTION`.
 
@@ -615,7 +616,7 @@ def make_nli_fn(
     )
 
     def _nli_fn(premise: str, hypothesis: str) -> str:
-        result = _pipe(f"{premise} [SEP] {hypothesis}")[0]
+        result = _pipe({"text": premise, "text_pair": hypothesis})[0]
         label = result["label"].lower()
         # Normalize to the three canonical constants
         if "entail" in label:
