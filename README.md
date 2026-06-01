@@ -47,10 +47,9 @@ Key results:
   thesis plots stop at 95% rejection to exclude this right-tail instability.
 - Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
-  does not flip the qualitative story. The paragraph-length biography
-  DeBERTa-large sensitivity cells remain unreported until their Fritz jobs
-  land; `bash scripts/dispatch_nli_pair_rerun_fritz.sh bio-large` submits
-  only those missing jobs.
+  does not flip the short-answer story. On biography it has a material effect:
+  AUROC rises from 0.643 to 0.732 for Mistral-7B and from 0.454 to 0.656 for
+  Llama-3.1-70B.
 - Qwen2.5-72B LLM-judge reclustering does not improve the picture: it remains
   below surface entropy in all four posthoc cells, so judge scale alone is not
   sufficient in this setup.
@@ -60,9 +59,9 @@ Key results:
   does not uniformly close the gap on Llama-3.1-70B.
 - The long-form biography study is the clearest evidence for *semantic*
   rather than surface uncertainty. Naive and surface entropy collapse to
-  chance (every paragraph sample is unique) and KLE falls below chance, while
-  only meaning-aware methods stay useful: the SEP probe reaches AUROC 0.763 on
-  Llama-3.1-70B and LLM-judge equivalence clustering reaches 0.805 on
+  chance (paragraph samples are almost always unique) and KLE falls below
+  chance, while meaning-aware methods stay useful: the SEP probe reaches AUROC
+  0.763 on Llama-3.1-70B and LLM-judge equivalence clustering reaches 0.805 on
   Mistral-7B.
 - Across the verified three-dataset grid, SEP is the strongest single method
   in five of six model-dataset cells: all four short-form cells and
@@ -145,9 +144,9 @@ uv run python scripts/build_canonical_analysis.py
 
 ## Biography Post-Processing
 
-The paragraph-length biography `nli-roberta-large` KLE sensitivity jobs have
-completed. After syncing biography posthoc outputs from the cluster, write
-durable labeled artifacts and refresh the aggregate metrics:
+The paragraph-length biography DeBERTa-large and `nli-roberta-large` KLE
+sensitivity jobs have completed. After syncing biography posthoc outputs from
+the cluster, write durable labeled artifacts and refresh the aggregate metrics:
 
 ```sh
 bash scripts/finalize_bio_study.sh
