@@ -124,6 +124,23 @@ run directories:
 uv run --extra plot python scripts/aggregate_results.py --plot
 ```
 
+## Submit the Biography RoBERTa KLE Follow-up
+
+From the repository root on a Fritz login node, submit the missing
+paragraph-length biography `nli-roberta-large` KLE sensitivity jobs for both
+generators:
+
+```sh
+bash scripts/dispatch_bio_roberta_kle_fritz.sh
+```
+
+After both jobs complete, patch correctness labels and refresh the aggregate
+metrics:
+
+```sh
+bash scripts/finalize_bio_study.sh
+```
+
 ## Data and Artifacts
 
 Large datasets, model weights, raw model outputs, and bulk generated artifacts
