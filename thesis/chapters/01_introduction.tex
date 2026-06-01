@@ -74,31 +74,37 @@ arithmetic). The biography task tests the complementary hypothesis
 that meaning-aware uncertainty methods separate more clearly once raw
 surface diversity ceases to be informative.
 
-\section{Two-Phase Study}
+\section{Study Structure}
 
-To make the pipeline tractable on the available hardware, the study is
-organized in two phases.
+The study separates cheap surface-form baselines from the semantic
+clustering condition that most directly follows Farquhar et
+al.~\cite{semantic_entropy_nature_2024}.
 
-\textbf{Phase~1} establishes a simple baseline: for each prompt, the
+\textbf{Surface-form baselines.} For each prompt, the
 generation model is sampled several times, the answers are lightly
 normalized, and two answers are grouped together only if their
 normalized strings are identical. We call this \emph{exact-match}
-clustering. The purpose of Phase~1 is to make the full pipeline
+clustering. A deliberately naive companion score counts raw strings
+before normalization. These baselines make the full pipeline
 auditable end to end. It does \emph{not} implement true semantic
 entropy in Farquhar et al.'s sense~\cite{semantic_entropy_nature_2024}, because
 exact-match grouping ignores paraphrases; throughout the thesis the
-Phase~1 number is therefore reported as a surface-form baseline rather
+exact-match number is therefore reported as a surface-form baseline rather
 than as semantic entropy.
 
-\textbf{Phase~2} repeats the same model--dataset grid on the NHR@FAU
+\textbf{Replication condition.} The main semantic-entropy condition repeats
+the same model--dataset grid on the NHR@FAU
 high-performance computing cluster and replaces exact-match clustering
 with a bidirectional Natural Language Inference (NLI) clustering step
 using a DeBERTa-v3-base cross-encoder. This is the configuration that
-corresponds most directly to the method of Farquhar et al. Three
-posthoc checks then test whether the observed pattern survives stronger
-semantic judges (DeBERTa-v3-large and Qwen2.5-72B-Instruct) or a
-continuous, kernel-based variant called Kernel Language
-Entropy~\cite{nikitin_kernel_language_entropy_2024}.
+corresponds most directly to the method of Farquhar et al.
+
+\textbf{Additional analyses.} Separate sections report judge sensitivity
+checks with DeBERTa-v3-large and Qwen2.5-72B-Instruct, a continuous
+kernel-based variant called Kernel Language
+Entropy~\cite{nikitin_kernel_language_entropy_2024}, and held-out
+Semantic Entropy Probes. These analyses extend the replication question;
+they are not part of the baseline.
 
 \section{Contributions}
 
@@ -112,9 +118,9 @@ evaluation, and scope choices:
     and long-form hallucination detection, covering answer normalization,
     exact-match clustering, bidirectional NLI clustering with DeBERTa-v3,
     entropy scoring, and correctness labeling;
-  \item a two-phase experimental design that separates local pipeline
-    validation from NHR@FAU HPC runs, with Slurm templates and
-    reproducibility logging for each phase;
+  \item an experimental design that separates surface-form baselines,
+    the NLI-clustered replication condition, and additional analyses,
+    with Slurm templates and reproducibility logging for each run;
   \item an auditable JSONL output schema recording sampled answers,
     semantic clusters, cluster representatives, entropy scores, and
     correctness labels for every evaluated prompt;
@@ -142,7 +148,7 @@ LLM hallucination, the role of uncertainty estimation, the notion of
 semantic equivalence, and related semantic uncertainty methods.
 Chapter~\ref{ch:semantic_entropy} defines the discrete semantic entropy
 method on which the empirical work is based.
-Chapter~\ref{ch:experimental_design} turns the method into a two-phase
+Chapter~\ref{ch:experimental_design} turns the method into a reproducible
 experimental design, and Chapter~\ref{ch:hpc} documents the
 implementation and HPC execution. Chapter~\ref{ch:extensions}
 describes Kernel Language Entropy as a completed posthoc check and

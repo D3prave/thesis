@@ -3,10 +3,10 @@
 
 This chapter specifies the experimental design used to evaluate whether
 semantic entropy provides a better hallucination and abstention signal
-than surface-form uncertainty. The design is split into two phases.
-Phase~1 establishes an exact-match clustering baseline that is small
-enough to debug locally before being run at evaluation scale. Phase~2
-repeats the same measurement plan with NLI clustering on NHR@FAU
+than surface-form uncertainty. The design separates surface-form
+baselines from an NLI-clustered replication condition. The baseline is
+small enough to debug locally before being run at evaluation scale. The
+replication condition repeats the same measurement plan with NLI clustering on NHR@FAU
 resources. Chapter~\ref{ch:hpc} then covers execution, storage, and
 reproducibility on the cluster.
 
@@ -64,9 +64,9 @@ design isolates semantic
 clustering on short-answer tasks rather than broader
 truthfulness.
 
-\section{Models and the two phases}
+\section{Models and the replication condition}
 
-The two language models used as generators in both phases are
+The two language models used as generators in both recorded conditions are
 Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023} and
 Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. They span the
 same small/large open-weights pairing that Farquhar et
@@ -82,8 +82,8 @@ TriviaQA, and GSM8K~\cite{grattafiori_llama3_2024}. Choosing newer
 open instruction-tuned models rather than reproducing the LLaMA-2
 generation thus moves the experiments to a regime that is closer to
 how current chat models are actually deployed, while keeping the
-seven-billion-vs-seventy-billion contrast that motivates Phase~1 and
-Phase~2 in the first place. The NLI judge in Phase~2 is a local DeBERTa-v3 cross-encoder rather
+seven-billion-vs-seventy-billion contrast that motivates the model
+comparison. The NLI judge in the replication condition is a local DeBERTa-v3 cross-encoder rather
 than the proprietary GPT-3.5 used by Farquhar et al.
 Using a local model rather than a closed API matters for several
 reasons: the model version is fixed and publicly available, so results
@@ -96,25 +96,27 @@ with a large open instruction-tuned judge is reported in
 Section~\ref{sec:posthoc}. The methodological implications of these
 substitutions are discussed in Section~\ref{sec:comparison-farquhar}.
 
-\paragraph{Phase~1: exact-match surface-form baseline.}
-Phase~1 records the surface-form baseline. For each prompt, $M=10$
+\paragraph{Surface-form baselines.}
+The baseline records two surface-form scores. For each prompt, $M=10$
 answers are sampled, lightly normalized, and clustered by exact-match
 on the normalized string, as defined in
-Chapter~\ref{ch:semantic_entropy}. Phase~1 therefore acts both as a
+Chapter~\ref{ch:semantic_entropy}. Entropy is computed over these
+normalized exact-match clusters and, as a deliberately naive companion,
+over the raw unnormalized strings. The baseline therefore acts both as a
 sanity check on the full pipeline --- generation, normalization,
 clustering, entropy scoring, correctness labeling, JSONL output ---
-and as the surface-form reference against which the Phase~2 numbers are
+and as the surface-form reference against which the NLI numbers are
 compared. Because exact-match clustering ignores paraphrases, the
-Phase~1 entropy score is reported as a surface-form baseline rather
+exact-match entropy score is reported as a surface-form baseline rather
 than as semantic entropy. The corresponding run artifacts are summarized in
 Appendix~\ref{app:runs}.
 
-\paragraph{Phase~2: NLI clustering.}
-Phase~2 keeps the same model--dataset grid, prompt subset, decoding
+\paragraph{NLI-clustered replication condition.}
+The replication condition keeps the same model--dataset grid, prompt subset, decoding
 settings, and seed, but writes a separate output record in which the
 exact-match clustering step is replaced with the bidirectional-NLI rule
 from Chapter~\ref{ch:semantic_entropy}. Correctness labels are
-recomputed for the Phase~2 records. The NLI backend used is a
+recomputed for the NLI-clustered records. The NLI backend used is a
 Sentence-Transformers DeBERTa-v3-base
 cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022},
 a DeBERTa-v3 model~\cite{he_debertav3_2021} fine-tuned on SNLI and
@@ -122,20 +124,21 @@ MultiNLI~\cite{williams_multinli_2018}. This is the
 configuration that corresponds most directly to the original
 semantic-entropy method.
 
-Phase~2 introduces no new research question; it tests whether the
-ranking behavior seen in Phase~1 survives when exact-match clustering is
+The replication condition introduces no new research question; it tests whether the
+ranking behavior seen in the baseline survives when exact-match clustering is
 replaced by NLI-defined semantic clustering under the same evaluation
-grid. Three posthoc checks are run on top of the Phase~2 outputs (a
+grid. Three additional checks are run on top of the NLI outputs (a
 larger NLI backend, an LLM-as-judge backend, and Kernel Language
 Entropy); they are described next.
 
-\paragraph{The biography task under the same two phases.}
+\paragraph{The biography task under the same comparison.}
 The biography task is not a separate study but a third dataset evaluated
-under exactly the same Phase~1 and Phase~2 design. Phase~1 clusters its
-samples by exact-match and Phase~2 by semantic clustering, with the only
+under exactly the same baseline-versus-semantic comparison. The baseline
+clusters its samples by exact match and the replication condition by
+semantic clustering, with the only
 differences being mechanical: the maximum answer length is raised to
 accommodate paragraph-length generations, and because free-form text has
-no dataset-specific normalization, the Phase~1 exact-match baseline is
+no dataset-specific normalization, the exact-match baseline is
 applied to the raw sampled strings. The semantic-clustering step is run
 both with the whole-response NLI cross-encoder and with the open
 instruction-tuned judge, since paragraph-length pairs are exactly the
@@ -145,7 +148,7 @@ disagree.
 \paragraph{Correctness labeling for long-form generations.}
 For TriviaQA and SVAMP a generation is marked correct by normalized
 string comparison against the reference answer, the same exact-string
-protocol used to cluster Phase~1. This is not available for
+protocol used for the surface-form baseline. This is not available for
 paragraph-length biographies, which have no single short ground-truth
 string. The biography task therefore grades correctness with the open
 instruction-tuned judge (Qwen2.5-72B-Instruct) against the first
@@ -161,7 +164,7 @@ Section~\ref{sec:discussion-limitations}.
 \section{Sampling settings}
 \label{sec:sampling-settings}
 
-All Phase~1 and Phase~2 runs use $M=10$ samples per prompt, temperature
+All baseline and replication runs use $M=10$ samples per prompt, temperature
 $T=0.7$, and top-$p=0.95$. The maximum answer length is short for the
 two short-answer datasets, appropriate for sentence-length question
 answering, and is raised for the biography task so that paragraph-length
@@ -173,7 +176,7 @@ those are the default decoding settings for current
 instruction-tuned chat models including Mistral-7B-Instruct and the
 Llama-3.1 instruct family, so they correspond to the regime in which
 these models are normally deployed. We fix one configuration across
-both phases and both models rather than running a temperature sweep:
+both recorded conditions and both models rather than running a temperature sweep:
 the goal is to compare clustering rules and judges under a single
 sampling regime, not to characterize the temperature sensitivity of
 semantic entropy. The implications of this choice are revisited in
@@ -181,21 +184,22 @@ Section~\ref{sec:comparison-farquhar}. The meaning of $M$, $T$, and
 top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
-\section{Baselines, methods, and posthoc checks}
+\section{Baselines, replication method, and additional analyses}
 
-The surface-form baseline is entropy over distinct normalized strings.
-It addresses a single question: does semantic clustering add value
-beyond observing that sampled outputs differ lexically? The core method
-is discrete semantic entropy with bidirectional NLI clustering.
+The surface-form baselines are entropy over raw strings and entropy over
+distinct normalized exact-match strings. They address a single question:
+does semantic clustering add value beyond observing that sampled outputs
+differ lexically? The replication method is discrete semantic entropy
+with bidirectional NLI clustering.
 SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
 P(True)~\cite{kadavath_language_models_know_2022} are related
 sampling-based baselines but were not included in the recorded runs.
 
-Following the Phase~2 main runs, three posthoc check families were
+Following the main NLI runs, three additional check families were
 completed: KLE with all-MiniLM-L6-v2 and nli-roberta-large sentence
 encoders, DeBERTa-v3-large reclustering, and Qwen2.5-72B-Instruct
 reclustering. These checks reuse
-the saved Phase~2 answer samples, so any metric change comes from the
+the saved NLI-clustered answer samples, so any metric change comes from the
 semantic judge or entropy estimator rather than from new generations.
 The KLE method is defined in Chapter~\ref{ch:extensions}; all posthoc
 results are reported in Section~\ref{sec:posthoc}.
@@ -210,7 +214,7 @@ free to add method-specific fields:
 \begin{verbatim}
 {
   "run_id": "string",
-  "phase": "phase1|phase2",
+  "phase": "<legacy condition label>",
   "cluster": "local|alex",
   "prompt_id": "string",
   "dataset": "triviaqa|svamp|...",
@@ -248,7 +252,7 @@ free to add method-specific fields:
 }
 \end{verbatim}
 
-In Phase~1 \texttt{surface\_entropy} and
+In the exact-match baseline artifacts, \texttt{surface\_entropy} and
 \texttt{discrete\_semantic\_entropy} coincide by construction, because
 both count clusters induced by normalized exact-match strings.
 \texttt{naive\_sample\_entropy} is kept as a separate raw-string
@@ -258,6 +262,9 @@ exact-match clustering backend (so \texttt{discrete\_semantic\_entropy}
 again equals \texttt{surface\_entropy} on those records) and additionally
 write a \texttt{hidden\_states} array per record; held-out evaluation
 splits also carry a \texttt{probe\_uncertainty} score in $[0,1]$.
+The serialized \texttt{phase} field remains as a legacy condition label
+so recorded outputs stay traceable; the thesis presentation uses
+baseline, replication condition, and additional analysis instead.
 Larger raw generations, model caches, and full intermediate outputs
 are described by the storage and reproducibility policy in
 Chapter~\ref{ch:hpc}.

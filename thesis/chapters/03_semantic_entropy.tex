@@ -140,20 +140,20 @@ Section~\ref{sec:sampling-settings}.
 The crucial design choice is the equivalence relation used in the
 clustering step. We use two:
 
-\paragraph{Exact-match (Phase~1).} The simplest possible relation:
+\paragraph{Normalized exact match.} The simplest possible relation:
 $y_i \sim_{\mathrm{exact}} y_j$ iff their normalized strings are
 identical, where ``normalization'' means lowercasing, stripping
 whitespace and obvious answer prefixes such as ``the answer is''. This
 is a \emph{surface-form} grouping, not a semantic one. As emphasized in
-the introduction, the Phase~1 baseline is therefore not true semantic
+the introduction, the exact-match baseline is therefore not true semantic
 entropy in Farquhar et
 al.'s sense~\cite{semantic_entropy_nature_2024}; it just
 collapses spelling and formatting variation. Throughout the thesis,
-results from Phase~1 will be labeled as either ``surface entropy''
+exact-match results will be labeled as either ``surface entropy''
 (when the underlying distinct strings are counted) or as
 ``exact-match-clustered entropy''.
 
-\paragraph{Bidirectional NLI (Phase~2).} Rather than use string
+\paragraph{Bidirectional NLI.} Rather than use string
 identity, we ask whether two answers entail each other in the context
 of the prompt. For answers $y_i$ and $y_j$ the method asks whether
 $y_i$ entails $y_j$ \emph{and} whether $y_j$ entails $y_i$, both
@@ -324,8 +324,8 @@ minimal:
         a small set of simple answer prefixes (e.g.\ ``the answer
         is''). No paraphrase normalization is attempted.
   \item \emph{Clustering.} Group the normalized answers using the
-        configured equivalence relation, which is either exact-match
-        (Phase~1) or bidirectional NLI entailment (Phase~2).
+        configured equivalence relation, which is either normalized
+        exact match or bidirectional NLI entailment.
   \item \emph{Output.} Return the cluster assignments
         $\{c_1,\ldots,c_K\}$, the naive surface-form entropy
         $\widehat{H}_{\mathrm{lex}}(x)$ over normalized strings, and

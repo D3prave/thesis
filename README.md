@@ -16,20 +16,21 @@ Llama-3.1-70B-Instruct.
 The thesis draft is complete apart from final administrative fields such as
 the submission date. All nine chapters, the abstract, the acknowledgements,
 the appendix, the bibliography, and all figures are written, and the PDF
-builds cleanly with `latexmk -pdf main.tex`. Phase~1 evaluates exact-match
-clustering after answer normalization. Phase~2 repeats the same
-model--dataset grid with bidirectional Natural Language Inference clustering
-using DeBERTa-v3-base. Posthoc sensitivity checks compare
+builds cleanly with `latexmk -pdf main.tex`. The surface-form baselines use
+raw-string entropy and exact-match clustering after answer normalization. The
+main replication condition repeats the same model--dataset grid with
+bidirectional Natural Language Inference clustering using DeBERTa-v3-base.
+Additional analyses compare
 DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
 Kernel Language Entropy, plus held-out Semantic Entropy Probe (SEP)
 checks for both generators across the short-answer and biography tasks.
 
 Key results:
 
-- In the Phase~1 exact-match baseline, Llama-3.1-70B's normalized
+- In the exact-match baseline, Llama-3.1-70B's normalized
   surface-cluster score ranks errors better than naive sample entropy: AUROC
   0.696 vs. 0.644 on TriviaQA and 0.842 vs. 0.827 on SVAMP. This is not, by
-  itself, evidence for true semantic entropy because Phase~1 does not use NLI
+  itself, evidence for true semantic entropy because exact match does not use NLI
   semantic clustering.
 - Mistral-7B shows little or no gain from semantic clustering, suggesting that
   the method is most useful when the generator is already reasonably
@@ -43,11 +44,13 @@ Key results:
   when absolute accuracy differs by model and dataset. The curves are not
   monotonic: local drops occur when a rejected high-uncertainty record was
   actually correct, and the final few retained records are unstable. Additional
-  0-95% rejection plots in the thesis separate the practical range from this
-  right-tail instability.
+  thesis plots stop at 95% rejection to exclude this right-tail instability.
 - Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
-  does not flip the qualitative story.
+  does not flip the qualitative story. The paragraph-length biography
+  DeBERTa-large sensitivity cells remain unreported until their Fritz jobs
+  land; `bash scripts/dispatch_nli_pair_rerun_fritz.sh bio-large` submits
+  only those missing jobs.
 - Qwen2.5-72B LLM-judge reclustering does not improve the picture: it remains
   below surface entropy in all four posthoc cells, so judge scale alone is not
   sufficient in this setup.

@@ -23,9 +23,10 @@ The contribution of this thesis is not to invent semantic entropy but to
 re-implement and evaluate it on a smaller, locally reproducible setup,
 including a controlled comparison between short-answer and long-form
 generation.
-A two-phase pipeline is built on the NHR@FAU high-performance computing
-cluster. Phase~1 uses exact-match clustering; Phase~2 replaces it with
-NLI clustering. The evaluation covers Mistral-7B and Llama-3.1-70B on
+A reproducible pipeline is built on the NHR@FAU high-performance computing
+cluster. Surface-form baselines use raw-string and normalized exact-match
+entropy; the main replication condition replaces exact match with NLI
+clustering. The evaluation covers Mistral-7B and Llama-3.1-70B on
 three datasets: the short-answer benchmarks TriviaQA and SVAMP, and a
 FactScore-style long-form biography task graded by an LLM judge against
 Wikipedia. AUROC and rejection-accuracy curves are the main quality

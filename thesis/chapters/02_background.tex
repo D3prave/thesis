@@ -127,7 +127,7 @@ criterion is a practical approximation to equality of meaning.
 NLI supplies a way to approximate this relation by labeling each pair
 of sentences as
 \emph{entailment}, \emph{contradiction}, or \emph{neutral}. The primary NLI backend used in
-Phase~2 is a Sentence-Transformers DeBERTa-v3-base
+the replication condition is a Sentence-Transformers DeBERTa-v3-base
 cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}
 based on DeBERTa/DeBERTa-v3~\cite{he_deberta_2021,he_debertav3_2021}
 and trained on SNLI and MultiNLI~\cite{williams_multinli_2018}.
@@ -147,10 +147,12 @@ are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
 \section{Research Gap}
 
-The empirical design later fixes the scope to two short-answer tasks:
+The empirical design later fixes the scope to two short-answer tasks and
+one long-form task:
 open-domain factual question answering with
 TriviaQA~\cite{joshi_triviaqa_2017} and arithmetic word problems with
-SVAMP~\cite{patel_svamp_2021}. This scope leaves several natural
+SVAMP~\cite{patel_svamp_2021}, plus a FactScore-style biography
+task~\cite{min_factscore_2023}. This scope leaves several natural
 extensions outside the recorded study, including
 SQuAD~\cite{rajpurkar_squad_2016}, BioASQ~\cite{tsatsaronis_bioasq_2015},
 NQ-Open~\cite{lee_nq_open_2019}, and
@@ -163,11 +165,12 @@ Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{Illustrative records from TriviaQA and SVAMP. TriviaQA
+\caption{Illustrative records from TriviaQA, SVAMP, and the biography task. TriviaQA
   prompts are the raw question string; SVAMP prompts concatenate the
   \texttt{Body} and \texttt{Question} fields. TriviaQA reference
   answers include accepted aliases separated by semicolons; SVAMP
-  reference answers are the single numeric value.}
+  reference answers are the single numeric value; biography references
+  are pinned English Wikipedia lead paragraphs.}
 \label{tab:dataset-samples}
 \begingroup
 \setlength{\tabcolsep}{3pt}
@@ -182,6 +185,8 @@ TriviaQA & What chemical element has atomic number 79?                & Gold; Au
 SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
 SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
 SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
+\midrule
+Biography & Tell me a bio of Marie Curie. & English Wikipedia lead paragraph \\
 \bottomrule
 \end{tabular}
 \endgroup
