@@ -32,12 +32,7 @@ FactScore-style long-form biography task graded by an LLM judge against
 Wikipedia. AUROC and rejection-accuracy curves are the main quality
 metrics.
 
-The final reproducibility audit found that the DeBERTa adapter used for
-the original NLI runs supplied premise--hypothesis pairs through the
-wrong input interface. The adapter has been corrected and the
-sentence-pair reruns have since landed; they reproduce the original NLI
-values to within rounding, so those values are confirmed. The main
-finding comes from the
+The main finding comes from the
 long-form biography task, where the sampled paragraphs are almost always
 surface-distinct, exact-match clustering, naive sample entropy, and
 surface entropy all drop to chance, while open-judge equivalence
