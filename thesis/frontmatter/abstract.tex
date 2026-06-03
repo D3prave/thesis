@@ -42,7 +42,12 @@ generators well above chance (AUROC up to 0.81), and a held-out Semantic
 Entropy Probe has the highest reported AUROC for the 70B model
 (0.76), the regime where pairwise clustering is weakest. The
 long-form task, not the short-answer benchmarks, is where the value of
-moving beyond surface-only uncertainty is clearest. The short-answer numbers
+moving beyond surface-only uncertainty is clearest. A record-level
+analysis explains why the short-answer comparison is so close: answer
+normalization, not NLI, performs almost all of the clustering on short
+answers, and part of the residual short-answer entropy signal is carried
+by a verbosity confound in which incorrect answers are systematically
+longer. The short-answer numbers
 should not be read as a close replication of Farquhar et al.; the
 differences from that setup and the remaining gap are discussed in
 Chapter~\ref{ch:discussion}.
