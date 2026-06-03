@@ -102,9 +102,21 @@ models/
 *.bin
 *.pt
 *.pth
+*.csv
+*.tsv
+*.json
+*.jsonl
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
 
 !data/raw/triviaqa_stub.jsonl
 !data/raw/svamp_stub.jsonl
+!tests/fixtures/*.jsonl
+!external/factscore/topics.json
+!thesis/logos/*.png
 
 # Slurm / cluster transient logs
 logs/
