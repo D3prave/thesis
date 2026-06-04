@@ -136,8 +136,9 @@ download_st_model "sentence-transformers/all-MiniLM-L6-v2"
 download_st_model "sentence-transformers/nli-roberta-large"
 
 echo ""
-echo "=== 70B generation models (gated — requires accepted license + HF_TOKEN) ==="
+echo "=== Llama generation models (gated — requires accepted license + HF_TOKEN) ==="
 if [ -n "${HF_TOKEN:-}" ]; then
+    download_model "meta-llama/Llama-3.1-8B-Instruct"
     download_model "meta-llama/Llama-3.1-70B-Instruct"
 else
     echo "  SKIP: HF_TOKEN not set. Re-run with HF_TOKEN=hf_... bash $0"

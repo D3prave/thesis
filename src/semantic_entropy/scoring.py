@@ -19,9 +19,23 @@ baseline. It is known to be downward-biased in finite samples; bias-corrected
 alternatives (Miller--Madow, NSB) are deliberately deferred to the Phase 2
 extension work and are not invoked here.
 
-Probability-weighted semantic entropy, which substitutes per-sequence
-generation probabilities for empirical frequencies, is an optional Phase 2
-extension that is intentionally not implemented in this module.
+Taxonomy of the estimators in this module (two axes: *surface vs semantic*
+and *count-based vs probability-weighted*):
+
+                    | count-based (frequencies) | probability-weighted (logprobs)
+    surface only    | naive_sample_entropy      | naive_entropy
+                    | surface_entropy           |   (paper's naive baseline)
+    semantic        | discrete_semantic_entropy | semantic_entropy_full
+    (clustered)     |   (paper's discrete approx.) | (paper's PRIMARY estimator)
+
+The count-based estimators (``naive_sample_entropy``, ``surface_entropy``,
+``discrete_semantic_entropy``) need only a sample of generations. The
+probability-weighted estimators (``naive_entropy``, ``semantic_entropy_full``)
+additionally need per-sequence length-normalized log-probabilities, captured
+at generation time (see ``schema.py`` ``sequence_logprobs``). ``naive_entropy``
+and ``semantic_entropy_full`` reproduce Farquhar et al. (2024); the count-based
+``naive_sample_entropy``/``surface_entropy`` are this project's black-box
+surface baselines and are *not* the paper's naive entropy.
 """
 
 from __future__ import annotations
@@ -73,26 +87,110 @@ def discrete_semantic_entropy(cluster_ids: Sequence[int]) -> float:
     return entropy_from_labels(cluster_ids)
 
 
+def naive_entropy(sequence_logprobs: Sequence[float]) -> float:
+    """Probability-based naive (predictive) entropy in nats.
+
+    This is the paper's *naive entropy* baseline (Farquhar et al. 2024): a
+    Monte-Carlo estimate of the predictive entropy over the model's own
+    generation distribution, with **no** semantic clustering::
+
+        H(Y | x) ~= -(1/M) * sum_i log p(s_i | x)
+
+    where ``log p(s_i | x)`` is the *length-normalized* joint log-probability
+    of sampled sequence ``s_i`` (arithmetic mean token log-prob). Unlike
+    :func:`naive_sample_entropy`, which counts exact-string frequencies and is
+    bounded by ``log M``, this estimator uses the generation probabilities and
+    is unbounded above. The two are different quantities and not comparable.
+
+    Args:
+        sequence_logprobs: One length-normalized log-probability per sampled
+            sequence (``M`` values). Must be non-empty.
+    """
+
+    if not sequence_logprobs:
+        raise ValueError("sequence_logprobs must not be empty")
+    return -math.fsum(sequence_logprobs) / len(sequence_logprobs)
+
+
+def semantic_entropy_full(
+    cluster_ids: Sequence[int], sequence_logprobs: Sequence[float]
+) -> float:
+    """Full probability-weighted semantic entropy in nats.
+
+    This is the paper's *primary* estimator (Kuhn et al. 2023; Farquhar et al.
+    2024). Sequences are grouped into meaning-clusters, each cluster's
+    probability is the sum of its members' (length-normalized) sequence
+    probabilities, the cluster probabilities are renormalized to sum to one,
+    and Shannon entropy is taken over them::
+
+        log P(c | x) = logsumexp_{s in c} log p(s | x)
+        P(c | x)     = P(c | x) / sum_c' P(c' | x)
+        SE           = - sum_c P(c | x) log P(c | x)
+
+    In the limit where all sequence log-probabilities are equal, this collapses
+    to :func:`discrete_semantic_entropy` (the count-based approximation), which
+    is asserted as a parity test.
+
+    Args:
+        cluster_ids: Meaning-cluster id per sampled sequence.
+        sequence_logprobs: Length-normalized log-probability per sequence,
+            aligned with ``cluster_ids``. Both must be non-empty and equal
+            length.
+    """
+
+    if not cluster_ids or not sequence_logprobs:
+        raise ValueError("cluster_ids and sequence_logprobs must not be empty")
+    if len(cluster_ids) != len(sequence_logprobs):
+        raise ValueError("cluster_ids and sequence_logprobs must have equal length")
+
+    logp_by_cluster: dict[int, list[float]] = {}
+    for cid, logp in zip(cluster_ids, sequence_logprobs):
+        logp_by_cluster.setdefault(cid, []).append(logp)
+
+    cluster_logp = {cid: _logsumexp(values) for cid, values in logp_by_cluster.items()}
+    log_total = _logsumexp(list(cluster_logp.values()))
+    probs = [math.exp(lp - log_total) for lp in cluster_logp.values()]
+    return -math.fsum(p * math.log(p) for p in probs if p > 0.0)
+
+
+def _logsumexp(values: Sequence[float]) -> float:
+    """Numerically stable log(sum(exp(values)))."""
+    if not values:
+        raise ValueError("values must not be empty")
+    peak = max(values)
+    if peak == -math.inf:
+        return -math.inf
+    return peak + math.log(math.fsum(math.exp(v - peak) for v in values))
+
+
 def score_record(
     sampled_answers: Sequence[str],
     normalized_answers: Sequence[str],
     cluster_ids: Sequence[int],
+    sequence_logprobs: Sequence[float] | None = None,
 ) -> dict[str, float]:
-    """Return Phase 1 uncertainty scores for a single prompt record.
+    """Return uncertainty scores for a single prompt record.
 
-    The scores are computed independently on the same sample of generations:
-    naive entropy from the raw sampled answer strings, surface-form entropy
-    from the normalized answer strings, and discrete semantic entropy from
-    the cluster assignments. They populate the ``scores`` sub-object of the
-    JSONL schema in
-    ``docs/experiment_protocol.md``.
+    Always computes the three count-based estimators (naive sample entropy
+    over raw strings, surface entropy over normalized strings, discrete
+    semantic entropy over clusters). When ``sequence_logprobs`` are supplied
+    (captured at generation time), it additionally computes the two
+    probability-weighted estimators (``naive_entropy`` and
+    ``semantic_entropy_full``). They populate the ``scores`` sub-object of the
+    JSONL schema in ``docs/experiment_protocol.md``.
     """
 
-    return {
+    scores = {
         "naive_sample_entropy": naive_sample_entropy(sampled_answers),
         "surface_entropy": surface_entropy(normalized_answers),
         "discrete_semantic_entropy": discrete_semantic_entropy(cluster_ids),
     }
+    if sequence_logprobs is not None and len(sequence_logprobs) > 0:
+        scores["naive_entropy"] = naive_entropy(sequence_logprobs)
+        scores["semantic_entropy_full"] = semantic_entropy_full(
+            cluster_ids, sequence_logprobs
+        )
+    return scores
 
 
 def entropy_from_labels(labels: Sequence[Hashable]) -> float:

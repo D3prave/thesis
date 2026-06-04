@@ -382,12 +382,14 @@ def make_vllm_model(
     *,
     temperature: float = 0.7,
     top_p: float = 0.95,
+    top_k: int = -1,
     max_tokens: int = 64,
     gpu_memory_utilization: float = 0.90,
     tensor_parallel_size: int = 1,
     dtype: str = "auto",
     max_model_len: int | None = None,
     enforce_eager: bool = True,
+    return_logprobs: bool = False,
     system_prompt: str | None = (
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
@@ -462,10 +464,14 @@ def make_vllm_model(
         n=1,  # set per-call below
         temperature=temperature,
         top_p=top_p,
+        top_k=top_k,  # -1 disables; paper uses top_k=50 with nucleus p=0.9
         max_tokens=max_tokens,
+        # Requesting logprobs populates each output's cumulative_logprob, which
+        # we length-normalize for the probability-weighted estimators.
+        logprobs=1 if return_logprobs else None,
     )
 
-    def _model_fn(prompt: str, n: int) -> list[str]:
+    def _model_fn(prompt: str, n: int):
         # Apply chat template via vLLM's tokenizer so instruct models
         # receive the correct [INST]/system-prompt framing.
         messages: list[dict[str, str]] = []
@@ -482,9 +488,47 @@ def make_vllm_model(
         params = _sampling_params.clone()
         params.n = n
         outputs = _llm.generate([formatted], params)
-        return [out.text.strip() for out in outputs[0].outputs]
+        completions = outputs[0].outputs
+        answers = [out.text.strip() for out in completions]
+        if not return_logprobs:
+            return answers
+        logprobs = [_length_normalized_logprob(out) for out in completions]
+        return answers, logprobs
 
+    def _best_answer(prompt: str) -> str:
+        """Single low-temperature (T=0.1) "most likely" answer (paper accuracy).
+
+        Reuses the same vLLM engine — no second model load. Used to assess
+        accuracy on one point-estimate answer per the paper's protocol.
+        """
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        formatted = _llm.get_tokenizer().apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+        best_params = SamplingParams(n=1, temperature=0.1, top_p=1.0, max_tokens=max_tokens)
+        out = _llm.generate([formatted], best_params)
+        return out[0].outputs[0].text.strip()
+
+    _model_fn.best_answer = _best_answer  # type: ignore[attr-defined]
     return _model_fn
+
+
+def _length_normalized_logprob(completion: Any) -> float:
+    """Mean per-token log-probability of a vLLM completion.
+
+    ``cumulative_logprob`` is the summed token log-probability of the
+    generated sequence; dividing by the number of generated tokens gives the
+    length-normalized log-probability used by the paper's estimators. Empty
+    generations fall back to the raw cumulative value (0.0 if unavailable).
+    """
+    cumulative = getattr(completion, "cumulative_logprob", None)
+    if cumulative is None:
+        return 0.0
+    num_tokens = len(getattr(completion, "token_ids", []) or [])
+    return float(cumulative) / num_tokens if num_tokens > 0 else float(cumulative)
 
 
 # ---------------------------------------------------------------------------

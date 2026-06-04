@@ -67,6 +67,12 @@ SCORE_FIELDS = {"surface_entropy", "discrete_semantic_entropy"}
 # validated when present but their absence is not an error.
 OPTIONAL_SCORE_FIELDS = {
     "naive_sample_entropy",
+    # Probability-weighted estimators (scoring.py), require sequence_logprobs.
+    # naive_entropy = paper's predictive-entropy baseline; semantic_entropy_full
+    # = paper's primary probability-weighted semantic entropy. Both are entropies
+    # in nats (finite, non-negative), so the standard score-field rule applies.
+    "naive_entropy",
+    "semantic_entropy_full",
     # Kernel Language Entropy (kle.py) — Nikitin et al. (2024).
     "kle",
     # Semantic Entropy Probe (probes.py) score — Slobodkin et al. (2023).
@@ -77,6 +83,12 @@ OPTIONAL_SCORE_FIELDS = {
     # study plan).  Optional float in [0, 1]; the binary correctness_label
     # remains the AUROC label.
     "correctness_score",
+    # P(True) supervised baseline (ptrue.py) — Kadavath et al. (2022).
+    # Stored as uncertainty = 1 - P(True) in [0, 1].
+    "ptrue_uncertainty",
+    # Embedding-regression supervised baseline (train_embedding_regression.py)
+    # — logistic probe on hidden states. Stored as p(incorrect) in [0, 1].
+    "embedding_regression",
 }
 
 
@@ -170,6 +182,29 @@ def validate_record(record: Mapping[str, Any]) -> None:
     # answer and a consistent embedding dimension. Absence is the default.
     if "hidden_states" in record:
         _validate_hidden_states(record["hidden_states"], num_samples)
+
+    # Optional: per-sequence length-normalized log-probabilities, captured at
+    # generation time. Consumed by the probability-weighted estimators
+    # (naive_entropy, semantic_entropy_full). One finite value per sample.
+    if "sequence_logprobs" in record:
+        _validate_sequence_logprobs(record["sequence_logprobs"], num_samples)
+
+    # Optional: the single most-likely (low-temperature) answer used for the
+    # paper-faithful accuracy rule. A free-text string when present.
+    if "most_likely_answer" in record and not isinstance(record["most_likely_answer"], str):
+        raise SchemaError("most_likely_answer must be a string")
+
+
+def _validate_sequence_logprobs(value: Any, num_samples: int) -> None:
+    if not isinstance(value, list):
+        raise SchemaError("sequence_logprobs must be a list of floats")
+    if len(value) != num_samples:
+        raise SchemaError("sequence_logprobs length must equal decoding.num_samples")
+    for index, entry in enumerate(value):
+        if not isinstance(entry, (int, float)) or isinstance(entry, bool):
+            raise SchemaError(f"sequence_logprobs[{index}] must be a number")
+        if not math.isfinite(entry):
+            raise SchemaError(f"sequence_logprobs[{index}] must be finite")
 
 
 def _validate_hidden_states(value: Any, num_samples: int) -> None:

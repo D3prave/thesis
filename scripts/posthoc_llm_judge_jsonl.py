@@ -321,6 +321,8 @@ def _with_updated_clusters(
     representatives: list[str],
 ) -> dict[str, Any]:
     updated = dict(record)
+    # Recompute clustering-dependent entropies (discrete + full SE) under the
+    # judge's clusters; exclude the recomputed fields from preservation.
     preserved_scores = {
         key: value
         for key, value in record["scores"].items()
@@ -329,6 +331,8 @@ def _with_updated_clusters(
             "naive_sample_entropy",
             "surface_entropy",
             "discrete_semantic_entropy",
+            "naive_entropy",
+            "semantic_entropy_full",
         }
     }
     updated["semantic_clusters"] = clusters
@@ -337,6 +341,7 @@ def _with_updated_clusters(
         record["sampled_answers"],
         record["normalized_answers"],
         clusters,
+        sequence_logprobs=record.get("sequence_logprobs"),
     )
     updated["scores"].update(preserved_scores)
     return updated

@@ -129,6 +129,11 @@ class RunConfig:
     max_new_tokens: int = 64
     seed: int = 0
     task: str = "qa"  # "qa" or "bio"
+    # When True (QA only), set correctness_label from the single most-likely
+    # answer using the paper's rule (SQuAD-F1 > 0.5 for free-text, exact for
+    # SVAMP), matching Farquhar et al. (2024). Default False preserves the
+    # repo's "any sample matches a reference" labelling.
+    paper_accuracy: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -281,10 +286,14 @@ def sample_record(
     prompt: str = record["prompt"]
     num_samples: int = record["decoding"]["num_samples"]
 
-    sampled = model_fn(prompt, num_samples)
+    sampled, sequence_logprobs = _split_model_output(model_fn(prompt, num_samples))
     if len(sampled) != num_samples:
         raise ValueError(
             f"model_fn returned {len(sampled)} answers; expected {num_samples}"
+        )
+    if sequence_logprobs is not None and len(sequence_logprobs) != num_samples:
+        raise ValueError(
+            f"model_fn returned {len(sequence_logprobs)} logprobs; expected {num_samples}"
         )
 
     dataset: str = record.get("dataset", "")
@@ -292,13 +301,37 @@ def sample_record(
     ent_fn = entailment_fn if entailment_fn is not None else exact_match_entailment_fn
     cluster_ids, representatives = nli_cluster(normalized, ent_fn)
 
-    return {
+    out = {
         **record,
         "sampled_answers": list(sampled),
         "normalized_answers": normalized,
         "semantic_clusters": cluster_ids,
         "cluster_representatives": representatives,
     }
+    if sequence_logprobs is not None:
+        out["sequence_logprobs"] = [float(lp) for lp in sequence_logprobs]
+    return out
+
+
+def _split_model_output(
+    result: Any,
+) -> tuple[list[str], list[float] | None]:
+    """Accept either ``list[str]`` or ``(answers, sequence_logprobs)``.
+
+    A model_fn may optionally return per-sequence length-normalized
+    log-probabilities alongside its answers as a 2-tuple. Plain answer lists
+    remain fully supported (logprobs treated as absent), so existing adapters
+    are unaffected.
+    """
+    if (
+        isinstance(result, tuple)
+        and len(result) == 2
+        and isinstance(result[0], (list, tuple))
+        and isinstance(result[1], (list, tuple))
+    ):
+        answers, logprobs = result
+        return list(answers), list(logprobs)
+    return list(result), None
 
 
 def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
@@ -329,6 +362,32 @@ def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
     normalized_refs = set(normalize_answers_for_dataset(record["reference_answers"], dataset))
     correct = any(ans in normalized_refs for ans in record["normalized_answers"])
     return {**record, "correctness_label": correct}
+
+
+def evaluate_correctness_paper(
+    record: dict[str, Any], model_fn: "ModelFn | None" = None
+) -> dict[str, Any]:
+    """Set ``correctness_label`` from the single most-likely answer (paper rule).
+
+    Reproduces Farquhar et al. (2024): accuracy is assessed on one low-temperature
+    "most likely" answer, counted correct when the SQuAD token-F1 against any
+    reference exceeds 0.5 (exact match for SVAMP). The most-likely answer is a
+    dedicated low-temperature generation when the model exposes one (``model_fn``
+    with a ``best_answer`` method, e.g. the vLLM adapter), otherwise the modal
+    sampled answer is used as the point estimate.
+
+    The chosen answer is stored under ``most_likely_answer`` for provenance.
+    """
+    from semantic_entropy.accuracy import best_answer_correct, modal_answer
+
+    dataset: str = record.get("dataset", "")
+    best_fn = getattr(model_fn, "best_answer", None)
+    if best_fn is not None:
+        best = str(best_fn(record["prompt"]))
+    else:
+        best = modal_answer(record["sampled_answers"])
+    correct = best_answer_correct(best, record["reference_answers"], dataset)
+    return {**record, "most_likely_answer": best, "correctness_label": correct}
 
 
 #: Type alias for a sentence-embedding function used by Kernel Language
@@ -447,12 +506,15 @@ def run_pipeline(
             # standard string-overlap heuristic.
             if config.task == "bio":
                 record = {**record, "correctness_label": False}
+            elif getattr(config, "paper_accuracy", False):
+                record = evaluate_correctness_paper(record, model_fn)
             else:
                 record = evaluate_correctness(record)
             record["scores"] = score_record(
                 record["sampled_answers"],
                 record["normalized_answers"],
                 record["semantic_clusters"],
+                sequence_logprobs=record.get("sequence_logprobs"),
             )
             if compute_kle is not None:
                 record["scores"]["kle"] = compute_kle(

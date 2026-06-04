@@ -289,6 +289,9 @@ def make_vllm_phase1_model() -> ModelFn:
         model_name,
         temperature=_env_float("SE_TEMPERATURE", 0.7),
         top_p=_env_float("SE_TOP_P", 0.95),
+        # -1 disables top-k. The clean rerun sets SE_TOP_K=50 to match the
+        # paper's nucleus(p=0.9)+top_k=50 sampling.
+        top_k=_env_int("SE_TOP_K", -1),
         max_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         gpu_memory_utilization=_env_float("SE_GPU_MEMORY_UTILIZATION", 0.90),
         tensor_parallel_size=_env_int("SE_TENSOR_PARALLEL_SIZE", 1),
@@ -298,6 +301,10 @@ def make_vllm_phase1_model() -> ModelFn:
         # triton's JIT compile of cuda_utils.c fails with Python.h missing.
         # See logs/phase1_70b_alex_3624187 for the canonical failure mode.
         enforce_eager=_env_bool("SE_VLLM_ENFORCE_EAGER", True),
+        # Capture per-sequence logprobs by default so source generations carry
+        # sequence_logprobs for naive_entropy / semantic_entropy_full. Cheap
+        # (logprobs=1) and required for a faithful Fig. 2.
+        return_logprobs=_env_bool("SE_RETURN_LOGPROBS", True),
         **_system_prompt_kwargs(),
     )
 

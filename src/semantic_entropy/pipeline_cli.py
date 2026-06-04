@@ -367,6 +367,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
+        "--paper-accuracy",
+        action="store_true",
+        dest="paper_accuracy",
+        help="QA only: label correctness from the single most-likely answer "
+        "using the paper's rule (SQuAD-F1>0.5; exact for SVAMP).",
+    )
+    parser.add_argument(
         "--task",
         choices=("qa", "bio"),
         default="qa",
@@ -483,6 +490,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         max_new_tokens=effective_max_new_tokens,
         seed=args.seed,
         task=args.task,
+        paper_accuracy=args.paper_accuracy,
     )
 
     # -- Run pipeline ----------------------------------------------------------

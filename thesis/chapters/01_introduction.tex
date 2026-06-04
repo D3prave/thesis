@@ -13,13 +13,16 @@ but that a useful system should also be able to indicate \emph{when} its
 answer is unreliable so that a downstream user, or an automated
 verification step, can act on it.
 
-Empirical evidence confirms the scale of the risk. Hallucination rates
-in clinical decision-support settings have been measured at
-50--82\,\% under adversarial prompting~\cite{omar_adversarial_hallucination_clinical_2025},
-while the broader landscape of
-factuality failures in deployed
+Empirical evidence confirms the scale of the risk. Under adversarial
+prompting, hallucination rates in clinical decision-support settings have
+been measured as high as
+50--82\,\%~\cite{omar_adversarial_hallucination_clinical_2025}; this is an
+adversarial upper bound rather than a typical deployment rate, but
+factuality failures remain common enough in ordinary use that the broader
+landscape of deployed
 LLMs~\cite{augenstein_factuality_challenges_2024} presents substantial
-challenges for automated verification.
+challenges for automated verification. The precise rate matters less here
+than the structural problem it creates.
 The central technical difficulty is that free-form natural language has
 many valid surface forms. Two
 sampled answers may use very different words while expressing the same
@@ -109,9 +112,12 @@ they are not part of the baseline.
 \section{Contributions}
 
 The substantive method comes from Farquhar et
-al.~\cite{semantic_entropy_nature_2024};
-the contributions of this thesis are therefore mainly implementation,
-evaluation, and scope choices:
+al.~\cite{semantic_entropy_nature_2024}; the contribution of this thesis
+is to re-implement it under a smaller, fully local setup and to use that
+setup to ask a question the original aggregate evaluation does not
+isolate --- how the value of meaning-level clustering scales as outputs
+lengthen. This work therefore sets out to deliver, mainly through
+implementation, evaluation, and scope choices:
 
 \begin{enumerate}
   \item an implementation of discrete semantic entropy for short-answer
