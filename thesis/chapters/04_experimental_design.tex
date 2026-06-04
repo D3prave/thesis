@@ -152,13 +152,16 @@ protocol used for the surface-form baseline. This is not available for
 paragraph-length biographies, which have no single short ground-truth
 string. The biography task therefore grades correctness with the open
 instruction-tuned judge (Qwen2.5-72B-Instruct) against the first
-paragraph of the entity's English Wikipedia article: the judge is asked
-whether the generated biography is factually consistent with the
-reference, and the binary verdict becomes the correctness label used for
-AUROC and AURAC. The reference revision is pinned per record so the
-label is reproducible. This protocol matches the long-form correctness
-setup of Farquhar et al.~\cite{semantic_entropy_nature_2024}; its main
-limitation, the judge standing in for ground truth, is discussed in
+paragraph of the entity's English Wikipedia article. Because AUROC and
+AURAC need one correctness bit per prompt, the recorded label grades the
+representative response from the modal cluster, not all ten sampled
+paragraphs independently. The judge is asked whether that representative
+biography is factually consistent with the reference, and the binary
+verdict becomes the correctness label used for AUROC and AURAC. The
+reference revision is pinned per record so the label is reproducible.
+This protocol matches the long-form correctness setup of Farquhar et
+al.~\cite{semantic_entropy_nature_2024}; its main limitation, the judge
+standing in for ground truth, is discussed in
 Section~\ref{sec:discussion-limitations}.
 
 \section{Sampling settings}

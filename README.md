@@ -48,31 +48,37 @@ Key results:
 - Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
   regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
   does not flip the short-answer story. On biography it has a material effect:
-  AUROC rises from 0.643 to 0.732 for Mistral-7B and from 0.454 to 0.656 for
+  AUROC rises from 0.651 to 0.752 for Mistral-7B and from 0.471 to 0.656 for
   Llama-3.1-70B. These biography numbers are fixed-label reclustering
   sensitivity checks, not fresh end-to-end correctness re-grades.
 - On the four short-answer cells, Qwen2.5-72B LLM-judge reclustering remains
   below surface entropy, so judge scale alone is not sufficient in this setup.
   Biography is different: the same judge recovers a useful clustering signal.
 - Kernel Language Entropy with `all-MiniLM-L6-v2` does not outperform
-  discrete semantic entropy on any of the four posthoc runs. The
-  `nli-roberta-large` KLE ablation improves the two Mistral-7B cells but
-  does not uniformly close the gap on Llama-3.1-70B.
+  discrete semantic entropy on any of the four short-answer posthoc runs and
+  falls below chance on biography. The `nli-roberta-large` KLE ablation
+  improves the two Mistral-7B short-answer cells and partially recovers the
+  biography cells, but it does not uniformly close the gap on Llama-3.1-70B.
 - The long-form biography study is the clearest evidence for *semantic*
   rather than surface uncertainty. Naive and surface entropy collapse to
-  chance (paragraph samples are almost always unique) and KLE falls below
-  chance, while semantic clustering and the hidden-state probe stay useful:
-  SEP reaches AUROC 0.763 on Llama-3.1-70B and LLM-judge equivalence clustering
-  reaches 0.805 on Mistral-7B.
+  chance because paragraph samples are almost always unique. Meaning-aware
+  methods stay useful: SEP reaches AUROC 0.760 on Llama-3.1-70B and LLM-judge
+  equivalence clustering reaches AUROC 0.760 on Mistral-7B. Biography labels
+  are record-level labels for the modal representative response, and posthoc
+  biography checks keep those labels fixed.
 - SEP should be compared with its same-split held-out baselines rather than
   treated as a direct rescore of the replication rows. On short answers its
   result is task-dependent for Mistral-7B and favorable but not statistically
   separated from zero for Llama-3.1-70B. On biography it separates clearly
-  from the chance-level surface baseline for both generators.
-- The 2026-06-01 reproducibility audit verified that every canonical run's
-  AUROC/AURAC recomputes from `scored.labeled.jsonl` when present, otherwise
-  `scored.jsonl`, to within 1e-6, and that the corrected sentence-pair DeBERTa
-  reruns reproduce the pre-fix numbers; see `docs/results_audit_2026-06-01.md`.
+  from the chance-level surface baseline for both generators. The recorded SEP
+  evaluation jobs still generated ten samples per prompt so same-record
+  sampling baselines could be reported; the one-forward-pass cost advantage is
+  the intended deployment path of the trained probe, not a separate timing
+  benchmark measured here.
+- The current reproducibility verifier recomputes saved AUROC/AURAC values
+  from `scored.labeled.jsonl` when present, otherwise `scored.jsonl`, to within
+  1e-6, and the corrected sentence-pair DeBERTa reruns reproduce the pre-fix
+  numbers.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does

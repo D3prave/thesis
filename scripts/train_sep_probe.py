@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
         "--source-score-field",
         default=None,
         help=(
-            "Entropy score field to binarise when "
+            "Entropy score field to binarize when "
             "--label-source=semantic_entropy_threshold "
             "(e.g. discrete_semantic_entropy)."
         ),
@@ -94,7 +94,7 @@ def parse_args() -> argparse.Namespace:
         default="first",
         help=(
             "How to combine per-sample hidden states into a single "
-            "training feature: 'first' (matches single-pass SEP "
+            "training feature: 'first' (matches single-response SEP "
             "inference) or 'mean' (denoised average across samples)."
         ),
     )
