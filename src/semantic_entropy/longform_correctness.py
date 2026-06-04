@@ -6,9 +6,13 @@ record against its Wikipedia reference paragraph using a vLLM-backed judge
 (Qwen2.5-72B-Instruct by default).
 
 Why grade the majority answer rather than all M samples: the
-``correctness_label`` is per-record (a single ground-truth bit for AUROC),
-so grading the modal cluster representative is equivalent to grading all M
-and is ~10× cheaper.
+``correctness_label`` is per-record (a single ground-truth bit for AUROC), and
+the selective-prediction table needs one correctness label per uncertainty
+score. Grading the modal cluster representative is the cheapest fixed policy
+for deriving that label, but the label can change when a different clustering
+backend changes the modal representative. Backend-specific bio comparisons
+therefore need backend-specific regrading rather than silently reusing labels
+from a previous clustering pass.
 
 The module also provides :func:`grade_records_inplace`, which loads a scored
 JSONL, fills the ``correctness_label`` and optional ``scores.correctness_score``
@@ -25,7 +29,6 @@ import math
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Type aliases

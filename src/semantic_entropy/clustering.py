@@ -242,16 +242,74 @@ def nli_cluster(
             ):
                 union(i, j)
 
-    # --- Assign contiguous IDs in first-occurrence order --------------------
+    return _cluster_output_from_parent(normalized_answers, find)
+
+
+def nli_nondefeating_cluster(
+    normalized_answers: list[str],
+    entailment_fn: NliFn,
+) -> tuple[list[int], list[str]]:
+    """Assign cluster IDs with the laxer FactualBio equivalence rule.
+
+    Farquhar et al. (2024) use this relation for their FactualBio claim
+    experiments: two answers are placed in the same cluster when at least one
+    direction entails the other and neither direction contradicts the other.
+    This differs from :func:`nli_cluster`, which requires entailment in both
+    directions.
+
+    Args:
+        normalized_answers: A non-empty list of normalized answer strings.
+        entailment_fn: NLI function satisfying the :data:`NliFn` contract.
+
+    Returns:
+        A 2-tuple ``(semantic_clusters, cluster_representatives)`` with the
+        same invariants as :func:`exact_match_cluster`.
+
+    Raises:
+        ValueError: If *normalized_answers* is empty.
+    """
+    if not normalized_answers:
+        raise ValueError("normalized_answers must not be empty")
+
+    n = len(normalized_answers)
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x: int, y: int) -> None:
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            forward = entailment_fn(normalized_answers[i], normalized_answers[j])
+            backward = entailment_fn(normalized_answers[j], normalized_answers[i])
+            labels = {forward, backward}
+            if NLI_ENTAILMENT in labels and NLI_CONTRADICTION not in labels:
+                union(i, j)
+
+    return _cluster_output_from_parent(normalized_answers, find)
+
+
+def _cluster_output_from_parent(
+    normalized_answers: list[str],
+    find: Callable[[int], int],
+) -> tuple[list[int], list[str]]:
+    """Return contiguous cluster IDs and representatives from union-find roots."""
+
     root_to_id: dict[int, int] = {}
     cluster_ids: list[int] = []
-    for i in range(n):
+    for i in range(len(normalized_answers)):
         root = find(i)
         if root not in root_to_id:
             root_to_id[root] = len(root_to_id)
         cluster_ids.append(root_to_id[root])
 
-    # Representatives: first-seen answer per cluster.
     representatives: list[str] = [""] * len(root_to_id)
     seen_cids: set[int] = set()
     for i, cid in enumerate(cluster_ids):

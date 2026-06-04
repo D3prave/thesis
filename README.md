@@ -160,6 +160,46 @@ the cluster, write durable labeled artifacts and refresh the aggregate metrics:
 bash scripts/finalize_bio_study.sh
 ```
 
+The recorded biography posthoc rows above are fixed-label sensitivity checks:
+they reuse labels from an earlier modal representative. To rerun correctness
+for each backend's own modal representative, first inspect the discovered
+inputs, then submit on Alex:
+
+```sh
+bash scripts/dispatch_bio_backend_regrade_alex.sh --dry-run
+bash scripts/dispatch_bio_backend_regrade_alex.sh --submit
+```
+
+Those jobs write under `results/phase2/` and set
+`bio_regrade_source_clustering` in `job_meta.json`. Aggregation labels them as
+`bio-regrade-<source-clustering>` so they cannot be confused with the
+fixed-label posthoc rows.
+
+## FactualBio-Style Extension
+
+For a paper-style long-form follow-up, prepare deterministic prompt JSONL files
+from existing biography outputs, run the expensive LLM stages on the cluster,
+then score one factual claim per record:
+
+```sh
+python scripts/prepare_factual_bio_prompts.py extract-claims \
+  results/phase1/<bio-run>/scored.jsonl /tmp/factualbio_claim_prompts.jsonl
+
+python scripts/prepare_factual_bio_prompts.py questions \
+  /tmp/factualbio_claim_records.jsonl /tmp/factualbio_question_prompts.jsonl
+
+python scripts/prepare_factual_bio_prompts.py answers \
+  /tmp/factualbio_claim_records.with_questions.jsonl /tmp/factualbio_answer_prompts.jsonl
+
+python scripts/score_factual_bio_claims.py \
+  /tmp/factualbio_claim_records.with_answers.jsonl \
+  /tmp/factualbio_claim_records.scored.jsonl
+```
+
+The scorer computes discrete semantic entropy per generated question over the
+expected answer plus regenerated short answers, averages question entropies to
+a claim score, and writes claim-level AUROC/AURAC artifacts.
+
 ## Data and Artifacts
 
 Large datasets, model weights, raw model outputs, generated result summaries,
@@ -170,6 +210,6 @@ The locally generated metric summary is written to
 `results/tables/metric_summary.csv` (rows are tagged by
 `clustering = exact-match`, `nli`, `sep`, `posthoc-kle-all-minilm-l6-v2`,
 `posthoc-kle-nli-roberta-large`, `posthoc-nli-deberta-v3-large`, or
-`posthoc-llm-judge-qwen2.5-72b-instruct`). Generated figures are written under
-`results/figures/` and copied into `thesis/figures/` when needed for local
-LaTeX builds.
+`posthoc-llm-judge-qwen2.5-72b-instruct`; backend-specific biography regrades
+use `bio-regrade-*`). Generated figures are written under `results/figures/`
+and copied into `thesis/figures/` when needed for local LaTeX builds.
