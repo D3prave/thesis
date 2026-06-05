@@ -21,10 +21,13 @@ semantic-entropy-aggregate-results = "semantic_entropy.result_aggregator:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "ruff>=0.4"]
-# Data preparation scripts (prepare_triviaqa.py, prepare_svamp.py).
+# Data preparation scripts (prepare_triviaqa.py, prepare_nqopen.py, prepare_svamp.py).
 # Install with: uv pip install --extra prep  or  uv sync --extra prep
 prep = [
-    "datasets>=2.14",
+    # Datasets 5.0 / Hub 1.18 currently fail to resolve legacy Hub dataset IDs
+    # such as trivia_qa on the Alex cluster install path.
+    "datasets>=2.14,<5",
+    "huggingface-hub<1.18",
 ]
 plot = [
     "matplotlib>=3.8",

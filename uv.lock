@@ -4741,6 +4741,7 @@ plot = [
 ]
 prep = [
     { name = "datasets" },
+    { name = "huggingface-hub" },
 ]
 sep = [
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
@@ -4758,7 +4759,8 @@ vllm = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", marker = "extra == 'hf'" },
-    { name = "datasets", marker = "extra == 'prep'", specifier = ">=2.14" },
+    { name = "datasets", marker = "extra == 'prep'", specifier = ">=2.14,<5" },
+    { name = "huggingface-hub", marker = "extra == 'prep'", specifier = "<1.18" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.8" },
     { name = "numpy", marker = "extra == 'kle'", specifier = ">=1.24" },
     { name = "numpy", marker = "extra == 'sep'", specifier = ">=1.24" },
