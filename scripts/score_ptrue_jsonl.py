@@ -147,19 +147,21 @@ def _make_vllm_true_false_judge(judge_model: str) -> JudgeFn:  # pragma: no cove
     params = SamplingParams(temperature=0.0, max_tokens=1, logprobs=20)
 
     def judge(prompt: str) -> float:
+        # Authors' format: P(True) = renormalized mass on the "A" continuation
+        # ("A) True") versus "B" ("B) False").
         out = llm.generate([prompt], params)[0].outputs[0]
         logprobs = out.logprobs[0] if out.logprobs else {}
-        true_lp, false_lp = -math.inf, -math.inf
+        a_lp, b_lp = -math.inf, -math.inf
         for entry in logprobs.values():
             token = entry.decoded_token.strip().lower()
-            if token.startswith("true"):
-                true_lp = max(true_lp, entry.logprob)
-            elif token.startswith("false"):
-                false_lp = max(false_lp, entry.logprob)
-        if true_lp == -math.inf and false_lp == -math.inf:
+            if token == "a" or token.startswith("true"):
+                a_lp = max(a_lp, entry.logprob)
+            elif token == "b" or token.startswith("false"):
+                b_lp = max(b_lp, entry.logprob)
+        if a_lp == -math.inf and b_lp == -math.inf:
             return 0.5
-        t, f = math.exp(true_lp), math.exp(false_lp)
-        return t / (t + f) if (t + f) > 0 else 0.5
+        a, b = math.exp(a_lp), math.exp(b_lp)
+        return a / (a + b) if (a + b) > 0 else 0.5
 
     return judge
 

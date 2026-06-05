@@ -49,24 +49,23 @@ def format_ptrue_prompt(
     proposed_answer: str,
     few_shot_prefix: str = "",
 ) -> str:
-    """Build the P(True) prompt for one record.
+    """Build the P(True) prompt for one record (authors' A/B format).
 
-    The model is shown the question, the brainstormed answers, and a proposed
-    answer, then asked whether the proposed answer is true. ``few_shot_prefix``
-    (optionally built by :func:`build_few_shot_prefix`) is prepended verbatim.
+    Mirrors jlko/semantic_uncertainty ``calculate_p_true``: the question, the
+    brainstormed answers followed by the proposed answer, then a True/False
+    multiple choice. The model's probability on the "A" continuation is P(True).
+    ``few_shot_prefix`` (from :func:`build_few_shot_prefix`) is prepended.
     """
-    lines = []
-    if few_shot_prefix:
-        lines.append(few_shot_prefix.rstrip())
-        lines.append("")
-    lines.append(f"Question: {question.strip()}")
-    lines.append("Brainstormed answers:")
-    for answer in brainstormed_answers:
-        lines.append(f"  - {answer.strip()}")
-    lines.append(f"Proposed answer: {proposed_answer.strip()}")
-    lines.append("Is the proposed answer correct? Answer True or False.")
-    lines.append("The proposed answer is:")
-    return "\n".join(lines)
+    prefix = (few_shot_prefix.rstrip() + "\n") if few_shot_prefix else ""
+    lines = [f"Question: {question.strip()}", "Brainstormed Answers: "]
+    for answer in list(brainstormed_answers) + [proposed_answer]:
+        lines.append(answer.strip())
+    lines.append(f"Possible answer: {proposed_answer.strip()}")
+    lines.append("Is the possible answer:")
+    lines.append("A) True")
+    lines.append("B) False")
+    lines.append("The possible answer is:")
+    return prefix + "\n".join(lines)
 
 
 def build_few_shot_prefix(examples: Sequence[Mapping[str, Any]]) -> str:
@@ -74,7 +73,8 @@ def build_few_shot_prefix(examples: Sequence[Mapping[str, Any]]) -> str:
 
     Each example must provide ``question``, ``brainstormed_answers``,
     ``proposed_answer``, and a boolean ``is_correct``. The paper uses up to 20
-    such in-context examples with ground-truth labels.
+    such in-context examples; the completion is " A" when correct, " B"
+    otherwise (the token the judge reads at test time).
     """
     blocks = [_INSTRUCTION, ""]
     for example in examples:
@@ -84,8 +84,8 @@ def build_few_shot_prefix(examples: Sequence[Mapping[str, Any]]) -> str:
             str(example["proposed_answer"]),
             few_shot_prefix="",
         )
-        verdict = "True" if bool(example["is_correct"]) else "False"
-        blocks.append(f"{block} {verdict}")
+        verdict = " A" if bool(example["is_correct"]) else " B"
+        blocks.append(f"{block}{verdict}")
         blocks.append("")
     return "\n".join(blocks).rstrip()
 
@@ -108,10 +108,14 @@ def score_record_ptrue(
     few_shot_prefix: str = "",
     question_field: str = "prompt",
 ) -> float:
-    """Return the P(True) uncertainty score for a single record."""
+    """Return the P(True) uncertainty score for a single record.
+
+    The proposed answer is the low-temperature ``most_likely_answer`` when
+    present (the paper's protocol), otherwise the modal sampled answer.
+    """
     question = str(record.get(question_field, record.get("prompt", "")))
     brainstormed = list(record.get("sampled_answers", []))
-    proposed = most_likely_answer(record)
+    proposed = str(record.get("most_likely_answer") or most_likely_answer(record))
     prompt = format_ptrue_prompt(question, brainstormed, proposed, few_shot_prefix)
     p_true = float(judge_fn(prompt))
     return ptrue_uncertainty(p_true)

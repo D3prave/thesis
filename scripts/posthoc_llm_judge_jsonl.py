@@ -157,6 +157,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.entailment_backend is None:
             backend = f"llm-judge-cluster-equivalence-{judge_model.rsplit('/', 1)[-1].lower()}"
 
+    # Content-addressed cache: reuse identical (model, premise, hypothesis, mode)
+    # decisions across reruns/seeds. Enable by setting SE_ENTAILMENT_CACHE.
+    from semantic_entropy.entailment_cache import EntailmentCache
+
+    cache_path = os.environ.get("SE_ENTAILMENT_CACHE")
+    cache = EntailmentCache.load(cache_path) if cache_path else None
+    if cache is not None and pending_triples:
+        uncached = []
+        for triple in pending_triples:
+            question, premise, hypothesis = triple
+            cached_label = cache.get(judge_model, f"{question}\x00{premise}", hypothesis, mode)
+            if cached_label is not None:
+                labels[triple] = cached_label
+            else:
+                uncached.append(triple)
+        print(f"entailment cache: {cache.hits} hits, {len(uncached)} to query", flush=True)
+        pending_triples = uncached
+
     if pending_triples:
         judge = BatchedLlmJudge(
             model_name=judge_model,
@@ -179,6 +197,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             pending_triples, batch_size=args.judge_batch_size
         )
         labels.update(predicted)
+        if cache is not None:
+            for triple, label in predicted.items():
+                question, premise, hypothesis = triple
+                cache.set(judge_model, f"{question}\x00{premise}", hypothesis, label, mode)
+            cache.save()
 
     # ------------------------------------------------------------------
     # Apply union-find per record using the prefilled label table.

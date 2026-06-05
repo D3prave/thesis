@@ -132,6 +132,8 @@ echo ""
 echo "=== NLI entailment + KLE embedding models ==="
 download_model "cross-encoder/nli-deberta-v3-base"
 download_model "cross-encoder/nli-deberta-v3-large"
+# The authors' (jlko/semantic_uncertainty) entailment model, for comparison.
+download_model "microsoft/deberta-v2-xlarge-mnli"
 download_st_model "sentence-transformers/all-MiniLM-L6-v2"
 download_st_model "sentence-transformers/nli-roberta-large"
 

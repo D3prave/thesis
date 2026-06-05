@@ -17,6 +17,7 @@ from typing import Any
 
 from semantic_entropy.cluster_check import check_cluster_consistency
 from semantic_entropy.clustering import (
+    NLI_CONTRADICTION,
     NLI_ENTAILMENT,
     exact_match_entailment_fn,
     nli_cluster,
@@ -65,6 +66,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--run-id",
         default=None,
         help="Optional run_id to write into each output record.",
+    )
+    parser.add_argument(
+        "--clustering",
+        choices=["strict", "nondefeating"],
+        default="strict",
+        help="Bidirectional-entailment rule. 'strict' requires entailment in "
+        "both directions (default); 'nondefeating' matches Farquhar et al.'s "
+        "strict_entailment=False (no contradiction either way, >=1 entailment).",
     )
     return parser.parse_args(argv)
 
@@ -149,6 +158,7 @@ def _cluster_batched(
             record["normalized_answers"],
             pair_map,
             labels,
+            strict=(getattr(args, "clustering", "strict") == "strict"),
         )
         clustered.append(_with_updated_clusters(record, clusters, representatives))
         if index == 1 or index % 25 == 0:
@@ -233,7 +243,16 @@ def _clusters_from_pair_labels(
     answers: list[str],
     pair_map: PairMap,
     labels: dict[OrderedPair, str],
+    strict: bool = True,
 ) -> tuple[list[int], list[str]]:
+    """Union-find clustering from directional NLI labels.
+
+    ``strict=True`` (default) merges two answers only when *both* directions are
+    entailment (Farquhar et al. ``strict_entailment=True``; our
+    :func:`semantic_entropy.clustering.nli_cluster`). ``strict=False`` matches
+    their default ``strict_entailment=False``: merge when neither direction is a
+    contradiction and at least one is entailment (the "non-defeating" rule).
+    """
     if not answers:
         raise ValueError("normalized_answers must not be empty")
 
@@ -251,7 +270,14 @@ def _clusters_from_pair_labels(
             parent[px] = py
 
     for (i, j), (forward, backward) in pair_map.items():
-        if labels[forward] == NLI_ENTAILMENT and labels[backward] == NLI_ENTAILMENT:
+        pair_labels = {labels[forward], labels[backward]}
+        if strict:
+            merge = labels[forward] == NLI_ENTAILMENT and labels[backward] == NLI_ENTAILMENT
+        else:
+            merge = (
+                NLI_CONTRADICTION not in pair_labels and NLI_ENTAILMENT in pair_labels
+            )
+        if merge:
             union(i, j)
 
     root_to_id: dict[int, int] = {}
