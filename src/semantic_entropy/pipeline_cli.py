@@ -42,6 +42,7 @@ from semantic_entropy.datasets import (
     PromptItem,
     SVAMP_STUB_PATH,
     TRIVIAQA_STUB_PATH,
+    load_nqopen_records,
     load_svamp_records,
     load_triviaqa_records,
 )
@@ -104,7 +105,7 @@ def load_callable(spec: str) -> Any:
 # Dataset loading helpers
 # ---------------------------------------------------------------------------
 
-_DATASET_CHOICES = ("triviaqa", "svamp", "bio", "all")
+_DATASET_CHOICES = ("triviaqa", "nqopen", "svamp", "bio", "all")
 
 
 def _load_bio_records(path: Path) -> list[PromptItem]:
@@ -166,6 +167,14 @@ def _load_items(
     if dataset in ("triviaqa", "all"):
         path = Path(data_path) if data_path and dataset != "all" else TRIVIAQA_STUB_PATH
         items.extend(load_triviaqa_records(path))
+
+    if dataset == "nqopen":
+        if data_path is None:
+            raise DatasetError(
+                "dataset='nqopen' requires --data-path pointing to an NQ-Open JSONL "
+                "(see scripts/prepare_nqopen.py)."
+            )
+        items.extend(load_nqopen_records(Path(data_path)))
 
     if dataset in ("svamp", "all"):
         path = Path(data_path) if data_path and dataset != "all" else SVAMP_STUB_PATH

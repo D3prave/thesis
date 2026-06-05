@@ -48,13 +48,16 @@ import string
 # ---------------------------------------------------------------------------
 
 TRIVIAQA_DATASET: str = "triviaqa"
+NQOPEN_DATASET: str = "nqopen"
 SVAMP_DATASET: str = "svamp"
 
 #: Set of dataset names that have a dedicated faithful normalizer.
 BIO_DATASET: str = "bio"
 
 #: Set of dataset names that have a dedicated faithful normalizer.
-KNOWN_DATASETS: frozenset[str] = frozenset({TRIVIAQA_DATASET, SVAMP_DATASET, BIO_DATASET})
+KNOWN_DATASETS: frozenset[str] = frozenset(
+    {TRIVIAQA_DATASET, NQOPEN_DATASET, SVAMP_DATASET, BIO_DATASET}
+)
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +217,9 @@ def normalize_answer_for_dataset(answer: str, dataset: str) -> str:
     Returns:
         Normalized answer string.
     """
-    if dataset == TRIVIAQA_DATASET:
+    if dataset in (TRIVIAQA_DATASET, NQOPEN_DATASET):
+        # NQ-Open answers are free-text short strings like TriviaQA; reuse the
+        # same faithful normalizer (lowercasing, article/punctuation stripping).
         return normalize_triviaqa_answer(answer)
     if dataset == SVAMP_DATASET:
         return normalize_svamp_answer(answer)

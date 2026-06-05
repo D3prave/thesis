@@ -93,6 +93,7 @@ def load_triviaqa_records(
     path: Path | str = TRIVIAQA_STUB_PATH,
     *,
     split: str = "validation",
+    dataset_label: str = "triviaqa",
 ) -> Iterator[PromptItem]:
     """Yield :class:`PromptItem` objects from a TriviaQA open-format JSONL.
 
@@ -152,11 +153,26 @@ def load_triviaqa_records(
 
         yield PromptItem(
             prompt_id=question_id,
-            dataset="triviaqa",
+            dataset=dataset_label,
             split=split,
             prompt=question,
             reference_answers=reference_answers,
         )
+
+
+def load_nqopen_records(
+    path: Path | str,
+    *,
+    split: str = "validation",
+) -> Iterator[PromptItem]:
+    """Yield :class:`PromptItem` objects from an NQ-Open JSONL.
+
+    NQ-Open answers are free-text short strings, like TriviaQA, so the same
+    ``{QuestionId, Question, Answer:{Value, Aliases}}`` on-disk format and parser
+    are reused; only the ``dataset`` label differs (``"nqopen"``), which routes
+    answer normalization and the SQuAD-F1 accuracy rule appropriately.
+    """
+    yield from load_triviaqa_records(path, split=split, dataset_label="nqopen")
 
 
 def load_svamp_records(
