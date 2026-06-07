@@ -48,8 +48,9 @@ if [ -z "${REPO_ROOT:-}" ]; then
     echo "ERROR: _common.sh sourced without REPO_ROOT set." >&2
     return 1 2>/dev/null || exit 1
 fi
-if [ ! -f "${REPO_ROOT}/.venv/bin/activate" ]; then
-    echo "ERROR: ${REPO_ROOT}/.venv not found. Create it on a login node with:" >&2
+SE_VENV_DIR="${SE_VENV_DIR:-${REPO_ROOT}/.venv}"
+if [ ! -f "${SE_VENV_DIR}/bin/activate" ]; then
+    echo "ERROR: ${SE_VENV_DIR} not found. Create it on a login node with:" >&2
     echo "       module load python && python -m venv .venv" >&2
     echo "       source .venv/bin/activate && pip install -e '.[vllm,hf]'" >&2
     return 1 2>/dev/null || exit 1
@@ -62,6 +63,7 @@ fi
 _SE_PY_MODULE_LOADED=0
 for _py_module in \
     python/3.12-miniforge \
+    python/3.12-conda \
     python/3.12 \
     python/3.11-miniforge \
     python/3.11 \
@@ -110,8 +112,8 @@ if [ "${SE_SKIP_CUDA_MODULES:-0}" != "1" ] && [ -z "${CUDA_HOME:-}" ]; then
         export CUDA_HOME="$(dirname "$(dirname "${_nvcc}")")"
     fi
 fi
-# shellcheck disable=SC1091
-source "${REPO_ROOT}/.venv/bin/activate"
+# shellcheck disable=SC1090
+source "${SE_VENV_DIR}/bin/activate"
 # Add CUDA to PATH *after* venv activation so activate's PATH reset
 # doesn't clobber the CUDA bin directory.
 if [ -n "${CUDA_HOME:-}" ]; then
