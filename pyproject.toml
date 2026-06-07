@@ -36,6 +36,8 @@ hf = [
     "torch",
     "transformers",
     "accelerate",
+    "sentencepiece",
+    "tiktoken",
 ]
 vllm = [
     "vllm",
