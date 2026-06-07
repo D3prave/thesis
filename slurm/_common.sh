@@ -56,7 +56,33 @@ if [ ! -f "${REPO_ROOT}/.venv/bin/activate" ]; then
 fi
 
 # --- 1. Modules + venv -------------------------------------------------------
-module load python 2>/dev/null || true   # may already be loaded
+# Fritz's default `module load python` can resolve to Python 3.9, while this
+# project requires Python >=3.11. Prefer explicit modern modules first; fall
+# back to the site default only when no versioned module exists.
+_SE_PY_MODULE_LOADED=0
+for _py_module in \
+    python/3.12-miniforge \
+    python/3.12 \
+    python/3.11-miniforge \
+    python/3.11 \
+    python
+do
+    if module load "${_py_module}" 2>/dev/null; then
+        if python - <<'PY' >/dev/null 2>&1
+import sys
+raise SystemExit(0 if sys.version_info[:2] >= (3, 11) else 1)
+PY
+        then
+            _SE_PY_MODULE_LOADED=1
+            break
+        fi
+    fi
+done
+unset _py_module
+if [ "${_SE_PY_MODULE_LOADED}" != "1" ]; then
+    echo "WARNING: no Python >=3.11 module found before venv activation; using current python." >&2
+fi
+unset _SE_PY_MODULE_LOADED
 # OS upgrades (e.g. el8 -> el9) often break specific module versions.
 # Try 12.1.1 first, fallback to 12.4.1, then default cuda. CPU-only jobs
 # such as Fritz post-hoc KLE/reclustering set SE_SKIP_CUDA_MODULES=1.
