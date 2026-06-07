@@ -48,6 +48,13 @@ if [ -z "${REPO_ROOT:-}" ]; then
     echo "ERROR: _common.sh sourced without REPO_ROOT set." >&2
     return 1 2>/dev/null || exit 1
 fi
+if [ -z "${SE_VENV_DIR:-}" ] && [ "${SE_CLUSTER:-}" = "fritz" ]; then
+    _SE_FRITZ_VENV="${WORK:-}/venvs/thesis_fritz_py312"
+    if [ -f "${_SE_FRITZ_VENV}/bin/activate" ]; then
+        SE_VENV_DIR="${_SE_FRITZ_VENV}"
+    fi
+    unset _SE_FRITZ_VENV
+fi
 SE_VENV_DIR="${SE_VENV_DIR:-${REPO_ROOT}/.venv}"
 if [ ! -f "${SE_VENV_DIR}/bin/activate" ]; then
     echo "ERROR: ${SE_VENV_DIR} not found. Create it on a login node with:" >&2
@@ -60,6 +67,18 @@ fi
 # Fritz's default `module load python` can resolve to Python 3.9, while this
 # project requires Python >=3.11. Prefer explicit modern modules first; fall
 # back to the site default only when no versioned module exists.
+for _loaded_py_module in \
+    python/3.9-anaconda \
+    python/3.12-conda \
+    python/3.12-miniforge \
+    python/3.12 \
+    python/3.11-miniforge \
+    python/3.11 \
+    python
+do
+    module unload "${_loaded_py_module}" 2>/dev/null || true
+done
+unset _loaded_py_module
 _SE_PY_MODULE_LOADED=0
 for _py_module in \
     python/3.12-miniforge \
