@@ -36,6 +36,7 @@ hf = [
     "torch",
     "transformers",
     "accelerate",
+    "protobuf",
     "sentencepiece",
     "tiktoken",
 ]
