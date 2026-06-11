@@ -512,7 +512,32 @@ def make_vllm_model(
         out = _llm.generate([formatted], best_params)
         return out[0].outputs[0].text.strip()
 
+    def _batch(prompts: list[str], n: int) -> list[list[str]]:
+        """Generate ``n`` samples for many prompts in a single vLLM call.
+
+        vLLM batches the whole list with continuous batching, so this is
+        dramatically faster than calling the per-prompt ``_model_fn`` in a loop
+        (essential for large stages such as FactualBio answer regeneration with
+        tens of thousands of prompts). Returns one answer list per input prompt,
+        in input order. Texts only — logprobs are not returned by this path.
+        """
+        tokenizer = _llm.get_tokenizer()
+        formatted = [
+            tokenizer.apply_chat_template(
+                ([{"role": "system", "content": system_prompt}] if system_prompt else [])
+                + [{"role": "user", "content": prompt}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            for prompt in prompts
+        ]
+        params = _sampling_params.clone()
+        params.n = n
+        outputs = _llm.generate(formatted, params)
+        return [[seq.text.strip() for seq in out.outputs] for out in outputs]
+
     _model_fn.best_answer = _best_answer  # type: ignore[attr-defined]
+    _model_fn.batch = _batch  # type: ignore[attr-defined]
     return _model_fn
 
 
