@@ -685,7 +685,10 @@ def make_nli_fn(
     )
 
     def _nli_fn(premise: str, hypothesis: str) -> str:
-        result = _pipe({"text": premise, "text_pair": hypothesis})[0]
+        raw = _pipe({"text": premise, "text_pair": hypothesis})
+        # Transformers returns a single dict for a single input pair on current
+        # versions, but a one-element list on others (or with top_k set).
+        result = raw[0] if isinstance(raw, list) else raw
         label = result["label"].lower()
         # Normalize to the three canonical constants
         if "entail" in label:
