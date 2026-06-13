@@ -7,78 +7,62 @@ method for short-answer question answering and long-form biography generation.
 
 The central question is whether entropy over meanings separates likely
 incorrect answers from correct answers better than entropy over surface forms.
-The thesis studies this on TriviaQA, SVAMP, and a FactScore-style biography
-task using sampled answers from Mistral-7B-Instruct-v0.3 and
-Llama-3.1-70B-Instruct.
+The thesis studies this on TriviaQA, NQ-Open, SVAMP, and a FactScore-style
+biography task using sampled answers from Mistral-7B-Instruct-v0.3,
+Llama-3.1-8B-Instruct, and Llama-3.1-70B-Instruct (3 models × 3 seeds).
 
 ## Thesis Status
 
-The thesis draft is complete apart from final administrative fields such as
-the submission date. All nine chapters, the abstract, the acknowledgements,
-the appendix, the bibliography, and all figures are written, and the PDF
-builds cleanly with `latexmk -pdf main.tex`. The surface-form baselines use
-raw-string entropy and exact-match clustering after answer normalization. The
-main replication condition repeats the same model--dataset grid with
-bidirectional Natural Language Inference clustering using DeBERTa-v3-base.
-Additional analyses compare
-DeBERTa-v3-large reclustering, Qwen2.5-72B LLM-judge reclustering, and
-Kernel Language Entropy, plus held-out Semantic Entropy Probe (SEP)
-checks for both generators across the short-answer and biography tasks.
+**As of 2026-06-13 — 3-seed rerun in progress; bio rerun pending.**
 
-Key results:
+A vLLM seed-propagation bug (the `seed` parameter was accepted but never
+forwarded to `vllm.LLM()`) was discovered during a full scientific validity
+audit. All "seeded" runs prior to this fix silently used seed=0, making the
+three nominal seeds effectively identical. The bug is fixed and committed
+(`1bd9026`). 27 short-form generation jobs (Slurm IDs 3739810–3739836) are
+running on the NHR@FAU Alex cluster with correct seed propagation and
+paper-matching correctness labelling (modal-answer + SQuAD-F1 > 0.5).
 
-- In the exact-match baseline, Llama-3.1-70B's normalized
-  surface-cluster score ranks errors better than naive sample entropy: AUROC
-  0.696 vs. 0.644 on TriviaQA and 0.842 vs. 0.827 on SVAMP. This is not, by
-  itself, evidence for true semantic entropy because exact match does not use NLI
-  semantic clustering.
-- On the short-answer tasks, Mistral-7B shows little or no gain from semantic
-  clustering. Biography behaves differently because surface matching fails on
-  paragraph samples.
-- NLI clustering is mixed: it nominally raises Mistral-7B on TriviaQA by
-  1.3 AUROC points but slightly reduces Llama-3.1-70B on TriviaQA by
-  1.8 points; neither difference is statistically significant in the recorded
-  bootstrap check.
-- Rejection-accuracy curves generally trend upward across the evaluated
-  conditions, so sampling-based entropy is useful for selective abstention even
-  when absolute accuracy differs by model and dataset. The curves are not
-  monotonic: local drops occur when a rejected high-uncertainty record was
-  actually correct, and the final few retained records are unstable. Additional
-  thesis plots stop at 95% rejection to exclude this right-tail instability.
-- Posthoc DeBERTa-v3-large reclustering partially recovers the 70B/TriviaQA
-  regression but slightly worsens 7B/TriviaQA, so a stronger NLI judge alone
-  does not flip the short-answer story. On biography it has a material effect:
-  AUROC rises from 0.651 to 0.752 for Mistral-7B and from 0.471 to 0.656 for
-  Llama-3.1-70B. These biography numbers are fixed-label reclustering
-  sensitivity checks, not fresh end-to-end correctness re-grades.
-- On the four short-answer cells, Qwen2.5-72B LLM-judge reclustering remains
-  below surface entropy, so judge scale alone is not sufficient in this setup.
-  Biography is different: the same judge recovers a useful clustering signal.
-- Kernel Language Entropy with `all-MiniLM-L6-v2` does not outperform
-  discrete semantic entropy on any of the four short-answer posthoc runs and
-  falls below chance on biography. The `nli-roberta-large` KLE ablation
-  improves the two Mistral-7B short-answer cells and partially recovers the
-  biography cells, but it does not uniformly close the gap on Llama-3.1-70B.
-- The long-form biography study is the clearest evidence for *semantic*
-  rather than surface uncertainty. Naive and surface entropy collapse to
-  chance because paragraph samples are almost always unique. Meaning-aware
-  methods stay useful: SEP reaches AUROC 0.760 on Llama-3.1-70B and LLM-judge
-  equivalence clustering reaches AUROC 0.760 on Mistral-7B. Biography labels
-  are record-level labels for the modal representative response, and posthoc
-  biography checks keep those labels fixed.
-- SEP should be compared with its same-split held-out baselines rather than
-  treated as a direct rescore of the replication rows. On short answers its
-  result is task-dependent for Mistral-7B and favorable but not statistically
-  separated from zero for Llama-3.1-70B. On biography it separates clearly
-  from the chance-level surface baseline for both generators. The recorded SEP
-  evaluation jobs still generated ten samples per prompt so same-record
-  sampling baselines could be reported; the one-forward-pass cost advantage is
-  the intended deployment path of the trained probe, not a separate timing
-  benchmark measured here.
-- The current reproducibility verifier recomputes saved AUROC/AURAC values
-  from `scored.labeled.jsonl` when present, otherwise `scored.jsonl`, to within
-  1e-6, and the corrected sentence-pair DeBERTa reruns reproduce the pre-fix
-  numbers.
+A bio system-prompt bug was also found: all bio generations used the terse QA
+prompt ("answer in a word or phrase"), producing 9–12 word responses instead
+of 120–150 word paragraphs. Fixed in all bio sbatch files; 9 bio generation
+jobs will be submitted after the short-form rerun completes.
+
+**What is currently valid (no rerun needed):**
+- FactualBio AUROC (NLI-clustered, claim-level): Mistral-7B 0.688±0.004,
+  Llama-3.1-8B 0.644±0.007, Llama-3.1-70B 0.521±0.001 — unaffected by
+  both bugs.
+- All metric formulas, clustering logic, and answer normalizers — verified
+  correct in the 2026-06-13 audit (`SCIENTIFIC_VALIDITY_AUDIT_2026-06-13.md`).
+
+Short-form AUROC numbers will be updated once the cluster jobs finish and
+posthoc NLI reclustering has been rerun. The thesis draft is otherwise
+structurally complete (nine chapters, abstract, bibliography, figures build
+cleanly).
+
+The surface-form baselines use raw-string entropy and exact-match clustering
+after answer normalization. The main replication condition repeats the same
+model–dataset grid with bidirectional Natural Language Inference clustering
+using DeBERTa-v3-base. Additional analyses compare DeBERTa-v3-large
+reclustering, Qwen2.5-72B LLM-judge reclustering, and Kernel Language Entropy,
+plus held-out Semantic Entropy Probe (SEP) checks across both the short-answer
+and biography tasks.
+
+**Previously recorded key results (single-seed, any-sample labelling —
+numbers will be superseded by the 3-seed rerun):**
+
+- NLI clustering is mixed on short-answer tasks: it nominally raises Mistral-7B
+  on TriviaQA but slightly reduces Llama-3.1-70B; neither difference is
+  statistically significant.
+- The long-form biography study shows the clearest evidence for semantic rather
+  than surface uncertainty. Naive and surface entropy collapse to chance because
+  paragraph samples are almost always unique. Meaning-aware methods stay useful.
+- FactualBio AUROC (citable): Mistral-7B 0.688, Llama-3.1-8B 0.644,
+  Llama-3.1-70B 0.521.
+- SEP separates clearly from the chance-level surface baseline for both
+  generators on biography.
+- The current reproducibility verifier recomputes saved AUROC/AURAC values to
+  within 1e-6.
 
 The resulting thesis claim is scoped to semantic uncertainty and
 confabulation-like errors. It is not a general factuality guarantee and does
