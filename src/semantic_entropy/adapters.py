@@ -305,6 +305,10 @@ def make_vllm_phase1_model() -> ModelFn:
         # sequence_logprobs for naive_entropy / semantic_entropy_full. Cheap
         # (logprobs=1) and required for a faithful Fig. 2.
         return_logprobs=_env_bool("SE_RETURN_LOGPROBS", True),
+        # Forward the Slurm seed so different seed submissions produce
+        # genuinely different samples. SE_SEED is set by the sbatch scripts
+        # from the $SEED variable (e.g. SEED=42/43/44).
+        seed=_env_int("SE_SEED", 0),
         **_system_prompt_kwargs(),
     )
 

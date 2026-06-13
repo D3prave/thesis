@@ -390,6 +390,7 @@ def make_vllm_model(
     max_model_len: int | None = None,
     enforce_eager: bool = True,
     return_logprobs: bool = False,
+    seed: int | None = None,
     system_prompt: str | None = (
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
@@ -429,6 +430,12 @@ def make_vllm_model(
             can still trigger inner ``torch.compile`` wrappers while profiling.
             The failure symptom is ``gcc: fatal error: Python.h: No such file
             or directory`` inside vLLM startup.
+        seed: Integer seed passed to ``vllm.LLM`` for reproducible sampling.
+            When ``None`` (default), vLLM uses its own default (0), which means
+            runs submitted without an explicit seed are not reproducible across
+            jobs. Pass the same integer (e.g. 42, 43, 44) as the Slurm
+            ``$SEED`` variable so different seed submissions genuinely produce
+            different samples.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
 
@@ -455,6 +462,9 @@ def make_vllm_model(
         "tensor_parallel_size": tensor_parallel_size,
         "dtype": dtype,
         "enforce_eager": enforce_eager,
+        # Pass seed so each Slurm seed submission produces genuinely
+        # different samples and results are reproducible within a seed.
+        "seed": seed if seed is not None else 0,
     }
     if max_model_len is not None:
         _llm_kwargs["max_model_len"] = max_model_len
