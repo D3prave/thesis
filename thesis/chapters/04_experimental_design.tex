@@ -263,8 +263,8 @@ free to add method-specific fields:
   },
   "sampled_answers": ["string"],
   "normalized_answers": ["string"],
-  "sequence_logprobs": [0.0],          // length-normalized, per sample
-  "most_likely_answer": "string",      // low-temperature accuracy answer
+  "sequence_logprobs": [0.0],   // length-normalized
+  "most_likely_answer": "string",   // low-T accuracy
   "semantic_clusters": ["integer_per_sample"],
   "cluster_representatives": ["string"],
   "scores": {
@@ -283,8 +283,9 @@ free to add method-specific fields:
   // "hidden_states": [[float, ...], ...],
   // shape: (num_samples, hidden_dim)
   "entailment_backend":
-    "exact-match|nli-deberta-v3-base|nli-deberta-v3-large|"
-    "deberta-v2-xlarge-mnli|llm-judge-qwen2.5-72b-instruct",
+    "exact-match|nli-deberta-v3-base|"
+    "nli-deberta-v3-large|deberta-v2-xlarge-mnli|"
+    "llm-judge-qwen2.5-72b-instruct",
   "correctness_label": "boolean"
 }
 \end{verbatim}
