@@ -172,9 +172,12 @@ can be noisy. In particular it may split answers that differ only in
 harmless detail and merge answers that hide important factual
 differences. The empirical impact of these errors is what the cluster
 audit in Section~\ref{sec:cluster-audit} and the discussion in
-Chapter~\ref{ch:discussion} address. The
-backend used to compute $e(\cdot,\cdot\mid x)$ is a DeBERTa-v3-base NLI
-cross-encoder.
+Chapter~\ref{ch:discussion} address. The backends used to compute
+$e(\cdot,\cdot\mid x)$ are DeBERTa NLI cross-encoders (v3-base,
+v3-large, and v2-xlarge-MNLI) and a Qwen2.5-72B-Instruct LLM judge;
+DeBERTa-v3-large is the canonical backend for the headline results,
+and the sensitivity to this choice is quantified in
+Section~\ref{sec:clustering-sensitivity}.
 
 \section{Discrete semantic entropy}
 
@@ -196,17 +199,44 @@ clusters. Since outcomes correspond to clusters, entropy is at most
 $\log K \le \log M$. The recorded experiments use $M=10$, giving a
 maximum possible value of $\ln 10 \approx 2.30$, while the smaller
 worked example in Section~\ref{sec:worked_example} uses $M=5$, with
-maximum $\ln 5 \approx 1.61$. The thesis reports
-this cluster-frequency entropy; the probability-weighted semantic
-entropy variant~\cite{semantic_entropy_nature_2024,%
-kossen_semantic_uncertainty_code_2024}
-that uses token-likelihoods to weight the clusters
-is not included in the completed evaluation.
+maximum $\ln 5 \approx 1.61$.
 
-For comparison, the principal baseline is naive entropy, or diversity,
-over answer strings, $\widehat{H}_{\mathrm{lex}}(x)$. This baseline
-isolates the question of whether semantic clustering adds value beyond
-simply observing that sampled outputs differ lexically.
+\paragraph{The estimator family.} The full evaluation grid reports
+both this count-based estimator and the probability-weighted variants
+of Farquhar et al.~\cite{semantic_entropy_nature_2024,%
+kossen_semantic_uncertainty_code_2024}, which use length-normalized
+sequence log-probabilities instead of sample counts. The four
+sampling-based entropy estimators are organized by two axes ---
+whether paraphrases are clustered by meaning, and whether the score
+uses the model's sequence probabilities or just occurrence counts:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & Count-based & Probability-weighted \\
+\midrule
+Surface only & \makecell[l]{naive sample entropy (raw strings),\\
+  surface entropy (normalized strings)} &
+  \makecell[l]{naive entropy\\(the paper's naive baseline)} \\
+Semantic & \makecell[l]{discrete semantic entropy\\
+  (the paper's discrete approx.)} &
+  \makecell[l]{full semantic entropy\\(the paper's primary estimator)} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The word ``naive'' is overloaded in the literature: naive
+\emph{sample} entropy and surface entropy are this project's
+count-based surface baselines (the same idea before and after
+normalization), whereas \emph{naive entropy} denotes the paper's
+probability-weighted baseline over distinct strings. When all
+per-sequence probabilities are equal, full semantic entropy reduces
+algebraically to the discrete estimator; a parity test in the code
+asserts this. The surface baselines isolate the question of whether
+semantic clustering adds value beyond simply observing that sampled
+outputs differ lexically; the probability-weighted variants isolate
+the value of the model's own sequence likelihoods.
 
 \section{Worked example}
 \label{sec:worked_example}

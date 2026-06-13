@@ -12,78 +12,80 @@ reproducibility on the cluster.
 
 \section{Datasets}
 
-The thesis uses three datasets: TriviaQA~\cite{joshi_triviaqa_2017},
+The final evaluation grid uses four datasets:
+TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019},
 SVAMP~\cite{patel_svamp_2021}, and a FactScore-style biography
 generation task~\cite{min_factscore_2023}. TriviaQA provides
 open-domain question answering with short factual answers, e.g.\
-\textit{``What is the capital of France?''}.
+\textit{``What is the capital of France?''}. NQ-Open provides
+open-domain questions derived from real search queries; it shares
+TriviaQA's short free-text answer format and normalization approach
+but is markedly harder for all generators evaluated here.
 SVAMP provides short math word problems for which answer normalization
 and semantic equivalence matter at the level of numbers rather than
 phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
 apples does she have now?''}. The biography task prompts the model with
 \textit{``Tell me a bio of \{entity\}.''} for a held-out set of person
 entities and elicits a multi-sentence paragraph rather than a short
-answer. The first two datasets are small enough to support repeated
-sampling while exercising two distinct short-answer failure modes ---
-factual recall and structured arithmetic reasoning --- and the
-biography task adds a third, qualitatively different regime in which
-each sample is a free-form paragraph rather than a normalizable token
-string. This long-form regime is the setting in which surface-form and
-meaning-level uncertainty are most likely to diverge, because after
-normalization the ten samples for a biography prompt are almost always
-ten distinct strings, so exact-match clustering can no longer collapse
-them. Example records are reproduced in
+answer. The three short-answer datasets are small enough to support
+repeated sampling while exercising distinct failure modes ---
+trivia-style factual recall, search-query factual recall, and
+structured arithmetic reasoning --- and the biography task adds a
+qualitatively different regime in which each sample is a free-form
+paragraph rather than a normalizable token string. This long-form
+regime is the setting in which surface-form and meaning-level
+uncertainty are most likely to diverge, because after normalization
+the ten samples for a biography prompt are almost always ten distinct
+strings, so exact-match clustering can no longer collapse them.
+Example records are reproduced in
 Appendix~\ref{app:experiment-details}.
 
 The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
-reports results across five datasets: TriviaQA, SQuAD, BioASQ, NQ-Open,
-and SVAMP. Of these, three (BioASQ, NQ-Open, TriviaQA) are open-domain
-factual question-answering tasks that differ primarily in domain rather
-than in task structure, and TriviaQA is the most widely used and the
-primary reference dataset in the original experiments. SQuAD is a
-reading-comprehension dataset whose original benchmark design includes
-source passages; Farquhar et al.~\cite{semantic_entropy_nature_2024} make it context-free by withholding
-those passages, which still leaves a different dataset origin and
-prompt assumption from open-domain recall tasks. The scope
-used here therefore covers two qualitatively distinct short-answer task
-types --- open-domain factual recall and short-answer arithmetic ---
-together with one long-form generation task, biography, that probes the
-regime the original five short-answer datasets do not reach. Adding the
-biography task rather than a fourth short-answer benchmark is
-deliberate: the original semantic-entropy work~\cite{semantic_entropy_nature_2024}
-also evaluates a long-form biography setting, and it is precisely where
-the surface-form baseline is expected to break down, so it is the most
-informative single addition for testing whether meaning-level clustering
-earns its cost. Expanding to NQ-Open or BioASQ remains a straightforward
-extension because both share the same short free-text answer format and
-normalization approach as TriviaQA. SQuAD~\cite{rajpurkar_squad_2016},
-BioASQ~\cite{tsatsaronis_bioasq_2015}, and
-NQ-Open~\cite{lee_nq_open_2019} are not used here;
-TruthfulQA~\cite{lin_truthfulqa_2022} is likewise omitted because the
-design isolates semantic
-clustering on short-answer tasks rather than broader
-truthfulness.
+reports results across five short-answer datasets: TriviaQA, SQuAD,
+BioASQ, NQ-Open, and SVAMP. The grid used here covers three of these
+(TriviaQA, NQ-Open, SVAMP) --- spanning open-domain factual recall and
+short-answer arithmetic --- together with the long-form biography
+setting that the original work also evaluates and that is precisely
+where the surface-form baseline is expected to break down.
+SQuAD~\cite{rajpurkar_squad_2016} is omitted because its
+reading-comprehension origin assumes source passages that Farquhar et
+al.~\cite{semantic_entropy_nature_2024} have to withhold artificially;
+BioASQ~\cite{tsatsaronis_bioasq_2015} is omitted as a third
+open-domain recall task that differs from TriviaQA and NQ-Open
+primarily in domain; and TruthfulQA~\cite{lin_truthfulqa_2022} is
+omitted because the design isolates semantic clustering rather than
+broader truthfulness. Beyond the whole-paragraph biography evaluation,
+a claim-level long-form extension (FactualBio) decomposes the
+generated biographies into individual claims and scores each claim
+separately; its protocol and results are reported in
+Section~\ref{sec:factualbio-results}.
 
 \section{Models and the replication condition}
 
-The two language models used as generators in both recorded conditions are
-Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023} and
-Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. They span the
-same small/large open-weights pairing that Farquhar et
-al.~\cite{semantic_entropy_nature_2024} use within the LLaMA-2 family
-(LLaMA-2-Chat-7B and LLaMA-2-Chat-70B), but both substitutions are
-deliberately upward: Mistral-7B-Instruct-v0.3 reports a substantial
+The three language models used as generators in the final grid are
+Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
+Llama-3.1-8B-Instruct, and
+Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. The 7B/70B
+pairing spans the same small/large open-weights contrast that Farquhar
+et al.~\cite{semantic_entropy_nature_2024} use within the LLaMA-2
+family (LLaMA-2-Chat-7B and LLaMA-2-Chat-70B), but both substitutions
+are deliberately upward: Mistral-7B-Instruct-v0.3 reports a substantial
 improvement over LLaMA-2-Chat-7B on standard knowledge-recall and
 reasoning benchmarks~\cite{jiang_mistral_2023}, sitting in
 approximately the open-weights analogue of the GPT-3.5 capability
 band that Farquhar et al.\ assume for their judge model, and
 Llama-3.1-70B-Instruct sits above LLaMA-2-Chat-70B across MMLU,
-TriviaQA, and GSM8K~\cite{grattafiori_llama3_2024}. Choosing newer
-open instruction-tuned models rather than reproducing the LLaMA-2
-generation thus moves the experiments to a regime that is closer to
-how current chat models are actually deployed, while keeping the
-seven-billion-vs-seventy-billion contrast that motivates the model
-comparison. The NLI judge in the replication condition is a local DeBERTa-v3 cross-encoder rather
+TriviaQA, and GSM8K~\cite{grattafiori_llama3_2024}.
+Llama-3.1-8B-Instruct fills the gap between the two, giving the grid a
+three-point scale axis within one model family plus a cross-family
+comparison at the small end. Choosing newer open instruction-tuned
+models rather than reproducing the LLaMA-2 generation thus moves the
+experiments to a regime that is closer to how current chat models are
+actually deployed, while keeping the small-versus-seventy-billion
+contrast that motivates the model comparison. Every model--dataset
+cell is decoded under three seeds (42, 43, 44), and all headline
+results are reported as cross-seed means with seed standard
+deviations. The NLI judge in the replication condition is a local DeBERTa-v3 cross-encoder rather
 than the proprietary GPT-3.5 used by Farquhar et al.
 Using a local model rather than a closed API matters for several
 reasons: the model version is fixed and publicly available, so results
@@ -167,24 +169,36 @@ Section~\ref{sec:discussion-limitations}.
 \section{Sampling settings}
 \label{sec:sampling-settings}
 
-All baseline and replication runs use $M=10$ samples per prompt, temperature
-$T=0.7$, and top-$p=0.95$. The maximum answer length is short for the
-two short-answer datasets, appropriate for sentence-length question
-answering, and is raised for the biography task so that paragraph-length
-generations are not truncated. The sample count $M=10$ matches
-Farquhar et al.~\cite{semantic_entropy_nature_2024}; the temperature and
-top-$p$ values do not. Farquhar et al.\ use $T=1.0$, top-$p=0.9$, and
-$\textit{top-k}=50$. The thesis uses $T=0.7$ and top-$p=0.95$ because
-those are the default decoding settings for current
-instruction-tuned chat models including Mistral-7B-Instruct and the
-Llama-3.1 instruct family, so they correspond to the regime in which
-these models are normally deployed. We fix one configuration across
-both recorded conditions and both models rather than running a temperature sweep:
-the goal is to compare clustering rules and judges under a single
-sampling regime, not to characterize the temperature sensitivity of
-semantic entropy. The implications of this choice are revisited in
-Section~\ref{sec:comparison-farquhar}. The meaning of $M$, $T$, and
-top-$p$ is explained in Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
+The final grid uses the paper-faithful sampling configuration of
+Farquhar et al.~\cite{semantic_entropy_nature_2024}: $M=10$ samples per
+prompt at temperature $T=1.0$ with nucleus top-$p=0.9$ and
+top-$k=50$, applied uniformly to every generation stage. Per-sequence
+log-probabilities are captured for each sample and length-normalized,
+which is what enables the probability-weighted estimators (naive
+entropy and full semantic entropy) alongside the count-based ones. The
+maximum answer length is short for the short-answer datasets,
+appropriate for sentence-length question answering, and is raised for
+the biography task so that paragraph-length generations are not
+truncated.
+
+Correctness labelling on the short-answer datasets also follows the
+original protocol: in addition to the ten high-temperature samples,
+each prompt receives one low-temperature ($T=0.1$) most-likely answer,
+which is counted correct when its SQuAD token-F1 against any reference
+answer exceeds 0.5 (exact match for SVAMP's numeric answers). This
+single label propagates to every estimator and posthoc backend on that
+record, so all methods share one accuracy definition. The biography
+task instead grades correctness with the long-form judge, as described
+above.
+
+One earlier configuration appears in this thesis: the pilot runs
+audited at record level in Section~\ref{sec:pilot-audits} used $T=0.7$
+and top-$p=0.95$ --- the default deployment settings of the
+instruction-tuned models --- with string-comparison correctness
+labels. The pilot served to debug the pipeline and to support manual
+audits; all headline numbers come from the paper-faithful
+configuration. The meaning of $M$, $T$, and top-$p$ is explained in
+Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
 \section{Baselines, replication method, and additional analyses}
@@ -192,20 +206,33 @@ configuration into the JSONL record.
 The surface-form baselines are entropy over raw strings and entropy over
 distinct normalized exact-match strings. They address a single question:
 does semantic clustering add value beyond observing that sampled outputs
-differ lexically? The replication method is discrete semantic entropy
-with bidirectional NLI clustering.
-SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} and
-P(True)~\cite{kadavath_language_models_know_2022} are related
-sampling-based baselines but were not included in the recorded runs.
+differ lexically? The replication methods are discrete semantic entropy
+with bidirectional NLI clustering and, using the captured sequence
+log-probabilities, the paper's probability-weighted naive entropy and
+full semantic entropy (the estimator taxonomy is laid out in
+Chapter~\ref{ch:semantic_entropy}).
 
-Following the main NLI runs, three additional check families were
-completed: KLE with all-MiniLM-L6-v2 and nli-roberta-large sentence
-encoders, DeBERTa-v3-large reclustering, and Qwen2.5-72B-Instruct
-reclustering. These checks reuse
-the saved NLI-clustered answer samples, so any metric change comes from the
-semantic judge or entropy estimator rather than from new generations.
-The KLE method is defined in Chapter~\ref{ch:extensions}; all posthoc
-results are reported in Section~\ref{sec:posthoc}.
+Beyond the entropy family, the final grid records three supervised or
+self-evaluation baselines:
+P(True)~\cite{kadavath_language_models_know_2022}, in which the
+generator judges few-shot in-context whether its own most-likely
+answer is true; embedding regression, a logistic probe on the final
+hidden state trained to predict incorrectness, evaluated both
+in-distribution and trained on a different short-answer dataset
+(out-of-distribution); and the semantic-entropy probe of
+Chapter~\ref{ch:extensions}.
+SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
+sampling-based baseline but was not included in the recorded runs.
+
+Each saved sample set is additionally re-clustered posthoc under
+multiple semantic backends --- DeBERTa-v3-base, DeBERTa-v3-large, and
+DeBERTa-v2-xlarge-MNLI cross-encoders plus a Qwen2.5-72B-Instruct
+LLM judge --- and re-scored with KLE under two sentence encoders
+(all-MiniLM-L6-v2 and nli-roberta-large). These checks reuse the saved
+answer samples, so any metric change comes from the semantic judge or
+entropy estimator rather than from new generations. The KLE method is
+defined in Chapter~\ref{ch:extensions}; clustering sensitivity is
+reported in Section~\ref{sec:clustering-sensitivity}.
 
 \section{Output schema}
 
@@ -228,29 +255,36 @@ free to add method-specific fields:
   "model_tier": "7b_8b|70b_plus",
   "decoding": {
     "num_samples": 10,
-    "temperature": 0.7,
-    "top_p": 0.95,
+    "temperature": 1.0,
+    "top_p": 0.9,
+    "top_k": 50,
     "max_new_tokens": 64,   // dataset-specific
-    "seed": 42
+    "seed": 42              // 42 | 43 | 44
   },
   "sampled_answers": ["string"],
   "normalized_answers": ["string"],
+  "sequence_logprobs": [0.0],          // length-normalized, per sample
+  "most_likely_answer": "string",      // low-temperature accuracy answer
   "semantic_clusters": ["integer_per_sample"],
   "cluster_representatives": ["string"],
   "scores": {
     "naive_sample_entropy": 0.0,
     "surface_entropy": 0.0,
-    "discrete_semantic_entropy": 0.0
+    "naive_entropy": 0.0,
+    "discrete_semantic_entropy": 0.0,
+    "semantic_entropy_full": 0.0
     // optional posthoc/extension fields:
     // "kle": 0.0,
-    // "probe_uncertainty": 0.0
+    // "probe_uncertainty": 0.0,
+    // "ptrue_uncertainty": 0.0,
+    // "embedding_regression": 0.0
   },
   // optional (SEP collection runs only):
   // "hidden_states": [[float, ...], ...],
   // shape: (num_samples, hidden_dim)
   "entailment_backend":
     "exact-match|nli-deberta-v3-base|nli-deberta-v3-large|"
-    "llm-judge-qwen2.5-72b-instruct",
+    "deberta-v2-xlarge-mnli|llm-judge-qwen2.5-72b-instruct",
   "correctness_label": "boolean"
 }
 \end{verbatim}

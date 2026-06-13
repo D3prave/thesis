@@ -51,8 +51,10 @@ The main research question is whether semantic entropy provides a
 better signal for hallucination risk and selective abstention than
 surface-form uncertainty, and how that comparison changes when the
 output shifts from short answers to paragraph-length generation. The
-study covers TriviaQA and SVAMP as short-answer benchmarks and a
-FactScore-style biography task as the long-form regime. It therefore
+study covers TriviaQA, NQ-Open, and SVAMP as short-answer benchmarks
+and a FactScore-style biography task as the long-form regime ---
+evaluated both whole-paragraph and at the level of individual claims
+--- across three open generators and three decoding seeds. It therefore
 targets \emph{confabulation}-like failures, where the model's answer
 varies semantically across samples drawn under the same prompt, while
 also testing the harder case where surface variation is nearly
@@ -70,10 +72,9 @@ entailment-based clusters achieves a higher AUROC --- a ranking metric
 for placing incorrect answers above correct ones --- than surface-form
 entropy computed over sampled answer strings on the same prompts. A
 secondary hypothesis is that the improvement, if present, is at least
-directionally consistent across
-both TriviaQA and SVAMP, despite the very different answer formats of
-the two tasks (open-domain factual recall vs.\ short numeric
-arithmetic). The biography task tests the complementary hypothesis
+directionally consistent across the short-answer benchmarks, despite
+their very different answer formats (open-domain factual recall vs.\
+short numeric arithmetic). The biography task tests the complementary hypothesis
 that meaning-aware uncertainty methods separate more clearly once raw
 surface diversity ceases to be informative.
 
@@ -134,15 +135,14 @@ implementation, evaluation, and scope choices:
     rejection-accuracy curves, and their area summary (AURAC),
     applicable to any uncertainty estimator that writes a score field to
     the shared schema;
-  \item method descriptions, implementation scaffolding, and evaluation
-    criteria for two extensions --- Semantic Entropy Probes
-    (hidden-state classifiers) and Kernel Language Entropy --- plus
-    completed posthoc semantic-judge sensitivity checks using
-    DeBERTa-v3-large and Qwen2.5-72B-Instruct.
-    The extension checks also cover Kernel Language Entropy and a
-    held-out Semantic Entropy Probe evaluation for both generators;
+  \item extension baselines and sensitivity checks covering Semantic
+    Entropy Probes (hidden-state classifiers), Kernel Language Entropy,
+    P(True), in- and out-of-distribution embedding regression, and
+    semantic-judge comparisons across DeBERTa-v3-base, DeBERTa-v3-large,
+    DeBERTa-v2-xlarge-MNLI, and Qwen2.5-72B-Instruct;
   \item a controlled short-versus-long-form comparison that places the
-    FactScore-style biography task alongside TriviaQA and SVAMP and
+    FactScore-style biography task alongside the short-answer
+    benchmarks --- including a claim-level long-form extension --- and
     exposes the regime where meaning-aware methods separate cleanly from
     surface-form baselines.
 \end{enumerate}
