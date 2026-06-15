@@ -470,12 +470,25 @@ def make_vllm_model(
         _llm_kwargs["max_model_len"] = max_model_len
 
     _llm = LLM(**_llm_kwargs)
+    # Halt generation when an instruct model hallucinates a new chat turn.
+    # Without these stops the model runs to max_tokens and emits template echo
+    # or a fabricated next question; that contaminates the sampled answers, the
+    # exact-match clustering, and the string-match correctness label (see
+    # docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md, generation-pollution
+    # finding). These are literal strings the model emits (not special tokens),
+    # so they are passed as string stops. "\n\n" is deliberately NOT included:
+    # it would truncate paragraph-length biography answers.
+    _STOP = [
+        "[INST]", "[/INST]", "<s>", "</s>", "[CHAT]", "[/CHAT]",
+        "<<SYS>>", "<</SYS>>", "[QUESTION]", "[ANSWER]",
+    ]
     _sampling_params = SamplingParams(
         n=1,  # set per-call below
         temperature=temperature,
         top_p=top_p,
         top_k=top_k,  # -1 disables; paper uses top_k=50 with nucleus p=0.9
         max_tokens=max_tokens,
+        stop=_STOP,
         # Requesting logprobs populates each output's cumulative_logprob, which
         # we length-normalize for the probability-weighted estimators.
         logprobs=1 if return_logprobs else None,
@@ -518,7 +531,7 @@ def make_vllm_model(
         formatted = _llm.get_tokenizer().apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True,
         )
-        best_params = SamplingParams(n=1, temperature=0.1, top_p=1.0, max_tokens=max_tokens)
+        best_params = SamplingParams(n=1, temperature=0.1, top_p=1.0, max_tokens=max_tokens, stop=_STOP)
         out = _llm.generate([formatted], best_params)
         return out[0].outputs[0].text.strip()
 

@@ -237,6 +237,44 @@ def make_presampling_jsonl(
 ModelFn = Callable[[str, int], list[str]]
 
 
+_ANSWER_STOP_MARKERS = (
+    "</s>", "<s>", "[INST]", "[/INST]", "<<SYS>>", "<</SYS>>",
+    "[QUESTION]", "[/QUESTION]", "[CHAT]", "[ANSWER]", "[/ANSWER]",
+)
+_ANSWER_WRAPPERS = (("<A>", "</A>"), ("[CHAT]", "[/CHAT]"), ("[ANSWER]", "[/ANSWER]"))
+
+
+def _extract_answer(raw: str, single_line: bool = True) -> str:
+    """Strip chat-template echo / hallucinated next-turn text from one sample.
+
+    Instruct models without stop sequences run past their answer into a fake
+    new chat turn (``"<A>Davis</A>\\n\\n<s>[INST] ..."``); keeping that text
+    contaminates clustering, entropy, and the string-match correctness label
+    (see docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md). This unwraps
+    answer tags, cuts at the first template marker, and — for short-answer
+    datasets (``single_line=True``) — keeps only the first non-empty line.
+    For paragraph tasks (biography) pass ``single_line=False`` so multi-line
+    answers survive; only the template echo is removed.
+    """
+    s = raw.replace("<0x0A>", "\n").replace("<0x0D>", "")
+    for op, cl in _ANSWER_WRAPPERS:
+        if op in s and cl in s:
+            inner = s.split(op, 1)[1].split(cl, 1)[0]
+            if inner.strip():
+                s = inner
+                break
+    cut = len(s)
+    for marker in _ANSWER_STOP_MARKERS:
+        idx = s.find(marker)
+        if idx != -1:
+            cut = min(cut, idx)
+    s = s[:cut]
+    if single_line:
+        lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+        s = lines[0] if lines else s.strip()
+    return s.strip()
+
+
 def sample_record(
     record: dict[str, Any],
     model_fn: ModelFn,
@@ -297,6 +335,11 @@ def sample_record(
         )
 
     dataset: str = record.get("dataset", "")
+    # Defensive extraction: strip any chat-template echo the generator emitted
+    # past its answer. With stop sequences in the vLLM sampler this is usually a
+    # no-op; it guarantees clustering, entropy, and the label see only the
+    # answer. Biography is paragraph-length, so keep multi-line there.
+    sampled = [_extract_answer(a, single_line=(dataset != "bio")) for a in sampled]
     normalized = normalize_answers_for_dataset(sampled, dataset)
     ent_fn = entailment_fn if entailment_fn is not None else exact_match_entailment_fn
     cluster_ids, representatives = nli_cluster(normalized, ent_fn)
