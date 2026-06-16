@@ -139,6 +139,37 @@ def _majority_representative(
     return cluster_first[modal_cid]
 
 
+def _fixed_representative(record: dict[str, Any]) -> str:
+    """Return a clustering-INDEPENDENT answer to grade for correctness.
+
+    The bio correctness label must be a property of the generation, not of the
+    clustering backend used downstream. Grading the *majority-cluster*
+    representative made the label depend on the backend (different clusters →
+    different modal answer → different label), so the same record could be
+    graded correct under one NLI model and incorrect under another (see
+    docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md, §4.9).
+
+    This grades a fixed representative instead, in priority order:
+    1. ``most_likely_answer`` — the single low-temperature answer (paper
+       protocol; present when generation used ``paper_accuracy``);
+    2. the most frequent *exact* sampled answer (clustering-independent);
+    3. the first sampled answer.
+    None of these depends on ``semantic_clusters``, so the label is stable
+    across every clustering backend.
+    """
+    mla = str(record.get("most_likely_answer") or "").strip()
+    if mla:
+        return mla
+    sampled = [s for s in record.get("sampled_answers", []) if str(s).strip()]
+    if not sampled:
+        sampled = list(record.get("sampled_answers", []))
+    if not sampled:
+        return ""
+    from collections import Counter
+
+    return Counter(sampled).most_common(1)[0][0]
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -180,10 +211,18 @@ def llm_judge_correctness_fn(
         sampled_answers: list[str],
         *,
         semantic_clusters: list[int] | None = None,
+        representative: str | None = None,
     ) -> tuple[bool, dict[str, Any]]:
         entity = _extract_entity(question)
         reference = reference_answers[0] if reference_answers else ""
-        response = _majority_representative(sampled_answers, semantic_clusters)
+        # Grade a clustering-INDEPENDENT representative when supplied (the
+        # caller passes the low-temperature most-likely answer); fall back to
+        # the legacy majority-cluster representative only when not given.
+        response = (
+            representative
+            if representative is not None
+            else _majority_representative(sampled_answers, semantic_clusters)
+        )
 
         # Format grading prompt.
         user_msg = prompt_template.format(
@@ -301,11 +340,14 @@ def grade_records_inplace(
             print(f"  [{idx}] SKIP (no sampled_answers): {prompt_id}", flush=True)
             continue
 
+        # Grade a clustering-INDEPENDENT representative so the correctness
+        # label is stable across clustering backends (see _fixed_representative).
+        representative = _fixed_representative(record)
         label, extra = grading_fn(
             question,
             reference_answers,
             sampled_answers,
-            semantic_clusters=semantic_clusters,
+            representative=representative,
         )
 
         record["correctness_label"] = label
