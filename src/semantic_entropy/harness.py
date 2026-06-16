@@ -127,6 +127,7 @@ class RunConfig:
     num_samples: int = 4
     temperature: float = 0.7
     top_p: float = 0.95
+    top_k: int = -1
     max_new_tokens: int = 64
     seed: int = 0
     task: str = "qa"  # "qa" or "bio"
@@ -179,6 +180,7 @@ def make_presampling_record(item: PromptItem, config: RunConfig) -> dict[str, An
             "num_samples": config.num_samples,
             "temperature": config.temperature,
             "top_p": config.top_p,
+            "top_k": config.top_k,
             "max_new_tokens": config.max_new_tokens,
             "seed": config.seed,
         },

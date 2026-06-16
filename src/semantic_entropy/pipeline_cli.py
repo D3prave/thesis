@@ -371,6 +371,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--num-samples", type=int, default=4, dest="num_samples")
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top-p", type=float, default=0.95, dest="top_p")
+    parser.add_argument("--top-k", type=int, default=-1, dest="top_k")
     parser.add_argument(
         "--max-new-tokens", type=int, default=64, dest="max_new_tokens"
     )
@@ -496,6 +497,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         num_samples=args.num_samples,
         temperature=args.temperature,
         top_p=args.top_p,
+        top_k=args.top_k,
         max_new_tokens=effective_max_new_tokens,
         seed=args.seed,
         task=args.task,
