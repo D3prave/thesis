@@ -178,8 +178,17 @@ def normalize_svamp_answer(answer: str) -> str:
     # 2. Remove commas used as thousands separators.
     cleaned = re.sub(r"(?<=\d),(?=\d)", "", stripped)
 
-    # 3. Extract the first numeric value.
-    match = _NUMBER_RE.search(cleaned)
+    # 2b. If the model wrote an equation ("3 + 5 = 8"), the final answer is the
+    # value after the last '='. Prefer it over the first number in the string,
+    # which would otherwise pick up an operand ("3") instead of the result.
+    search_space = cleaned
+    if "=" in cleaned:
+        tail = cleaned.rsplit("=", 1)[1]
+        if _NUMBER_RE.search(tail):
+            search_space = tail
+
+    # 3. Extract the first numeric value (within the post-'=' tail when present).
+    match = _NUMBER_RE.search(search_space)
     if match:
         num_str = match.group()
         try:

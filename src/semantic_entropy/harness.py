@@ -240,11 +240,19 @@ def make_presampling_jsonl(
 ModelFn = Callable[[str, int], list[str]]
 
 
+# Markers that signal the answer is OVER (a hallucinated new chat turn / system
+# block / fabricated next question). We cut everything from here on. These are
+# NOT answer wrappers — wrappers like [ANSWER]/[OUT] are stripped, not cut, so a
+# prefix wrapper does not empty the answer.
 _ANSWER_STOP_MARKERS = (
     "</s>", "<s>", "[INST]", "[/INST]", "<<SYS>>", "<</SYS>>",
-    "[QUESTION]", "[/QUESTION]", "[CHAT]", "[ANSWER]", "[/ANSWER]",
+    "[QUESTION]", "[/QUESTION]",
 )
-_ANSWER_WRAPPERS = (("<A>", "</A>"), ("[CHAT]", "[/CHAT]"), ("[ANSWER]", "[/ANSWER]"))
+# Paired answer wrappers: keep the inner text.
+_ANSWER_WRAPPERS = (
+    ("<A>", "</A>"), ("[CHAT]", "[/CHAT]"), ("[ANSWER]", "[/ANSWER]"),
+    ("[OUT]", "[/OUT]"), ("[RESP]", "[/RESP]"), ("[ANS]", "[/ANS]"),
+)
 
 
 def _extract_answer(raw: str, single_line: bool = True) -> str:
@@ -275,10 +283,13 @@ def _extract_answer(raw: str, single_line: bool = True) -> str:
     if single_line:
         lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
         s = lines[0] if lines else s.strip()
-    # Remove any leftover short HTML-style answer tags the model emits unpaired
-    # (e.g. a stray "<A>" with no closing tag). Normal answers do not contain
-    # "<word>" tokens, so this is safe.
-    s = re.sub(r"</?[A-Za-z]{1,8}>", "", s)
+    # Strip any leftover answer-wrapper tags the model emits unpaired or as a
+    # prefix: angle tags ("<A>") and short bracket tags ("[OUT]", "[ANS]",
+    # "[RESP]", "[ANSWER]", "[A]", ...). Generic by design so we catch arbitrary
+    # wrapper variants, not an enumerated list. Normal short answers do not
+    # contain "<word>" or "[WORD]" tokens, so this is safe.
+    s = re.sub(r"</?[A-Za-z]{1,10}>", "", s)
+    s = re.sub(r"\[/?[A-Za-z][A-Za-z0-9]{0,11}\]", "", s)
     return s.strip()
 
 
