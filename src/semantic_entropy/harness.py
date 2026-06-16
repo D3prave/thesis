@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -272,6 +273,10 @@ def _extract_answer(raw: str, single_line: bool = True) -> str:
     if single_line:
         lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
         s = lines[0] if lines else s.strip()
+    # Remove any leftover short HTML-style answer tags the model emits unpaired
+    # (e.g. a stray "<A>" with no closing tag). Normal answers do not contain
+    # "<word>" tokens, so this is safe.
+    s = re.sub(r"</?[A-Za-z]{1,8}>", "", s)
     return s.strip()
 
 
