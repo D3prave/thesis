@@ -252,6 +252,7 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
         model_name,
         temperature=_env_float("SE_TEMPERATURE", 0.7),
         top_p=_env_float("SE_TOP_P", 0.95),
+        top_k=_env_int("SE_TOP_K", -1),
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",

@@ -222,6 +222,7 @@ def make_hf_model_with_states(
     *,
     temperature: float = 0.7,
     top_p: float = 0.95,
+    top_k: int = -1,
     max_new_tokens: int = 64,
     device_map: str = "auto",
     torch_dtype: str = "auto",
@@ -307,10 +308,15 @@ def make_hf_model_with_states(
     )
     _model.eval()
 
+    # vLLM convention: top_k <= 0 disables the cap; HuggingFace uses top_k=0 to
+    # disable. Translate so a value of 50 matches the vLLM grid exactly and -1
+    # means "no cap" (rather than silently falling back to HF's default of 50).
+    _hf_top_k = top_k if top_k and top_k > 0 else 0
     _gen_config = GenerationConfig(
         do_sample=True,
         temperature=temperature,
         top_p=top_p,
+        top_k=_hf_top_k,
         max_new_tokens=max_new_tokens,
         return_dict_in_generate=True,
         output_hidden_states=True,
