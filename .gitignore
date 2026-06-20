@@ -54,6 +54,7 @@ desktop.ini
 *.fdb_latexmk
 *.pdf
 !thesis/logos/*.pdf
+thesis/seminar_report.*
 
 # ===========================================================================
 # Python
