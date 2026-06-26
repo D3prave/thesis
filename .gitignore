@@ -155,3 +155,6 @@ _figure_vault/
 results_rerun_20260604/
 results_rerun_20260604
 results_T*
+
+# Local seminar report — not part of the thesis repo
+seminar_report/
