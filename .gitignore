@@ -154,3 +154,4 @@ _figure_vault/
 # Pulled analysis-layer results (regenerable; large) — stay local
 results_rerun_20260604/
 results_rerun_20260604
+results_T*
