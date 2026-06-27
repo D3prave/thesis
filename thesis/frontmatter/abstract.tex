@@ -30,7 +30,8 @@ and a FactScore-style biography task graded by an LLM judge against
 Wikipedia), each decoded under three seeds with the original paper's
 sampling and accuracy-labelling protocol, alongside P(True),
 embedding-regression and semantic-entropy probes, Kernel Language
-Entropy, and multiple entailment backends. AUROC and
+Entropy, multiple entailment backends, and a sampling-temperature
+sweep. AUROC and
 rejection-accuracy curves are the main quality metrics; cross-seed
 stability and record-level paired-bootstrap significance are reported
 separately.
@@ -54,4 +55,8 @@ scale (AUROC 0.69 $\rightarrow$ 0.64 $\rightarrow$ 0.52 from 7B to
 consistency-based detection. The value of moving beyond surface-only
 uncertainty is therefore confined to --- and decisive in --- the
 long-form regime, where it depends critically on the clustering
-backend and erodes with model scale.
+backend and erodes with model scale. A sampling-temperature sweep adds
+a deployment-facing qualification: sampling-based entropy and the
+hidden-state probe vary with decoding temperature in opposite
+directions and cross, so which detector is stronger is set by the
+decoding regime rather than fixed.
