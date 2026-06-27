@@ -137,9 +137,11 @@ implementation, evaluation, and scope choices:
     the shared schema;
   \item extension baselines and sensitivity checks covering Semantic
     Entropy Probes (hidden-state classifiers), Kernel Language Entropy,
-    P(True), in- and out-of-distribution embedding regression, and
+    P(True), in- and out-of-distribution embedding regression,
     semantic-judge comparisons across DeBERTa-v3-base, DeBERTa-v3-large,
-    DeBERTa-v2-xlarge-MNLI, and Qwen2.5-72B-Instruct;
+    DeBERTa-v2-xlarge-MNLI, and Qwen2.5-72B-Instruct, and a
+    sampling-temperature sweep that exposes the opposite temperature
+    dependence of sampling-based and probe-based detectors;
   \item a controlled short-versus-long-form comparison that places the
     FactScore-style biography task alongside the short-answer
     benchmarks --- including a claim-level long-form extension --- and
