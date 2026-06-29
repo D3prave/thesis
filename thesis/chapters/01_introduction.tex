@@ -1,166 +1,161 @@
 \chapter{Introduction}
+\label{ch:introduction}
 
-Large language models can answer open-ended questions fluently even when
-the answer they produce is unsupported or simply wrong. Such fluent
-mistakes are commonly called \emph{hallucinations}, and in the
-following we use this term as an umbrella for several distinct failure
-modes (misinformation, confabulation, systematic reasoning errors).
-A more careful taxonomy is given in
-Chapter~\ref{ch:background}; for now the term refers to any answer the
-model produces that is not supported by the input or by the facts.
-The practical problem this raises is not merely that an answer is wrong,
-but that a useful system should also be able to indicate \emph{when} its
-answer is unreliable so that a downstream user, or an automated
-verification step, can act on it.
+Large language models often answer open questions fluently even when the
+answer is wrong or unsupported. These confident mistakes are usually called
+\emph{hallucinations}. In this thesis the word is used as a broad label for
+several different failure modes, including plain misinformation,
+confabulation, and systematic reasoning errors; a more careful taxonomy
+follows in Chapter~\ref{ch:background}. For now the term simply means an
+answer that the input and the known facts do not support. The practical
+problem is not only that some answers are wrong. It is that a useful system
+should also signal \emph{when} its answer is unreliable, so that a person or
+an automatic check downstream can decide whether to trust it.
 
-Empirical evidence confirms the scale of the risk. Under adversarial
-prompting, hallucination rates in clinical decision-support settings have
-been measured as high as
-50--82\,\%~\cite{omar_adversarial_hallucination_clinical_2025}; this is an
-adversarial upper bound rather than a typical deployment rate, but
-factuality failures remain common enough in ordinary use that the broader
-landscape of deployed
-LLMs~\cite{augenstein_factuality_challenges_2024} presents substantial
-challenges for automated verification. The precise rate matters less here
-than the structural problem it creates.
-The central technical difficulty is that free-form natural language has
-many valid surface forms. Two
-sampled answers may use very different words while expressing the same
-underlying claim, and two similar-looking answers may make incompatible
-claims.
+The risk is real in practice. Under adversarial prompting, hallucination
+rates in clinical decision support have been measured as high as
+50--82\,\%~\cite{omar_adversarial_hallucination_clinical_2025}. That figure
+is an adversarial upper bound rather than a typical rate, but factuality
+failures are common enough in ordinary use that automatic verification across
+deployed models remains
+hard~\cite{augenstein_factuality_challenges_2024}. The exact rate matters
+less here than the structural difficulty behind it: free-form language has
+many valid surface forms. Two samples can use very different words for the
+same claim, and two similar-looking answers can make claims that contradict
+each other. A method that judges reliability by comparing answer strings
+therefore has to separate differences in wording from differences in meaning.
 
-This thesis is closely based on the work of Farquhar et
+This thesis builds directly on the work of Farquhar et
 al.~\cite{semantic_entropy_nature_2024}, who introduced \emph{semantic
-entropy} as a training-free signal for hallucination risk. The basic
-idea is taken directly from that paper: instead of measuring how much
-the strings produced by the model vary, one tries to measure how much
-the underlying \emph{meanings} of those strings vary. If repeated samples
-from the model mostly express the same meaning, the model may be
-uncertain only about phrasing; if the samples split across genuinely
-different meanings, the model is semantically uncertain and the answer
-should be treated as riskier, following the semantic uncertainty
-framing of Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023} and
-Farquhar et al.~\cite{semantic_entropy_nature_2024}. The
-goal of the present thesis is not to invent this idea, but to
-re-implement it under a smaller, locally reproducible setup and to study
-how reliably it works in that setting.
+entropy} as a training-free signal for hallucination risk. The idea, taken
+from that paper, is to measure how much the \emph{meanings} of repeated
+samples vary, rather than how much the strings vary. If repeated samples from
+the model mostly express the same meaning, the model may be unsure only about
+phrasing. If the samples split across genuinely different meanings, the model
+is uncertain about the content itself, and the answer should be treated as
+riskier. This follows the semantic uncertainty framing of Kuhn et
+al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
+al.~\cite{semantic_entropy_nature_2024}. The aim of this thesis is not to
+propose the method, but to re-implement it in a smaller, locally reproducible
+setup and to study how well it works there, and under which conditions.
 
 \section{Research Aim}
 
-The main research question is whether semantic entropy provides a
-better signal for hallucination risk and selective abstention than
-surface-form uncertainty, and how that comparison changes when the
-output shifts from short answers to paragraph-length generation. The
-study covers TriviaQA, NQ-Open, and SVAMP as short-answer benchmarks
-and a FactScore-style biography task as the long-form regime ---
-evaluated both whole-paragraph and at the level of individual claims
---- across three open generators and three decoding seeds. It therefore
-targets \emph{confabulation}-like failures, where the model's answer
-varies semantically across samples drawn under the same prompt, while
-also testing the harder case where surface variation is nearly
-universal. It does not claim that semantic entropy detects every type
-of hallucination, and in particular it cannot flag high-confidence
-systematic errors where the model is consistently wrong, a failure
-mode discussed by
-Kalai et al.~\cite{kalai_why_language_models_hallucinate_2025} and
-Simhi et al.~\cite{simhi_choke_2025}.
+The main question is whether semantic entropy is a better signal for
+hallucination risk and selective abstention than surface-form uncertainty,
+and how that comparison changes when the output grows from a short answer to
+a paragraph. The study uses TriviaQA, NQ-Open, and SVAMP as short-answer
+benchmarks and a FactScore-style biography task as the long-form case,
+evaluated both for the whole paragraph and at the level of individual claims.
+It runs three open generator models under three decoding seeds. The target is
+\emph{confabulation}-like failure, where the model's answer varies in meaning
+across samples drawn from the same prompt; the long-form task also tests the
+harder case where surface variation is almost always present. The study does
+not claim to detect every kind of hallucination. In particular, it cannot
+flag confident systematic errors, where the model is consistently wrong, a
+failure mode discussed by Kalai et
+al.~\cite{kalai_why_language_models_hallucinate_2025} and Simhi et
+al.~\cite{simhi_choke_2025}.
 
-The working hypothesis from Farquhar et
-al.~\cite{semantic_entropy_nature_2024} is that discrete semantic
-entropy computed over bidirectional
-entailment-based clusters achieves a higher AUROC --- a ranking metric
-for placing incorrect answers above correct ones --- than surface-form
-entropy computed over sampled answer strings on the same prompts. A
-secondary hypothesis is that the improvement, if present, is at least
-directionally consistent across the short-answer benchmarks, despite
-their very different answer formats (open-domain factual recall vs.\
-short numeric arithmetic). The biography task tests the complementary hypothesis
-that meaning-aware uncertainty methods separate more clearly once raw
-surface diversity ceases to be informative.
+The starting hypothesis, from Farquhar et
+al.~\cite{semantic_entropy_nature_2024}, is that discrete semantic entropy
+over entailment-based clusters gives a higher AUROC --- a ranking score for
+placing incorrect answers above correct ones --- than surface-form entropy
+over sampled strings on the same prompts. A secondary hypothesis is that any
+improvement is at least directionally consistent across the three
+short-answer benchmarks, despite their different answer formats. The
+biography task tests a complementary hypothesis: that meaning-aware methods
+separate more clearly once raw surface diversity stops being informative.
+
+One result of this study qualifies the first hypothesis in a way the original
+aggregate evaluation does not show. On short answers, the value of
+sampling-based methods such as semantic entropy depends strongly on the
+decoding temperature. At low temperature the repeated samples are nearly
+identical, so there is little diversity to measure and these methods are weak;
+at high temperature they become strong. Single-pass probes that read the
+model's internal state move the other way, so the two families cross over as
+temperature rises. At the temperature where sampling-based methods work best,
+semantic entropy is about as good as a much cheaper surface-form entropy on
+short answers. The clearer advantage of meaning-aware methods appears on the
+long-form task, where surface methods break down. These points are stated
+carefully and with their limits in Chapters~\ref{ch:results}
+and~\ref{ch:discussion}.
 
 \section{Study Structure}
 
-The study separates cheap surface-form baselines from the semantic
-clustering condition that most directly follows Farquhar et
-al.~\cite{semantic_entropy_nature_2024}.
+The study separates the cheap surface-form baselines from the semantic
+clustering condition that follows Farquhar et
+al.~\cite{semantic_entropy_nature_2024} most directly.
 
-\textbf{Surface-form baselines.} For each prompt, the
-generation model is sampled several times, the answers are lightly
-normalized, and two answers are grouped together only if their
-normalized strings are identical. We call this \emph{exact-match}
-clustering. A deliberately naive companion score counts raw strings
-before normalization. These baselines make the full pipeline
-auditable end to end. It does \emph{not} implement true semantic
-entropy in Farquhar et al.'s sense~\cite{semantic_entropy_nature_2024}, because
-exact-match grouping ignores paraphrases; throughout the thesis the
-exact-match number is therefore reported as a surface-form baseline rather
-than as semantic entropy.
+\textbf{Surface-form baselines.} For each prompt the generator is sampled
+several times, the answers are lightly normalized, and two answers are grouped
+only if their normalized strings are identical. This is called
+\emph{exact-match} clustering. A deliberately naive companion score counts raw
+strings before normalization. These baselines make the whole pipeline easy to
+check end to end. Exact-match grouping is \emph{not} semantic entropy in
+Farquhar et al.'s sense~\cite{semantic_entropy_nature_2024}, because it
+ignores paraphrases; it is therefore reported as a surface-form baseline, not
+as semantic entropy.
 
 \textbf{Replication condition.} The main semantic-entropy condition repeats
-the same model--dataset grid on the NHR@FAU
-high-performance computing cluster and replaces exact-match clustering
-with a bidirectional Natural Language Inference (NLI) clustering step
-using a DeBERTa-v3-base cross-encoder. This is the configuration that
-corresponds most directly to the method of Farquhar et al.
+the same model--dataset grid on the NHR@FAU high-performance computing
+cluster and replaces exact-match clustering with a bidirectional Natural
+Language Inference (NLI) clustering step using a DeBERTa-v3 cross-encoder.
+This is the configuration that corresponds most closely to the method of
+Farquhar et al.
 
-\textbf{Additional analyses.} Separate sections report judge sensitivity
-checks with DeBERTa-v3-large and Qwen2.5-72B-Instruct, a continuous
-kernel-based variant called Kernel Language
-Entropy~\cite{nikitin_kernel_language_entropy_2024}, and held-out
-Semantic Entropy Probes. These analyses extend the replication question;
-they are not part of the baseline.
+\textbf{Additional analyses.} Separate sections report sensitivity checks with
+larger NLI judges and a Qwen2.5-72B-Instruct judge, a continuous kernel-based
+variant called Kernel Language
+Entropy~\cite{nikitin_kernel_language_entropy_2024}, held-out Semantic
+Entropy Probes, and a sampling-temperature sweep. These extend the
+replication question rather than forming part of the baseline.
 
 \section{Contributions}
 
-The substantive method comes from Farquhar et
-al.~\cite{semantic_entropy_nature_2024}; the contribution of this thesis
-is to re-implement it under a smaller, fully local setup and to use that
-setup to ask a question the original aggregate evaluation does not
-isolate --- how the value of meaning-level clustering scales as outputs
-lengthen. This work therefore sets out to deliver, mainly through
+The method itself comes from Farquhar et
+al.~\cite{semantic_entropy_nature_2024}. The contribution of this thesis is
+to re-implement it in a smaller, fully local setup and to use that setup to
+ask a question the original aggregate evaluation does not isolate: how the
+value of meaning-level clustering changes as outputs get longer, and how it
+depends on decoding temperature. The work delivers, mainly through
 implementation, evaluation, and scope choices:
 
 \begin{enumerate}
-  \item an implementation of discrete semantic entropy for short-answer
-    and long-form hallucination detection, covering answer normalization,
+  \item an implementation of discrete semantic entropy for short-answer and
+    long-form hallucination detection, covering answer normalization,
     exact-match clustering, bidirectional NLI clustering with DeBERTa-v3,
     entropy scoring, and correctness labeling;
-  \item an experimental design that separates surface-form baselines,
-    the NLI-clustered replication condition, and additional analyses,
-    with Slurm templates and reproducibility logging for each run;
-  \item an auditable JSONL output schema recording sampled answers,
-    semantic clusters, cluster representatives, entropy scores, and
-    correctness labels for every evaluated prompt;
-  \item an evaluation framework for selective prediction, using AUROC,
-    rejection-accuracy curves, and their area summary (AURAC),
-    applicable to any uncertainty estimator that writes a score field to
-    the shared schema;
-  \item extension baselines and sensitivity checks covering Semantic
-    Entropy Probes (hidden-state classifiers), Kernel Language Entropy,
-    P(True), in- and out-of-distribution embedding regression,
-    semantic-judge comparisons across DeBERTa-v3-base, DeBERTa-v3-large,
-    DeBERTa-v2-xlarge-MNLI, and Qwen2.5-72B-Instruct, and a
-    sampling-temperature sweep that exposes the opposite temperature
-    dependence of sampling-based and probe-based detectors;
+  \item an experimental design that separates surface-form baselines, the
+    NLI-clustered replication condition, and additional analyses, with Slurm
+    templates and reproducibility logging for each run;
+  \item an auditable JSONL output schema that records, for every prompt, the
+    sampled answers, the semantic clusters, the cluster representatives, the
+    entropy scores, and the correctness labels;
+  \item an evaluation framework for selective prediction using AUROC,
+    rejection-accuracy curves, and their area summary (AURAC), which applies
+    to any uncertainty estimator that writes a score to the shared schema;
+  \item extension baselines and sensitivity checks covering Semantic Entropy
+    Probes, Kernel Language Entropy, P(True), in- and out-of-distribution
+    embedding regression, NLI judges of different sizes, and a
+    sampling-temperature sweep that shows the opposite temperature dependence
+    of sampling-based and probe-based detectors;
   \item a controlled short-versus-long-form comparison that places the
-    FactScore-style biography task alongside the short-answer
-    benchmarks --- including a claim-level long-form extension --- and
-    exposes the regime where meaning-aware methods separate cleanly from
-    surface-form baselines.
+    FactScore-style biography task next to the short-answer benchmarks,
+    including a claim-level long-form extension, and shows the regime where
+    meaning-aware methods separate clearly from surface-form baselines.
 \end{enumerate}
 
 \section{Thesis Structure}
 
-Chapter~\ref{ch:background} reviews the different forms of
-LLM hallucination, the role of uncertainty estimation, the notion of
-semantic equivalence, and related semantic uncertainty methods.
-Chapter~\ref{ch:semantic_entropy} defines the discrete semantic entropy
-method on which the empirical work is based.
+Chapter~\ref{ch:background} reviews the forms of LLM hallucination, the role
+of uncertainty estimation, the notion of semantic equivalence, and related
+semantic uncertainty methods. Chapter~\ref{ch:semantic_entropy} defines the
+discrete semantic entropy method that the empirical work is based on.
 Chapter~\ref{ch:experimental_design} turns the method into a reproducible
-experimental design, and Chapter~\ref{ch:hpc} documents the
-implementation and HPC execution. Chapter~\ref{ch:extensions}
-describes Kernel Language Entropy as a completed posthoc check and
-Semantic Entropy Probes as a held-out probe extension.
-Chapter~\ref{ch:results} reports the empirical results,
-Chapter~\ref{ch:discussion} discusses interpretation and limitations,
-and Chapter~\ref{ch:conclusion} states the final conclusion.
+experimental design, and Chapter~\ref{ch:hpc} documents the implementation
+and HPC execution. Chapter~\ref{ch:extensions} describes Kernel Language
+Entropy as a completed posthoc check and Semantic Entropy Probes as a
+held-out extension. Chapter~\ref{ch:results} reports the empirical results,
+Chapter~\ref{ch:discussion} discusses interpretation and limitations, and
+Chapter~\ref{ch:conclusion} states the conclusion.
