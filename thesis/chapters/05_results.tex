@@ -1,0 +1,503 @@
+\chapter{Results}
+\label{ch:results}
+
+This chapter reports what the experiments found. It is written to be
+readable without prior knowledge of the method: every table and figure
+is introduced in plain words before any numbers are discussed, and a set
+of worked, by-hand examples (Section~\ref{sec:hand-audits}) shows what
+the detector actually does on individual questions before the
+aggregate scores are presented.
+
+\section{How to read the numbers}
+\label{sec:how-to-read}
+
+The task in every experiment is the same. The language model answers a
+question; sometimes it is right and sometimes it is wrong. A
+\emph{detector} looks at the answer (or at several sampled answers) and
+outputs a single number that is meant to be high when the answer is
+unreliable. A good detector gives higher numbers to the wrong answers
+than to the right ones, so that a user could decline the riskiest
+answers and keep the safe ones.
+
+Two summary measures are used throughout.
+
+\begin{itemize}
+  \item \textbf{AUROC} (area under the ROC curve). Pick one wrong answer
+    and one right answer at random; the AUROC is the probability that
+    the detector scored the wrong one higher. \textbf{0.5 means the
+    detector is useless} (no better than a coin flip), and \textbf{1.0
+    means it is perfect}. Values around 0.7--0.9 are useful in practice.
+    Because AUROC only depends on the \emph{ranking} of scores, the unit
+    of the entropy (nats vs.\ bits) does not affect it.
+  \item \textbf{AURAC} (area under the rejection--accuracy curve). If we
+    throw away the answers the detector is most worried about, the
+    accuracy of what remains should go up. AURAC summarizes how quickly
+    accuracy improves as we discard flagged answers; higher is better.
+    Unlike AUROC, it also depends on how accurate the model was to begin
+    with, so AURAC values are only comparable within the same task and
+    model.
+\end{itemize}
+
+Throughout, the positive class is the \emph{incorrect} answer, so
+``higher score $=$ more likely wrong''. All headline numbers are
+averaged over three independent runs (random seeds 42, 43, 44); where a
+spread is shown it is the standard deviation across those three runs.
+The detectors compared are the ones defined in
+Chapter~\ref{ch:semantic_entropy}: the cheap surface baselines
+(counting distinct answer strings), discrete semantic entropy with
+meaning-based clustering, the probability-weighted variants, Kernel
+Language Entropy, the hidden-state probe (SEP), \mbox{P(True)}, and
+embedding regression.
+
+\section{The headline picture}
+\label{sec:headline}
+
+Figure~\ref{fig:regime-split} is the single most important result of the
+thesis, and the rest of the chapter unpacks it. It compares two
+detectors across the four tasks and three models: the \emph{cheap}
+surface score, which just counts how many of the sampled answers are
+different strings, and the \emph{meaning-aware} semantic entropy, which
+first groups answers that mean the same thing and then measures the
+spread over meanings.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{regime_split.png}
+\caption{Surface-form versus meaning-aware detection across tasks
+  (AUROC, higher is better; the dashed line is the useless ``coin-flip''
+  level of 0.5). On the three short-answer tasks the two scores are
+  almost the same height: the cheap string-counting baseline is already
+  as good as meaning-aware clustering. On the long-form biography task
+  the surface bar drops to the chance line --- it stops working
+  entirely --- while the meaning-aware bar stays well above it. This
+  short-versus-long contrast is the central finding.}
+\label{fig:regime-split}
+\end{figure}
+
+The pattern is the same for all three models. On short answers the two
+bars are nearly equal, so the expensive meaning-based machinery buys
+almost nothing over simply noticing that the model wrote different
+strings. On long-form biographies the cheap baseline collapses to the
+chance line while the meaning-aware score survives. \emph{Where you need
+semantic clustering is precisely the long-form regime; on short answers
+it is close to redundant.} The remainder of the chapter establishes this
+quantitatively and explains why it happens.
+
+\section{Worked examples: what the detector sees}
+\label{sec:hand-audits}
+
+Before the aggregate tables, it helps to look at three real records from
+the recorded runs (canonical configuration, temperature $1.0$). Each one
+shows the ten sampled answers, how the meaning-based clustering grouped
+them, and the resulting scores. These by-hand audits make concrete what
+the averages later summarize.
+
+\subsection{Example 1 --- meaning-based grouping lowers a falsely high
+score}
+\label{sec:audit-merge}
+
+\textbf{Question (TriviaQA, Llama-3.1-8B):} ``According to Rudyard
+Kipling, what were the two impostors to meet and treat the same day?''
+\textbf{Gold answer:} \emph{Triumph and Disaster}. The ten sampled
+answers were:
+
+\begin{quote}\small
+\emph{Success and Failure.} $\;\cdot\;$ \emph{Triumph and Disaster}
+$\;\cdot\;$ \emph{Triumph and defeat.} $\;\cdot\;$ \emph{Triumph and
+disaster.} $\;\cdot\;$ \emph{Triumph and defeat.} $\;\cdot\;$
+\emph{Success and Failure} $\;\cdot\;$ \emph{Success and Failure.}
+$\;\cdot\;$ \emph{Triumph and Disaster} $\;\cdot\;$ \emph{Tyrant and a
+dreamer.} $\;\cdot\;$ \emph{Success and Failure.}
+\end{quote}
+
+The surface baseline sees many \emph{different strings} (``Triumph and
+Disaster'', ``Triumph and defeat.'', ``Success and Failure'', and so on)
+and therefore reports high uncertainty: surface entropy $1.28$ nats. The
+meaning-based step asks, for each pair, whether the two phrases say the
+same thing in context; it judges the various ``triumph/defeat'' and
+``success/failure'' phrasings to be mutually entailing and collapses
+nine of the ten samples into a single meaning, leaving only the odd
+``Tyrant and a dreamer'' on its own. The semantic entropy is then only
+$0.33$ nats --- a much more honest reflection of the fact that the model
+basically settled on one idea. The answer was graded correct. This is
+the mechanism by which clustering is \emph{supposed} to help: it removes
+uncertainty that is only about wording.
+
+\subsection{Example 2 --- a confident wrong answer the method cannot
+catch}
+\label{sec:audit-artifact}
+
+\textbf{Question (TriviaQA, Llama-3.1-8B):} ``Who was the director of the
+CIA from 1976--81?'' \textbf{Gold answer:} \emph{George Bush}. All ten
+samples were the same: \emph{Stansfield Turner}. Because every sample
+agrees, the spread over meanings is zero (semantic entropy $0.00$), so
+the detector reports maximum confidence --- yet the answer is graded
+incorrect.
+
+This single record illustrates two important limits at once. First, it
+is a genuine \emph{confident systematic error}: the model is wrong in the
+same way every time, and no consistency-based detector can flag it,
+because there is no inconsistency to measure. Second, it is partly a
+\emph{labelling artefact}: Stansfield Turner did head the CIA for most of
+1977--1981, so the ``wrong'' label here reflects an ambiguous gold answer
+as much as a model error. Both effects --- the blind spot for confident
+errors and the noise in automatic correctness labels --- recur in the
+aggregate numbers and are returned to in the discussion
+(Chapter~\ref{ch:discussion}).
+
+\subsection{Example 3 --- why the surface baseline dies on biographies}
+\label{sec:audit-bio}
+
+\textbf{Question (Biography, Mistral-7B):} ``Tell me a bio of Edmond
+Pourchot.'' The model produced ten multi-sentence paragraphs. One began:
+\emph{``Edmond Pourchot, born on March 2, 1896, in Gap, France, was a
+prominent figure in the field of French aviation\ldots''} (Edmond
+Pourchot was in fact a seventeenth-century French philosopher; the
+paragraph is fabricated.) All ten paragraphs were different strings, so
+the surface baseline reports the \emph{maximum possible} value every
+time: $\ln 10 = 2.30$ nats. Across the whole biography set the average
+surface entropy is $2.303$ --- pinned at the ceiling --- which is exactly
+why it carries no information and lands at the chance line in
+Figure~\ref{fig:regime-split}: a score that is always maximal cannot rank
+anything.
+
+Meaning-based clustering escapes this trap. It groups the paragraphs by
+what they claim rather than by their exact wording, so its score varies
+from record to record (average semantic entropy $1.73$, not pinned at the
+ceiling). For this fabricated biography the ten paragraphs genuinely
+disagree, so the semantic entropy is high and the answer is correctly
+flagged as risky. This is the long-form mechanism behind the headline
+figure.
+
+\section{Short-answer results}
+\label{sec:short-answer-results}
+
+We begin with the three short-answer tasks (TriviaQA, NQ-Open, SVAMP).
+Table~\ref{tab:auroc-overview} gives the bird's-eye view: discrete
+semantic entropy, the full probability-weighted estimator, and the
+hidden-state probe, for all three models and four tasks.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Selective-prediction AUROC overview (seed-mean over 42/43/44).
+  Short-answer tasks on the left, biography on the right. On short
+  answers all detectors land in a similar, useful band; on biography the
+  picture changes sharply (Section~\ref{sec:bio-results}).}
+\label{tab:auroc-overview}
+\input{includes/generated_overview.tex}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{multiseed_auroc.png}
+\caption{Per-task AUROC for the main detectors, averaged over three
+  seeds (error bars are the seed spread). The detectors cluster
+  together on every short-answer task: no single method dominates, and
+  the cheap surface baseline sits inside the same band as the
+  meaning-aware scores.}
+\label{fig:multiseed-auroc}
+\end{figure}
+
+The detailed per-task tables follow.
+Tables~\ref{tab:auroc-triviaqa}, \ref{tab:auroc-nqopen}
+and~\ref{tab:auroc-svamp} list every detector for TriviaQA, NQ-Open and
+SVAMP respectively.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{TriviaQA AUROC by detector and model (mean $\pm$ std over
+  seeds). Canonical DeBERTa-v3-large clustering for the entropy methods.}
+\label{tab:auroc-triviaqa}
+\input{includes/generated_auroc_triviaqa.tex}
+\end{table}
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{NQ-Open AUROC by detector and model (mean $\pm$ std over seeds).}
+\label{tab:auroc-nqopen}
+\input{includes/generated_auroc_nqopen.tex}
+\end{table}
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{SVAMP AUROC by detector and model (mean $\pm$ std over seeds).}
+\label{tab:auroc-svamp}
+\input{includes/generated_auroc_svamp.tex}
+\end{table}
+
+Three things stand out on short answers. First, all of the
+sampling-based detectors work: AUROC sits in roughly the
+$0.74$--$0.88$ band, which is consistent with the original semantic
+entropy paper under the matched protocol. Second, the
+\emph{surface/exact-match baseline is the strongest single score in most
+cells} --- for example on TriviaQA it reaches $0.819$ (Mistral),
+$0.838$ (Llama-3.1-8B) and $0.802$ (Llama-3.1-70B), slightly ahead of
+the meaning-aware $0.799$, $0.814$ and $0.794$. It is the single
+strongest score in six of the nine short-answer cells (all of TriviaQA
+and NQ-Open); only on SVAMP does the probability-weighted full estimator
+edge ahead. Third, discrete semantic
+entropy and the full probability-weighted estimator track each other
+closely, confirming that on these tasks the cheap count-based version
+loses almost nothing relative to the version that uses the model's own
+probabilities. The reason, made concrete in
+Example~\ref{sec:audit-merge}, is that on short answers most of the
+useful grouping is already done by \emph{normalizing} the strings;
+meaning-based entailment then has little left to add.
+
+\section{Does meaning-based clustering beat the surface baseline?}
+\label{sec:significance}
+
+Because the surface and semantic scores are so close on short answers,
+the honest question is whether the difference is real or just noise.
+Table~\ref{tab:significance-vs-surface} reports paired bootstrap
+comparisons: for each task and model it asks whether a given detector
+beats the surface baseline by more than sampling noise would explain.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Paired-bootstrap comparison against the surface baseline.
+  A confidence interval that contains zero means ``not significantly
+  different from the cheap baseline.''}
+\label{tab:significance-vs-surface}
+\input{includes/generated_significance.tex}
+\end{table}
+
+On the short-answer tasks, \emph{no method beats the surface baseline by
+a statistically significant margin}: wherever a method's margin over
+surface entropy is large enough to be significant, it is the surface
+baseline that comes out ahead, never the other way round. In other
+words, once you have normalized the answer strings, paying for an NLI
+model to cluster them does not reliably improve short-answer
+hallucination detection.
+This is a negative result, and an important one: it says the expensive
+part of the method earns its keep only in the long-form setting, which
+the next sections examine.
+
+\section{Clustering backend sensitivity}
+\label{sec:clustering-sensitivity}
+
+The meaning-based step needs a model to decide whether two answers are
+equivalent. Does the choice of that model matter?
+Table~\ref{tab:clustering-sensitivity} compares five backends ---
+exact-match, two sizes of DeBERTa NLI, and a large Qwen judge ---
+holding everything else fixed.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Discrete semantic entropy AUROC by clustering backend
+  (mean $\pm$ std over seeds). ``--'' marks a backend that was not run
+  for that task (the larger NLI judges were applied to short answers
+  only as a sensitivity check).}
+\label{tab:clustering-sensitivity}
+\input{includes/generated_clustering_sensitivity.tex}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{bio_clustering_sensitivity.png}
+\caption{Biography AUROC for discrete semantic entropy under different
+  clustering backends. On long-form inputs the backend is
+  result-determining: the same samples yield anything from chance-level
+  to clearly useful detection depending only on how equivalence is
+  judged.}
+\label{fig:bio-clustering-sensitivity}
+\end{figure}
+
+On short answers the backend barely matters --- exact-match, base NLI,
+large NLI and the Qwen judge land within a few points of each other,
+which is unsurprising given that normalization already does the work. On
+biographies the choice is decisive: the Qwen judge clusters meanings more
+reliably than the smaller DeBERTa models and lifts AUROC accordingly.
+This is the long-form counterpart to the short-answer negative result:
+when clustering matters at all, \emph{which} clusterer you use matters a
+great deal.
+
+\section{Long-form biography results}
+\label{sec:bio-results}
+
+The biography task is the controlled long-form case: the same
+sample-and-cluster pipeline, but the model now writes a paragraph rather
+than a phrase. Table~\ref{tab:auroc-bio} lists every detector for all
+three generators.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Biography (whole-paragraph) AUROC by detector and model
+  (mean $\pm$ std over seeds), canonical DeBERTa-v3-large clustering.
+  The two count-based surface scores (naive \emph{sample} entropy and
+  surface entropy) collapse to chance ($\approx 0.50$) because long
+  paragraphs almost never repeat as identical strings; the
+  probability-weighted naive entropy, the meaning-aware methods, and the
+  hidden-state probe all recover a real signal.}
+\label{tab:auroc-bio}
+\input{includes/generated_auroc_bio.tex}
+\end{table}
+
+The contrast with short answers is stark. The two count-based surface
+scores --- naive \emph{sample} entropy and surface entropy --- sit at
+$\approx 0.50$, pure chance, exactly as Example~\ref{sec:audit-bio}
+predicted: every long paragraph is a distinct string, so these scores
+are permanently pinned at their maximum and can rank nothing. Every
+detector that escapes raw string-counting recovers a real signal.
+Meaning-aware discrete semantic entropy reaches $0.708$ (Mistral-7B),
+$0.618$ (Llama-3.1-8B) and $0.612$ (Llama-3.1-70B), and the Qwen-judge
+clustering variant is stronger still ($0.736 / 0.685 / 0.666$),
+consistent with the backend sensitivity above. So the value of moving
+from surface comparison to meaning comparison is not marginal here --- it
+is the difference between a useless detector and a working one.
+
+Two detectors that need no clustering at all are in fact the strongest on
+biography. Probability-weighted naive entropy --- which keeps each
+distinct paragraph but weights it by the model's own sequence
+probability --- is the single best score on the two smaller models
+($0.781$ Mistral, $0.769$ Llama-3.1-8B), and the self-evaluation
+baseline \mbox{P(True)} is the best on the largest ($0.777$). The lesson
+is that on long text the model's \emph{own probability signal} carries
+much of the confabulation information, and the hard-clustering step only
+partially recovers it.
+
+One regularity is worth flagging. The semantic-entropy AUROC
+\emph{decreases} as the generator gets larger ($0.708 \to 0.618 \to
+0.612$ from 7B to 70B). The discussion returns to this, but the short
+explanation is that larger models confabulate more \emph{consistently}:
+when a big model invents a fact, its ten samples tend to agree on the
+invention, leaving little spread for a consistency-based detector to
+find.
+
+\section{Supervised baselines and hidden-state probes}
+\label{sec:probes-results}
+
+Semantic entropy needs several samples per question. Two cheaper-at-test
+alternatives read the model's internal state from a single pass: the
+hidden-state probe (SEP) and embedding regression.
+Table~\ref{tab:embedding-regression} reports them alongside
+\mbox{P(True)}.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Probe and supervised-baseline AUROC (mean $\pm$ std over
+  seeds): hidden-state SEP probe, embedding regression
+  (in-distribution and out-of-distribution), and \mbox{P(True)}.}
+\label{tab:embedding-regression}
+\input{includes/generated_embedding_regression.tex}
+\end{table}
+
+The probes are competitive, and on biography they are strong: the SEP
+probe reaches $0.728$ (8B) and $0.731$ (70B), \emph{above} every
+meaning-based clustering method on those models, and \mbox{P(True)} is
+the single best biography detector on the 70B model at $0.777$. (Only
+the probability-weighted naive entropy, noted above, beats the probe on
+the two smaller models.) This matters for deployment, because a
+single-pass probe is far cheaper than drawing ten samples and running
+pairwise entailment. The catch, shown next, is that the probe's
+advantage depends on the decoding temperature.
+
+\section{Sampling-temperature sensitivity}
+\label{sec:temperature-sensitivity}
+
+Every result so far used the model's default sampling temperature. Since
+sampling-based detectors depend on getting \emph{diverse} samples, the
+decoding temperature ought to matter --- and it does, in a way that has a
+clean practical lesson. Table~\ref{tab:temp-sweep} and
+Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
+deterministic) to $1.0$.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{AUROC versus sampling temperature (seed-mean), Llama-3.1-70B.
+  Sampling-based entropy rises with temperature; the single-pass probe
+  falls.}
+\label{tab:temp-sweep}
+\input{includes/generated_temp_sweep_auroc.tex}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{auroc_vs_temperature.png}
+\caption{AUROC as a function of sampling temperature, per task and
+  model. The sampling-based scores (semantic entropy, surface entropy)
+  climb as temperature increases, because more diverse samples reveal
+  more disagreement to measure. The hidden-state probe moves the
+  opposite way. The two families therefore \emph{cross over} between
+  temperature $0.7$ and $1.0$ on short answers; on biography the curves
+  are flat.}
+\label{fig:temp-sweep}
+\end{figure}
+
+At low temperature the model repeats nearly the same answer every time,
+so there is little diversity for a sampling-based method to work with and
+semantic entropy is weak (TriviaQA/70B: AUROC $0.54$ at $T{=}0.1$). As
+temperature rises the samples spread out and the same method becomes
+strong ($0.78$ at $T{=}1.0$). The hidden-state probe does the reverse ---
+it is best at low temperature and degrades as decoding gets noisier ---
+so the two families \emph{cross over}. The practical lesson is that there
+is no single best detector: at low decoding temperature, use the probe;
+at high temperature, use sampling-based entropy. On biography the curves
+are flat, so this trade-off is specific to the short-answer regime.
+
+\section{Claim-level long-form detection: FactualBio}
+\label{sec:factualbio-results}
+
+The whole-paragraph biography score asks ``is this paragraph reliable?''
+A finer question is ``which individual claims in the paragraph are
+reliable?'' The FactualBio extension breaks each biography into
+atomic claims and applies the same meaning-based idea at the claim level.
+Table~\ref{tab:factualbio} reports the result.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Claim-level FactualBio AUROC (NLI clustering), by generator.
+  Detection quality decreases as the generator gets larger.}
+\label{tab:factualbio}
+\input{includes/generated_factualbio_main.tex}
+\end{table}
+
+At the claim level the same scale effect from
+Section~\ref{sec:bio-results} appears even more cleanly: claim-level
+detection AUROC falls monotonically with model size, $0.688$ (Mistral-7B)
+$\to 0.644$ (Llama-3.1-8B) $\to 0.521$ (Llama-3.1-70B). By the time we
+reach the 70B model, claim-level semantic entropy is barely above chance.
+Larger models repeat their confabulations too consistently for a
+consistency-based signal to separate true from false claims.
+
+\section{Summary of findings}
+\label{sec:results-summary}
+
+The experiments support a single, regime-dependent picture.
+
+\begin{enumerate}
+  \item \textbf{Short answers: semantic clustering is close to
+    redundant.} All sampling-based detectors work (AUROC
+    $\approx 0.74$--$0.88$), but the cheap surface/exact-match baseline
+    is the strongest single score in most cells and \emph{no method
+    beats it significantly} (Section~\ref{sec:significance}).
+    Normalization, not entailment, does most of the grouping.
+  \item \textbf{Long-form: semantic clustering is decisive.} Surface
+    baselines collapse to chance on biographies, while meaning-aware
+    entropy, the LLM-judge variant, and the hidden-state probe all
+    recover a real signal (Section~\ref{sec:bio-results}). The clustering
+    backend is result-determining here
+    (Section~\ref{sec:clustering-sensitivity}).
+  \item \textbf{Scale erodes the signal.} Both whole-paragraph and
+    claim-level detection get \emph{worse} as the generator grows,
+    because larger models confabulate more consistently
+    (Section~\ref{sec:factualbio-results}).
+  \item \textbf{Temperature decides which detector wins.} Sampling-based
+    entropy and the single-pass probe respond to decoding temperature in
+    opposite directions and cross over on short answers
+    (Section~\ref{sec:temperature-sensitivity}).
+  \item \textbf{Two blind spots, seen by hand.} Confident systematic
+    errors and noisy gold labels (Example~\ref{sec:audit-artifact}) are
+    real limits that the aggregate scores hide; they are taken up in
+    Chapter~\ref{ch:discussion}.
+\end{enumerate}

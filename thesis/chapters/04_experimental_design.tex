@@ -1,4 +1,4 @@
-\chapter{Experimental Design}
+\chapter{Experimental Design and Implementation}
 \label{ch:experimental_design}
 
 This chapter specifies the experimental design used to evaluate whether
@@ -6,9 +6,11 @@ semantic entropy provides a better hallucination and abstention signal
 than surface-form uncertainty. The design separates surface-form
 baselines from an NLI-clustered replication condition. The baseline is
 small enough to debug locally before being run at evaluation scale. The
-replication condition repeats the same measurement plan with NLI clustering on NHR@FAU
-resources. Chapter~\ref{ch:hpc} then covers execution, storage, and
-reproducibility on the cluster.
+replication condition repeats the same measurement plan with NLI
+clustering on NHR@FAU resources. The final section
+(Section~\ref{sec:hpc-execution}) covers how the runs were implemented
+and executed on the cluster, together with the storage and
+reproducibility policy.
 
 \section{Datasets}
 
@@ -62,27 +64,16 @@ Section~\ref{sec:factualbio-results}.
 
 \section{Models and the replication condition}
 
-The three language models used as generators in the final grid are
-Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
+The study generates answers with three open language models of different
+sizes: Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
 Llama-3.1-8B-Instruct, and
-Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. The 7B/70B
-pairing spans the same small/large open-weights contrast that Farquhar
-et al.~\cite{semantic_entropy_nature_2024} use within the LLaMA-2
-family (LLaMA-2-Chat-7B and LLaMA-2-Chat-70B), but both substitutions
-are deliberately upward: Mistral-7B-Instruct-v0.3 reports a substantial
-improvement over LLaMA-2-Chat-7B on standard knowledge-recall and
-reasoning benchmarks~\cite{jiang_mistral_2023}, sitting in
-approximately the open-weights analogue of the GPT-3.5 capability
-band that Farquhar et al.\ assume for their judge model, and
-Llama-3.1-70B-Instruct sits above LLaMA-2-Chat-70B across MMLU,
-TriviaQA, and GSM8K~\cite{grattafiori_llama3_2024}.
-Llama-3.1-8B-Instruct fills the gap between the two, giving the grid a
-three-point scale axis within one model family plus a cross-family
-comparison at the small end. Choosing newer open instruction-tuned
-models rather than reproducing the LLaMA-2 generation thus moves the
-experiments to a regime that is closer to how current chat models are
-actually deployed, while keeping the small-versus-seventy-billion
-contrast that motivates the model comparison. Every model--dataset
+Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. Using three sizes
+lets the experiments ask how the detectors behave as the model gets
+bigger. The original semantic-entropy paper used a small and a large
+model from the older LLaMA-2 family; this study uses newer models that
+are stronger and closer to what people actually run today, while keeping
+the same small-versus-large contrast (and adding a middle size, the 8B
+model, so the size axis has three points rather than two). Every model--dataset
 cell is decoded under three seeds (42, 43, 44), and all headline
 results are reported as cross-seed means with seed standard
 deviations. The NLI judge in the replication condition is a local DeBERTa-v3 cross-encoder rather
@@ -95,8 +86,9 @@ data leaves the local system.
 The whole pipeline therefore runs without dependence on a closed API;
 a posthoc rerun in which this cross-encoder is replaced
 with a large open instruction-tuned judge is reported in
-Section~\ref{sec:posthoc}. The methodological implications of these
-substitutions are discussed in Section~\ref{sec:comparison-farquhar}.
+Section~\ref{sec:clustering-sensitivity}. The methodological
+implications of these substitutions are discussed in
+Section~\ref{sec:comparison-farquhar}.
 
 \paragraph{Surface-form baselines.}
 The baseline records two surface-form scores. For each prompt, $M=10$
@@ -191,13 +183,12 @@ record, so all methods share one accuracy definition. The biography
 task instead grades correctness with the long-form judge, as described
 above.
 
-One earlier configuration appears in this thesis: the pilot runs
-audited at record level in Section~\ref{sec:pilot-audits} used $T=0.7$
-and top-$p=0.95$ --- the default deployment settings of the
-instruction-tuned models --- with string-comparison correctness
-labels. The pilot served to debug the pipeline and to support manual
-audits; all headline numbers come from the paper-faithful
-configuration. The meaning of $M$, $T$, and top-$p$ is explained in
+During pipeline development an earlier configuration was used --- the
+instruction-tuned models' default deployment settings ($T=0.7$,
+top-$p=0.95$) with string-comparison correctness labels --- to debug the
+pipeline before the evaluation grid was locked. All headline numbers in
+this thesis come from the paper-faithful configuration above. The
+meaning of $M$, $T$, and top-$p$ is explained in
 Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
@@ -219,8 +210,8 @@ generator judges few-shot in-context whether its own most-likely
 answer is true; embedding regression, a logistic probe on the final
 hidden state trained to predict incorrectness, evaluated both
 in-distribution and trained on a different short-answer dataset
-(out-of-distribution); and the semantic-entropy probe of
-Chapter~\ref{ch:extensions}.
+(out-of-distribution); and the semantic-entropy probe defined in
+Section~\ref{sec:sep-method}.
 SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
 sampling-based baseline but was not included in the recorded runs.
 
@@ -231,7 +222,7 @@ LLM judge --- and re-scored with KLE under two sentence encoders
 (all-MiniLM-L6-v2 and nli-roberta-large). These checks reuse the saved
 answer samples, so any metric change comes from the semantic judge or
 entropy estimator rather than from new generations. The KLE method is
-defined in Chapter~\ref{ch:extensions}; clustering sensitivity is
+defined in Section~\ref{sec:kle}; clustering sensitivity is
 reported in Section~\ref{sec:clustering-sensitivity}.
 
 \section{Output schema}
@@ -305,7 +296,7 @@ so recorded outputs stay traceable; the thesis presentation uses
 baseline, replication condition, and additional analysis instead.
 Larger raw generations, model caches, and full intermediate outputs
 are described by the storage and reproducibility policy in
-Chapter~\ref{ch:hpc}.
+Section~\ref{sec:hpc-execution}.
 
 \section{Validation checks}
 \label{sec:validation-checks}
@@ -325,8 +316,8 @@ requirements:
 \end{enumerate}
 
 A manual audit on a handful of records additionally checks that the
-clusters look reasonable; the audit is reported in
-Section~\ref{sec:cluster-audit}.
+clusters look reasonable; worked examples of such audits are shown in
+Section~\ref{sec:hand-audits}.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
@@ -359,3 +350,53 @@ on its own, because the practical goal is to decide when a model
 should answer, abstain, or route the prompt to a more expensive
 verification procedure, as in the selective-prediction framing of
 semantic entropy~\cite{semantic_entropy_nature_2024}.
+
+\section{Implementation and HPC execution}
+\label{sec:hpc-execution}
+
+This section records how the design above was implemented and run. The
+work used the NHR@FAU computing centre (Nationales Höchstleistungsrechnen
+an der Friedrich-Alexander-Universität): its GPU cluster \emph{Alex}
+(NVIDIA A100 nodes) for all generation and GPU-heavy steps, and its CPU
+cluster \emph{Fritz} for the lighter posthoc reclustering and KLE scoring
+that needs no GPU. The exact scope of these results matters for reading
+them correctly: the entropy baselines and the NLI replication are the
+primary runs, while the larger judges, KLE, and the probes are posthoc
+checks computed on the \emph{same} saved samples, so a change in their
+scores reflects the judge or estimator, not a new set of generations.
+
+\paragraph{Code and libraries.} All code, configuration, and batch
+scripts are in a small public Python package
+(\texttt{semantic\_entropy}), installed with \texttt{uv} and targeting
+Python~3.11+. Generation uses vLLM for fast sampling; the probe-collection
+runs instead use the HuggingFace \texttt{transformers} path, because vLLM
+does not expose the hidden states a probe needs. NLI clustering uses a
+DeBERTa-v3 cross-encoder, KLE uses sentence-transformer encoders, and the
+small logistic-regression probes use scikit-learn. The pipeline reads a
+processed dataset, samples $M$ answers per prompt, normalizes them,
+clusters them with the configured backend, computes the entropy scores,
+attaches a correctness label, and writes the JSONL schema above --- the
+same script for both the baseline and the replication, with the
+clustering backend chosen by a command-line flag.
+
+\paragraph{What ran where.} Generation and NLI clustering ran on Alex
+(a single A100 for the 7B/8B models; four A100-80GB GPUs with tensor
+parallelism for the 70B model, with the NLI cross-encoder on CPU so the
+GPUs stayed free for generation). The DeBERTa-v3-large reclustering and
+KLE rescoring ran on Fritz; the Qwen2.5-72B judge, being itself a 72B
+model, ran on Alex. All GPU work went through the Slurm batch scheduler;
+large models never ran on login nodes.
+
+\paragraph{Reproducibility and auditing.} Every run writes a
+\texttt{job\_meta.json} recording the Slurm job id, host, model, dataset,
+full decoding parameters, seed, backend, and input path --- enough to
+reproduce or audit it later. Source code, configs, small result tables,
+and final figures are version-controlled; bulky artifacts (model caches,
+raw generations, hidden states) live in separate project storage. The
+analysis is deliberately separable from the runs: every reported number
+is recomputed from the saved per-record JSONL by a single aggregation
+step, and an independent audit recomputes the headline AUROC values
+directly from the raw records to confirm they match the reported tables.
+This separation is what makes the worked examples in
+Section~\ref{sec:hand-audits} possible --- each one is a single line of
+the recorded JSONL, read back and inspected by hand.

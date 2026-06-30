@@ -15,6 +15,8 @@
 \usepackage{graphicx}
 \usepackage[maxbibnames=10,minbibnames=3]{kaobiblio}
 \usepackage{makecell}
+% Note: the kaobook class (styles/kao.sty) already loads algorithm2e, so the
+% algorithm environment is available without an extra package here.
 
 % Compatibility for the kaobook caption hook with current LaTeX.
 \LetLtxMacro{\kaooriginalcaption}{\caption}
@@ -92,11 +94,9 @@ Date of birth: [removed]
 \input{chapters/02_background.tex}
 \input{chapters/03_semantic_entropy.tex}
 \input{chapters/04_experimental_design.tex}
-\input{chapters/05_hpc_and_implementation.tex}
-\input{chapters/06_semantic_entropy_probes.tex}
-\input{chapters/07_results.tex}
-\input{chapters/08_discussion.tex}
-\input{chapters/09_conclusion.tex}
+\input{chapters/05_results.tex}
+\input{chapters/06_discussion.tex}
+\input{chapters/07_conclusion.tex}
 
 \appendix
 \input{appendices/appendix.tex}

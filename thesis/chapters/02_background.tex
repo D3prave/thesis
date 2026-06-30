@@ -48,15 +48,15 @@ errors~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
 
 \section{Uncertainty in Free-Form Generation}
 
-For a classifier with a fixed label set --- say, ``cat'', ``dog'',
-``horse'' --- uncertainty estimation is well-defined: the model produces
-a categorical distribution over the labels, and that distribution
-already encodes how certain the model is. For language generation no
-such distribution exists at the level of \emph{meaning}. The model
-produces a distribution over token sequences, and the same proposition
-can be expressed by many different sequences (``Paris'', ``Paris,
-France'', ``the capital is Paris''), while superficially similar
-sequences can express different facts. Sequence-level entropy or
+When a model has to pick from a fixed, short list of answers --- say
+``cat'', ``dog'', or ``horse'' --- measuring its uncertainty is easy: it
+assigns a percentage to each option, and those percentages already say
+how sure it is. A language model has no such tidy list. It instead
+produces whole sentences, and the catch is that the \emph{same fact} can
+be written in many ways (``Paris'', ``Paris, France'', ``the capital is
+Paris''), while two sentences that look almost identical can mean
+different things. So counting how often the exact words differ is a poor
+guide to whether the model is really unsure about the answer. Sequence-level entropy or
 token-level variation can therefore be misleading for natural-language
 answers, as discussed in work on uncertainty in natural language
 generation~\cite{baan_uncertainty_nlg_2023} and semantic
@@ -124,24 +124,21 @@ the same group when they entail one another in the context of the question.
 This bidirectional-entailment
 criterion is a practical approximation to equality of meaning.
 
-NLI supplies a way to approximate this relation by labeling each pair
-of sentences as
-\emph{entailment}, \emph{contradiction}, or \emph{neutral}. The primary NLI backend used in
-the replication condition is a Sentence-Transformers DeBERTa-v3-base
-cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}
-based on DeBERTa/DeBERTa-v3~\cite{he_deberta_2021,he_debertav3_2021}
-and trained on SNLI and MultiNLI~\cite{williams_multinli_2018}.
-A \emph{cross-encoder} is a neural network architecture in which both
-input texts --- here, a candidate answer pair together with the question
---- are concatenated into a single sequence and processed jointly by the
-transformer, allowing the model to attend across both texts at once.
-This contrasts with a \emph{bi-encoder} (also called a \emph{dual
-encoder}), which encodes each text independently and then compares the
-resulting embedding vectors.
-Cross-encoders are generally more accurate for pairwise classification
-tasks such as NLI, because the model sees the full interaction between
-the two inputs; the trade-off is speed, since every pair must be encoded
-separately rather than pre-computing a single embedding per text.
+Natural Language Inference (NLI) is the standard tool for this. An NLI
+model reads two sentences and labels their relationship as
+\emph{entailment} (the first implies the second), \emph{contradiction},
+or \emph{neutral}. Checking entailment in both directions is then a
+practical stand-in for ``these two answers mean the same thing.'' The
+specific NLI model used here is a DeBERTa-v3 \emph{cross-encoder}
+fine-tuned on the standard SNLI and MultiNLI inference
+datasets~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
+he_deberta_2021,he_debertav3_2021,williams_multinli_2018}. ``Cross-encoder''
+just means the two sentences (plus the question) are fed into the model
+\emph{together}, so it can directly compare them; the alternative, a
+\emph{bi-encoder}, would encode each sentence on its own and compare the
+results afterwards. The cross-encoder is more accurate for this kind of
+pairwise judgement but slower, because every pair of answers has to be
+run through the model.
 The exact bidirectional-entailment rule and the recorded backend choices
 are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 

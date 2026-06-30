@@ -1,4 +1,4 @@
-\chapter{Semantic Entropy}
+\chapter{Semantic Entropy and Related Estimators}
 \label{ch:semantic_entropy}
 
 This chapter defines the main method used in the thesis: discrete
@@ -11,8 +11,11 @@ meaning-level framing follows Kuhn et
 al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
 al.~\cite{semantic_entropy_nature_2024}.
 Chapter~\ref{ch:experimental_design} then turns the method into an
-experimental design, and Chapter~\ref{ch:extensions} covers the Kernel
-Language Entropy variant.
+experimental design. The later sections of this chapter
+(Sections~\ref{sec:kle}--\ref{sec:other-estimators}) define the related
+estimators that the experiments compare against discrete semantic
+entropy: Kernel Language Entropy, Semantic Entropy Probes, P(True), and
+embedding regression.
 
 \section{Entropy as a measure of uncertainty}
 
@@ -103,6 +106,31 @@ belongs to the \emph{evaluation} of the method rather than to the
 method itself, and is treated separately in
 Chapter~\ref{ch:experimental_design}.
 
+Figure~\ref{fig:method-schematic} reproduces the original illustration of
+the method. Panel~(a) makes the central point on a short factual
+question: when the sampled answers are counted as raw strings,
+paraphrases such as ``Paris'' and ``It's Paris'' are treated as different
+answers and the naive entropy looks misleadingly high; after the answers
+are grouped by meaning, the same samples give a low semantic entropy.
+Panel~(b) shows the long-form version used later in this thesis
+(FactualBio), where a generated biography is split into individual factual
+claims, each claim is re-asked as a question, and the regenerated answers
+are grouped by meaning to score how likely that claim is to be a
+confabulation.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{semantic_entropy_paper_fig1.png}
+\caption{The semantic-entropy method. (a)~On a short question, counting
+  distinct wordings overstates uncertainty (``misleadingly high naive
+  entropy''), whereas grouping the answers by meaning first gives a low
+  semantic entropy. (b)~The same idea applied to long-form biographies at
+  the level of individual claims (FactualBio). Reproduced from Farquhar et
+  al.~\cite{semantic_entropy_nature_2024} (\emph{Nature}, 2024), licensed
+  under CC~BY~4.0.}
+\label{fig:method-schematic}
+\end{figure}
+
 \section{Sampling setup}
 
 For each prompt $x$ the model is sampled $M$ times under a fixed
@@ -170,14 +198,53 @@ al.~\cite{semantic_entropy_nature_2024}; it is an approximation rather
 than a definition, because NLI judgments made by a small cross-encoder
 can be noisy. In particular it may split answers that differ only in
 harmless detail and merge answers that hide important factual
-differences. The empirical impact of these errors is what the cluster
-audit in Section~\ref{sec:cluster-audit} and the discussion in
-Chapter~\ref{ch:discussion} address. The backends used to compute
+differences. The empirical impact of these errors is examined through
+the worked examples in Section~\ref{sec:hand-audits} and the discussion
+in Chapter~\ref{ch:discussion}. The backends used to compute
 $e(\cdot,\cdot\mid x)$ are DeBERTa NLI cross-encoders (v3-base,
 v3-large, and v2-xlarge-MNLI) and a Qwen2.5-72B-Instruct LLM judge;
 DeBERTa-v3-large is the canonical backend for the headline results,
 and the sensitivity to this choice is quantified in
 Section~\ref{sec:clustering-sensitivity}.
+
+The grouping uses the same bidirectional-entailment criterion as Farquhar
+et al.~\cite{semantic_entropy_nature_2024}, but computes the groups in a
+slightly different (and equivalent in intent) way. Rather than scanning
+the answers one at a time and comparing each to a single cluster
+representative, the implementation here tests \emph{every} pair of
+sampled answers for mutual entailment and then forms the
+\emph{connected groups} of the resulting graph: any two answers that
+entail each other in both directions are placed together, and this
+merging is transitive --- if answer~A matches answer~B and B matches~C,
+then A, B and C all end up in one group, even if A and C were never a
+direct match. Algorithm~\ref{alg:clustering} states this procedure
+exactly as implemented, and the worked example in
+Section~\ref{sec:worked_example} shows it on a small case, reading the
+groups directly off the pairwise entailment matrix.
+
+\begin{algorithm}
+\caption{Bidirectional-entailment clustering by connected components, as
+  implemented in this thesis
+  (\texttt{semantic\_entropy.clustering.nli\_cluster}).}
+\label{alg:clustering}
+\KwIn{question $x$; normalized answers $y_1,\ldots,y_M$; NLI model
+  $\mathcal{M}(\cdot,\cdot\mid x)$ returning entailment, neutral, or
+  contradiction}
+\KwOut{one cluster identifier per answer}
+initialise union--find: $\mathrm{parent}[i] \gets i$ for $i=1,\ldots,M$\;
+\For{$i \gets 1$ \KwTo $M-1$}{
+  \For{$j \gets i+1$ \KwTo $M$}{
+    $a \gets \mathcal{M}(y_i, y_j \mid x)$\tcp*{does $y_i$ entail $y_j$?}
+    $b \gets \mathcal{M}(y_j, y_i \mid x)$\tcp*{and $y_j$ entail $y_i$?}
+    \If{$a$ is entailment \textbf{and} $b$ is entailment}{
+      $\textsc{union}(i,j)$\tcp*{merge the two answers' groups}
+    }
+  }
+}
+form groups $C$ from the connected components of the union--find\;
+\Return $C$ (one cluster id per answer; the first-seen answer is each
+  group's representative)\;
+\end{algorithm}
 
 \section{Discrete semantic entropy}
 
@@ -226,17 +293,20 @@ Semantic & \makecell[l]{discrete semantic entropy\\
 \end{tabular}
 \end{center}
 
-The word ``naive'' is overloaded in the literature: naive
-\emph{sample} entropy and surface entropy are this project's
-count-based surface baselines (the same idea before and after
-normalization), whereas \emph{naive entropy} denotes the paper's
-probability-weighted baseline over distinct strings. When all
-per-sequence probabilities are equal, full semantic entropy reduces
-algebraically to the discrete estimator; a parity test in the code
-asserts this. The surface baselines isolate the question of whether
-semantic clustering adds value beyond simply observing that sampled
-outputs differ lexically; the probability-weighted variants isolate
-the value of the model's own sequence likelihoods.
+The naming is unfortunately confusing, so it is worth stating plainly.
+Two of these scores ignore meaning and just look at the answer strings:
+\emph{naive sample entropy} counts the raw strings and \emph{surface
+entropy} counts them after light clean-up (these are the project's
+``surface'' baselines). One score, the paper's \emph{naive entropy}, also
+ignores meaning but weights each distinct string by how likely the model
+thought it was. The two \emph{semantic} scores first group answers by
+meaning: \emph{discrete semantic entropy} counts the groups, and \emph{full
+semantic entropy} weights them by probability. A small but useful fact:
+when every answer is equally likely, the full version reduces exactly to
+the discrete one (the code checks this). In short, the surface baselines
+test whether grouping by meaning helps at all, and the
+probability-weighted versions test whether the model's own confidence in
+each answer adds anything.
 
 \section{Worked example}
 \label{sec:worked_example}
@@ -368,3 +438,110 @@ minimal:
 Correctness labeling and selective-prediction evaluation use these
 outputs but are part of the surrounding evaluation pipeline, not of the
 method itself.
+
+\section{Related estimators evaluated alongside}
+
+Discrete semantic entropy is the central method, but it is not the only
+way to turn a model's behaviour into an uncertainty score. The
+experiments compare it against four further estimators, defined here so
+that the results chapter can refer to them by name. Two of them
+(Kernel Language Entropy and Semantic Entropy Probes) come from the
+recent literature and address a practical weakness of the main method:
+its cost. Computing discrete semantic entropy needs $M$ sampled answers
+per question and up to $M^2$ pairwise entailment checks to build the
+clusters --- affordable for a study, but heavy at deployment scale. The
+other two (P(True) and embedding regression) are simple, widely used
+baselines.
+
+\subsection{Kernel Language Entropy}
+\label{sec:kle}
+
+Kernel Language Entropy
+(KLE)~\cite{nikitin_kernel_language_entropy_2024} keeps the idea of
+measuring how spread out the sampled answers are, but replaces the
+\emph{hard} yes/no clustering step with a \emph{soft}, continuous
+measure of semantic spread. It still draws the same $M$ samples, but
+instead of grouping them with NLI it compares them through
+sentence-embedding similarity.
+
+\begin{enumerate}
+  \item \textbf{Embed.} Each sampled answer $y_i$ is turned into a dense
+    vector $\mathbf{v}_i$ by a sentence-embedding model (the recorded
+    runs use a small general encoder, all-MiniLM-L6-v2, and a larger
+    NLI-tuned one, nli-roberta-large).
+  \item \textbf{Build a similarity matrix.} A Gaussian kernel turns the
+    pairwise distances between these vectors into similarities
+    $K_{ij}=\exp(-\lVert\mathbf{v}_i-\mathbf{v}_j\rVert^2/2\sigma^2)$,
+    with the bandwidth $\sigma^2$ set to the median pairwise distance.
+    The matrix is rescaled so its entries behave like a probability
+    table (it sums to one along the diagonal).
+  \item \textbf{Take the entropy of the matrix.} The KLE score is the
+    von~Neumann entropy of that matrix --- which is just the Shannon
+    entropy of its eigenvalues. It is low when the answer vectors point
+    in nearly the same direction (the samples agree) and high when they
+    spread across many directions (the samples disagree).
+\end{enumerate}
+
+KLE and discrete semantic entropy measure related but different things:
+the discrete score makes a hard merge/split decision for each pair,
+while KLE uses the full embedding geometry. They agree at the extremes
+(identical answers give zero; totally dissimilar answers give the
+maximum) and disagree mainly on the boundary cases where the NLI judge
+would have made a marginal merge or split. KLE is still $O(M^2)$ in the
+samples, but each comparison is a cheap dot product rather than a full
+NLI forward pass.
+
+\subsection{Semantic Entropy Probes}
+\label{sec:sep-method}
+
+A Semantic Entropy Probe
+(SEP)~\cite{kossen_semantic_entropy_probes_2024} attacks the cost
+problem from the other side: it tries to read the uncertainty directly
+off the model's internal state, so that at test time only a
+\emph{single} forward pass is needed --- no multi-sampling and no
+entailment comparisons.
+
+\begin{itemize}
+  \item \textbf{Training.} On a set of questions for which we already
+    have answers and correctness labels, the model is run once per
+    question and the hidden state of the last generated token (at the
+    final Transformer layer) is recorded as a feature vector. A simple
+    logistic-regression classifier is then trained to predict, from that
+    vector alone, whether the answer is incorrect. This connects to a
+    broader line of work showing that a model's internal representations
+    carry signals about
+    truthfulness~\cite{burns_latent_knowledge_2023,%
+    azaria_internal_state_lying_2023,chen_inside_2024,gao_h_neurons_2025}.
+  \item \textbf{Inference.} For a new question, generate one answer, read
+    the same hidden state, and apply the trained classifier. Its output
+    (a number between 0 and 1) is used as the uncertainty score, larger
+    meaning riskier.
+\end{itemize}
+
+Because the probe is trained and evaluated on \emph{disjoint} sets of
+questions, its scores are a genuine held-out test rather than a re-scoring
+of the same records. The feature choices (which layer, how to pool
+tokens) are fixed in advance rather than tuned on the test set, so they
+do not leak information. The trade-off is the obvious one: the probe is
+far cheaper than full semantic entropy, but it can only use what is
+linearly readable from one hidden state.
+
+\subsection{P(True) and embedding regression}
+\label{sec:other-estimators}
+
+Two further baselines round out the comparison.
+
+\textbf{P(True)} asks the model to grade itself: after it produces an
+answer, the model is prompted to say how likely that answer is to be
+true, and the probability it assigns to ``true'' is read off as a
+(inverted) confidence score. It needs no extra samples and no probe
+training, which makes it a natural cheap reference point.
+
+\textbf{Embedding regression} is a close cousin of the SEP probe: the
+same kind of linear model trained on the same last-token hidden states,
+but supervised directly on \emph{judged correctness} rather than on a
+semantic-entropy threshold. It is reported in two forms ---
+\emph{in-distribution}, trained and tested on the same task, and
+\emph{out-of-distribution}, trained on one task and tested on another ---
+so that the experiments can measure how well a hidden-state probe
+transfers between datasets.

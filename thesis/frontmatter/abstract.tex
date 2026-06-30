@@ -37,18 +37,19 @@ stability and record-level paired-bootstrap significance are reported
 separately.
 
 The findings are regime-dependent. On short-answer tasks all
-sampling-based estimators work (AUROC 0.74--0.92), and the aggregates
+sampling-based estimators work (AUROC 0.74--0.88), and the aggregates
 are quantitatively consistent with Farquhar et al.\ under the matched
 protocol, but entropy over normalized strings is the strongest single
-score in seven of nine cells and no method beats it significantly: a
+score in six of nine cells and no method beats it significantly: a
 record-level analysis shows that answer normalization, not semantic
 clustering, performs almost all of the grouping on short answers. On
 long-form biography the surface baselines collapse to chance while
-semantic clustering recovers a significant signal for every generator,
-and probability-weighted naive entropy is the strongest cross-seed
-score. The clustering backend is result-determining on long-form
-inputs --- spanning chance-level, useful, and stably anti-predictive
-behavior on the same samples --- and at claim level, semantic
+meaning-aware and representation-based detectors recover a significant
+signal for every generator; the strongest long-form scores come from
+probability-weighted naive entropy on the two smaller models and from a
+single-pass self-evaluation, P(True), on the largest. The clustering backend is result-determining on long-form
+inputs --- spanning chance-level to clearly useful behavior on the same
+samples --- and at claim level, semantic
 entropy's discriminative power decreases monotonically with generator
 scale (AUROC 0.69 $\rightarrow$ 0.64 $\rightarrow$ 0.52 from 7B to
 70B): larger models repeat their confabulations too consistently for
