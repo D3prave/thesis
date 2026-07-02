@@ -150,6 +150,7 @@ _figure_vault/
 *.pptx
 *.ppt
 *.xlsx
+!/Semantic_Entropy_Seminar.pptx
 
 # Pulled analysis-layer results (regenerable; large) — stay local
 results_rerun_20260604/
