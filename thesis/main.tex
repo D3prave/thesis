@@ -46,6 +46,9 @@
 \widowpenalty=10000
 \clubpenalty=10000
 \displaywidowpenalty=10000
+% Let TeX stretch a little more before declaring a line overfull, which clears
+% the few remaining small overfull boxes without visibly loosening the text.
+\setlength{\emergencystretch}{3em}
 
 \setcounter{tocdepth}{1}
 
@@ -61,7 +64,7 @@
 }
 
 \subject{Bachelor thesis}
-\title[Semantic entropy hallucination detection]{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
+\title[Detecting Hallucinations in Large Language Models Using Semantic Entropy]{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
 \author[Jakub Wiśniewski]{%
 \textsc{Jakub Wiśniewski}\\
 Matriculation number: [removed]\\
@@ -86,7 +89,7 @@ Date of birth: [removed]
 \input{frontmatter/acknowledgements.tex}
 \tableofcontents
 \glsaddall
-\printnoidxglossary[title=Glossary]
+\printnoidxglossary[title=Glossary, nonumberlist]
 
 \mainmatter
 

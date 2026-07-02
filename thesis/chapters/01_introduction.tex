@@ -42,12 +42,16 @@ setup and to study how well it works there, and under which conditions.
 \section{Research Aim}
 
 The main question is whether semantic entropy is a better signal for
-hallucination risk and selective abstention than surface-form uncertainty,
+hallucination risk and selective abstention --- letting the system
+decline to answer the questions it is most likely to get wrong --- than
+surface-form uncertainty,
 and how that comparison changes when the output grows from a short answer to
 a paragraph. The study uses TriviaQA, NQ-Open, and SVAMP as short-answer
 benchmarks and a FactScore-style biography task as the long-form case,
 evaluated both for the whole paragraph and at the level of individual claims.
-It runs three open generator models under three decoding seeds. The target is
+It runs three open generator models, each three times under different random
+seeds, so that every headline number comes with a spread across repeated
+runs. The target is
 \emph{confabulation}-like failure, where the model's answer varies in meaning
 across samples drawn from the same prompt; the long-form task also tests the
 harder case where surface variation is almost always present. The study does
@@ -81,7 +85,7 @@ long-form task, where surface methods break down. These points are stated
 carefully and with their limits in Chapters~\ref{ch:results}
 and~\ref{ch:discussion}.
 
-\section{Study Structure}
+\section{Experimental conditions at a glance}
 
 The study separates the cheap surface-form baselines from the semantic
 clustering condition that follows Farquhar et
@@ -107,8 +111,9 @@ Farquhar et al.
 \textbf{Additional analyses.} Separate sections report sensitivity checks with
 larger NLI judges and a Qwen2.5-72B-Instruct judge, a continuous kernel-based
 variant called Kernel Language
-Entropy~\cite{nikitin_kernel_language_entropy_2024}, held-out Semantic
-Entropy Probes, and a sampling-temperature sweep. These extend the
+Entropy~\cite{nikitin_kernel_language_entropy_2024}, Semantic
+Entropy Probes evaluated on held-out questions (questions the probe was
+not trained on), and a sampling-temperature sweep. These extend the
 replication question rather than forming part of the baseline.
 
 \section{Contributions}
@@ -118,8 +123,9 @@ al.~\cite{semantic_entropy_nature_2024}. The contribution of this thesis is
 to re-implement it in a smaller, fully local setup and to use that setup to
 ask a question the original aggregate evaluation does not isolate: how the
 value of meaning-level clustering changes as outputs get longer, and how it
-depends on decoding temperature. The work delivers, mainly through
-implementation, evaluation, and scope choices:
+depends on decoding temperature. This thesis contributes an implementation,
+an evaluation, and a set of scope choices that together isolate when
+meaning-level clustering helps. Concretely, it delivers:
 
 \begin{enumerate}
   \item an implementation of discrete semantic entropy for short-answer and
@@ -146,7 +152,7 @@ implementation, evaluation, and scope choices:
     meaning-aware methods separate clearly from surface-form baselines.
 \end{enumerate}
 
-\section{Thesis Structure}
+\section{Thesis outline}
 
 Chapter~\ref{ch:background} reviews the forms of LLM hallucination, the role
 of uncertainty estimation, the notion of semantic equivalence, and related

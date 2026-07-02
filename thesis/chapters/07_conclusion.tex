@@ -11,7 +11,7 @@ method follows Farquhar et al.~\cite{semantic_entropy_nature_2024};
 the contribution here is a reproducible reimplementation evaluated on
 a full cross-seed grid --- three open generators, three short-answer
 datasets and a long-form biography task, three decoding seeds under
-the original paper's sampling and labelling protocol --- plus a
+the original paper's sampling and labeling protocol --- plus a
 claim-level long-form extension, rather than a new semantic-entropy
 method.
 
@@ -20,13 +20,18 @@ than expected. On short-answer tasks every sampling-based estimator
 detects errors well (AUROC 0.74--0.88), but entropy over normalized
 strings --- the cheapest score in the family --- is the strongest
 single method in six of nine model--dataset cells, and no semantic,
-kernel, probe, or self-evaluation method beats it significantly
-anywhere. A record-level analysis explains why: dataset normalization
+kernel, probe, or self-evaluation method beats it by a margin of any
+practical size (the sole significant exception is $+0.003$ AUROC on
+SVAMP with the 70B model). A record-level analysis explains why: dataset
+normalization
 already removes almost all surface variation before any semantic step
 runs, so clustering has little left to merge. On long-form biography the
-same surface scores collapse to chance while every detector that escapes
-raw string-counting recovers a statistically significant signal for
-every generator; the strongest long-form scores come from
+same surface scores collapse to chance while the NLI-clustered and
+probability-weighted entropy estimators --- along with the probe and,
+on the larger models, P(True) --- recover a statistically significant
+signal for every generator (KLE, whose sentence-embedding kernel does
+not cope with paragraph-length text, is the one exception); the
+strongest long-form scores come from
 probability-weighted naive entropy on the two smaller models
 (AUROC 0.77--0.78) and from the single-pass P(True) on the largest
 (0.78). Under the paper-faithful protocol, the short-answer
@@ -43,32 +48,33 @@ semantic entropy's discriminative power decreases monotonically with
 generator scale (AUROC 0.688 $\rightarrow$ 0.644 $\rightarrow$ 0.521
 from 7B to 70B): larger models repeat their confabulations more
 consistently, eroding exactly the inconsistency that the method
-measures. Hidden-state probes invert this picture. On short answers
-they are merely a cheap alternative --- strictly weaker than
-sampling-based entropy, and converging to the same performance whether
-trained on correctness or on the semantic-entropy threshold --- but on
-long-form biography the SEP probe is competitive and, unlike every
-sampling-based score, its accuracy \emph{rises} with model scale ---
-though naive entropy, and on the 70B model P(True), score higher. Where
-a larger model's growing self-consistency erodes entropy- and
+measures. Hidden-state probes invert this picture. On short answers they
+are merely a cheap alternative --- strictly weaker than sampling-based
+entropy, and converging to the same performance whether trained on
+correctness or on the semantic-entropy threshold. On long-form
+biography, however, the SEP probe is competitive, and, unlike every
+sampling-based score, its accuracy \emph{rises} with model scale (though
+naive entropy, and P(True) on the 70B model, score higher). Where a
+larger model's growing self-consistency erodes entropy- and
 agreement-based detection, a probe that reads the model's own
-representation does not, making it the natural complement to semantic
+representation does not --- making it the natural complement to semantic
 entropy precisely where entropy is weakest.
 
 \section{Contributions}
 
 The substantive method comes from Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. The thesis contributes six
-main artifacts:
+al.~\cite{semantic_entropy_nature_2024}. The contributions promised in
+Chapter~\ref{ch:introduction} were delivered as the following six
+artifacts, with pointers to where each is established:
 
 \begin{enumerate}
   \item a reproducible \texttt{semantic\_entropy} implementation for
         normalization, clustering under multiple entailment backends,
-        the four-estimator entropy family, correctness labeling, and
+        the four entropy estimators, correctness labeling, and
         selective-prediction metrics;
   \item a complete cross-seed experiment record --- three generators,
         four datasets, three seeds under paper-faithful sampling and
-        accuracy labelling --- with Slurm templates, JSONL outputs,
+        accuracy labeling --- with Slurm templates, JSONL outputs,
         per-run and cross-seed metric summaries, and record-level
         paired-bootstrap significance kept separate from seed
         stability;
@@ -124,19 +130,3 @@ Record-level issues --- alias-type oracle failures on TriviaQA,
 semantically consistent refusals on biography, and SVAMP's
 integer-arithmetic structure --- are documented in the audits; the
 fuller discussion is in Section~\ref{sec:discussion-limitations}.
-
-\section{Future Work}
-
-Three extensions follow directly from the limitations above. First,
-the automated claim and paragraph labels should be validated against a
-human-graded
-subsample, since every long-form conclusion inherits the judge's error
-modes. Second, the FactualBio scale trend invites extension beyond 70B
-and beyond biographical claims: if consistency-based detection
-continues to erode with scale, the practical future of confabulation
-detection lies with methods that do not require the model to re-roll
-its errors, such as hidden-state probes or retrieval-grounded
-verification. Third, the long-form evaluation should extend beyond
-English single-reference biography and be paired with a dedicated
-detector for the semantically consistent refusals that low entropy
-cannot flag.

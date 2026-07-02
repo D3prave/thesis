@@ -19,13 +19,13 @@ short-answer and long-form regimes (Figure~\ref{fig:regime-split}). On
 the three short-answer tasks every sampling-based detector works (AUROC
 roughly $0.74$--$0.88$), and the cheapest of them --- entropy over
 normalized answer strings --- is the strongest single score in most
-cells, with no method beating it by a statistically significant margin
-anywhere (Table~\ref{tab:significance-vs-surface}). On long-form
+cells, with no method beating it by a margin of practical size anywhere
+(Table~\ref{tab:significance-vs-surface}). On long-form
 biography the same surface score sits at chance ($\approx 0.50$), and a
 usable signal has to be created either by meaning-level grouping
 (discrete semantic entropy: $0.708 / 0.618 / 0.612$ for
 Mistral-7B / Llama-3.1-8B / Llama-3.1-70B) or by reading the model's
-internal state with a probe (SEP: $0.656 / 0.728 / 0.731$).
+internal state with a probe (SEP), which recovers a comparable signal.
 
 The mechanism behind both halves is visible in the worked examples of
 Section~\ref{sec:hand-audits}. On short answers (Example~1,
@@ -43,14 +43,17 @@ confirms it cleanly.
 \label{sec:does-nli-help}
 
 At the level of the full grid the answer is now clear in both
-directions. On short answers, no: discrete semantic entropy never
-significantly \emph{exceeds} surface entropy in any short-answer cell ---
-wherever the paired bootstrap is significant it runs the other way, with
-surface entropy ahead (Table~\ref{tab:significance-vs-surface}). On
-long-form generation,
-yes, decisively: every meaning-aware and probability-weighted estimator
-beats the chance-level surface baseline by a wide margin on biography
-(gains of roughly $+0.11$ to $+0.21$ AUROC).
+directions. On short answers, no: with a single exception, wherever the
+paired bootstrap is significant it runs the other way, with surface
+entropy ahead (Table~\ref{tab:significance-vs-surface}). The exception
+--- discrete semantic entropy on SVAMP with the 70B model, ahead by
+$+0.003$ AUROC --- is real but far too small to matter in practice. On
+long-form generation, yes, decisively: the NLI-clustered and
+probability-weighted entropy estimators beat the chance-level surface
+baseline by $+0.11$ to $+0.28$ AUROC on biography, significantly in
+every seed for every generator, while KLE --- meaning-aware only in a
+soft, embedding-based sense --- fails to
+(Section~\ref{sec:bio-results}).
 
 The short-answer non-result is worth stating plainly, because the
 theoretical motivation for semantic entropy is that surface variation is
@@ -62,7 +65,13 @@ scores. TriviaQA leaves a little more room --- Example~1 shows NLI
 genuinely merging paraphrases such as ``Triumph and Disaster'' with
 ``Triumph and defeat'' --- but the records where this changes the ranking
 are a minority, and the net effect is not large enough to separate from
-run-to-run noise at $N=500$. The honest reading is a small positive
+run-to-run noise at $N=500$. Appendix~\ref{app:gallery} quantifies this
+record by record: NLI merges help on some model cells and hurt on
+others, with no consistent net gain, and the appendix's
+false-confidence example shows the failure mode --- a consistently
+wrong answer whose ten paraphrases NLI correctly merges, converting a
+correctly flagged record into a maximally confident error. The honest
+reading is a small positive
 tendency on TriviaQA and essentially nothing on SVAMP, which matches the
 modest size of the improvement reported in the original
 work~\cite{semantic_entropy_nature_2024}.
@@ -132,8 +141,8 @@ relatively strongest precisely in the regime where entropy struggles.
 \label{sec:temperature-discussion}
 
 The temperature sweep (Section~\ref{sec:temperature-sensitivity},
-Figure~\ref{fig:temp-sweep}) turns the probe-versus-entropy comparison
-into a deployment rule. Sampling-based entropy depends on the samples
+Figure~\ref{fig:temp-sweep}) gives the probe-versus-entropy comparison
+a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
 as temperature rises (TriviaQA/70B semantic entropy climbs from $0.54$
 at $T{=}0.1$ to $0.78$ at $T{=}1.0$). The hidden-state probe moves the
@@ -144,7 +153,7 @@ answers. The practical consequence is concrete: under the near-greedy
 decoding common in production, the single-pass probe is both the cheaper
 and the stronger choice; a sampling-based estimator only earns its cost
 once the decoder is warm enough for the samples to genuinely disagree. Two
-qualifications keep this honest: the temperature gain is shared by the
+qualifications apply: the temperature gain is shared by the
 surface baseline, so it reflects a general need for sampling diversity
 rather than something specific to semantic clustering, and P(True) is
 largely temperature-insensitive. On biography the curves are flat, so
@@ -158,8 +167,8 @@ The FactualBio claim-level extension
 the study: claim-level semantic entropy weakens monotonically as the
 generator grows, from AUROC $0.688$ (Mistral-7B) through $0.644$
 (Llama-3.1-8B) to $0.521$ (Llama-3.1-70B), with seed standard deviations
-below $0.01$. The same direction is visible in the whole-paragraph
-numbers ($0.708 \to 0.618 \to 0.612$).
+below $0.01$. The same downward direction is visible in the
+whole-paragraph biography numbers of Section~\ref{sec:bio-results}.
 
 The reason follows from what semantic entropy actually measures:
 \emph{inconsistency}. It flags an answer when regenerated samples disagree
@@ -181,7 +190,7 @@ AUROC of $0.790$ for semantic entropy across thirty task--model
 combinations, against $0.691$ for naive entropy and $0.698$ for P(True).
 The grid here was deliberately moved toward their protocol: matched
 sampling ($M=10$, $T=1.0$, top-$p=0.9$, top-$k=50$, with a low-temperature
-most-likely answer for accuracy labelling via SQuAD token-F1), three
+most-likely answer for accuracy labeling via SQuAD token-F1), three
 shared datasets (TriviaQA, NQ-Open, SVAMP), and both probability-weighted
 estimators computed alongside the discrete approximation. The remaining
 differences are deliberate and disclosed: newer open generators in place
@@ -189,18 +198,21 @@ of the LLaMA-2 family, local DeBERTa cross-encoders and an open Qwen judge
 in place of GPT-style judges, and 500-record evaluation sets.
 
 Under these settings the replication is quantitatively consistent with
-the original. Averaged over the nine short-answer cells at the canonical
-backend, the semantic estimators land in the same band as the paper's
-$0.790$ aggregate and reproduce its headline ordering --- semantic
-entropy above naive entropy and P(True). One claim of the original work
+the original. Averaged over the nine short-answer cells evaluated here at
+the canonical backend --- against the original work's thirty task--model
+combinations --- the semantic estimators land in the same AUROC band as
+the paper's $0.790$ aggregate and reproduce its headline ordering ---
+semantic entropy above naive entropy and P(True). This is a band-level
+agreement, not a cell-for-cell match. One claim of the original work
 does \emph{not} reproduce as stated: that semantic entropy beats the
 naive baselines. Count-based surface entropy --- which the paper does not
 report as a separate baseline --- is the strongest single short-answer
-score in most cells, and no semantic estimator beats it significantly.
-Semantic clustering earns its cost only in the long-form regime, where
+score in most cells, and no semantic estimator beats it by more than a
+practically negligible margin (Section~\ref{sec:significance}).
+Semantic clustering provides measurable value only in the long-form regime, where
 the paper's qualitative claim is strongly confirmed: surface scores
-collapse to chance and meaning-aware entropy recovers a real signal for
-every generator. The grid also extends the original analysis in a
+collapse to chance and NLI-clustered entropy recovers a statistically
+significant signal for every generator. The grid also extends the original analysis in a
 direction it did not quantify --- the entailment backend, which is
 immaterial on short answers, is result-determining on whole paragraphs
 (Section~\ref{sec:nli-sensitivity}).
@@ -235,17 +247,42 @@ long-form AUROC. The scale trend is robust across seeds but not, on this
 evidence, established as robust to the choice of judge.
 
 \paragraph{Embedding regression on biography.} Embedding regression is
-reported on short answers but omitted on biography, where its
-paragraph-level evaluation degenerates rather than producing a
-trustworthy number. The remaining long-form methods (discrete semantic
-entropy, naive entropy, P(True), KLE, and the SEP probe) are reported
-across all three seeds.
+reported on biography across all three seeds, but its in-distribution
+value coincides numerically with the SEP probe, because both are linear
+probes over the same pooled hidden states and converge to the same
+solution whether trained on correctness or on the semantic-entropy
+threshold. It therefore adds no independent in-distribution signal on
+long-form text; only the pooled leave-one-out out-of-distribution
+variant, which drops toward chance, is a distinct measurement
+(Section~\ref{sec:probes-results}).
+
+\paragraph{Judge coupling on biography.} A further long-form caveat
+concerns the correctness labels, which are produced by the
+Qwen2.5-72B-Instruct judge. That same model is also one of the clustering
+backends, so in the Qwen-clustered sensitivity variant the clusterer and
+the grader coincide and could share a bias. The canonical headline
+numbers are clustered with the independent DeBERTa-v3-large
+cross-encoder, so there the clusterer and grader differ; and the backend
+comparison (Section~\ref{sec:clustering-sensitivity}), which varies the
+clusterer while holding the label fixed, still recovers a signal, which
+argues against a pure clustering artefact. What no such control rules out
+is a bias in the grader itself, shared across every backend; only
+human-validated labels could settle that, and it remains the main
+long-form threat.
+
+\paragraph{Clustering backend as a researcher degree of freedom.} The
+choice of canonical clustering backend (DeBERTa-v3-large) is itself a
+researcher degree of freedom. Because the backend is result-determining
+on long-form inputs (Section~\ref{sec:clustering-sensitivity}), the long-form
+numbers should be read as conditional on that choice; the
+clustering-sensitivity table reports the spread across backends so the
+dependence is explicit rather than hidden.
 
 \paragraph{Three seeds and dataset scope.} Cross-seed spreads come from
 three decoding seeds; they reliably flag gross instability but cannot
 fully characterize the seed distribution, so the paired bootstrap carries
 the inferential weight. The long-form evaluation is biography only,
-English only, and judge-labelled, so the short-versus-long contrast and
+English only, and judge-labeled, so the short-versus-long contrast and
 the scale trend should not be over-generalized to all long-form
 generation, other languages, or settings where a different correctness
 oracle would change the labels.

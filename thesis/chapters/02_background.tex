@@ -12,8 +12,8 @@ surveyed in hallucination and factuality
 work~\cite{ji_hallucination_survey_2023,huang_llm_hallucination_survey_2023,%
 maynez_faithfulness_factuality_2020,%
 kalai_why_language_models_hallucinate_2025,%
-augenstein_factuality_challenges_2024}. Throughout this thesis we will
-often use the word ``hallucination'' as a convenient cover term, but the
+augenstein_factuality_challenges_2024}. Throughout this thesis the word
+``hallucination'' is used as a convenient cover term, but the
 goal is not to detect arbitrary types of hallucination; the goal is to
 detect those answers that are unreliable because the model is uncertain
 about the meaning of the answer it has produced.
@@ -56,7 +56,10 @@ produces whole sentences, and the catch is that the \emph{same fact} can
 be written in many ways (``Paris'', ``Paris, France'', ``the capital is
 Paris''), while two sentences that look almost identical can mean
 different things. So counting how often the exact words differ is a poor
-guide to whether the model is really unsure about the answer. Sequence-level entropy or
+guide to whether the model is really unsure about the answer: when the
+model's probability mass is split across ten paraphrases of the same
+fact, the token-level numbers look uncertain even though the model is,
+in meaning, entirely consistent. Sequence-level entropy or
 token-level variation can therefore be misleading for natural-language
 answers, as discussed in work on uncertainty in natural language
 generation~\cite{baan_uncertainty_nlg_2023} and semantic
@@ -80,7 +83,9 @@ Recent surveys~\cite{shorinwa_uq_llm_survey_2024,liu_uq_confidence_calibration_s
 place
 this family of methods within uncertainty quantification for LLMs,
 alongside calibration, verbalized confidence, internal-state methods,
-and other sampling-based estimators.
+and other sampling-based estimators, and systematic benchmarks now
+compare many such estimators head to
+head~\cite{lm_polygraph_vashurin_2025}.
 
 \section{Confidence, Calibration, and Abstention}
 
@@ -112,6 +117,11 @@ probabilities. Semantic entropy is
 closest in spirit to these sampling-based methods, but, unlike them, it
 explicitly aggregates samples into semantic clusters before computing
 an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+These methods span a spectrum from purely internal (P(True), reading
+verbalized self-knowledge) to purely behavioral (SelfCheckGPT, sampling
+consistency); semantic entropy sits between them, adding an explicit
+meaning-equivalence step that none of the others perform, and it is the
+marginal value of this step that the present study isolates.
 
 \section{Semantic Equivalence and Entailment}
 
@@ -144,49 +154,34 @@ are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
 \section{Research Gap}
 
-The empirical design later fixes the scope to three short-answer tasks
-and one long-form task: open-domain factual question answering with
-TriviaQA~\cite{joshi_triviaqa_2017} and
-NQ-Open~\cite{lee_nq_open_2019}, arithmetic word problems with
-SVAMP~\cite{patel_svamp_2021}, plus a FactScore-style biography
-task~\cite{min_factscore_2023}. This scope leaves several natural
-extensions outside the recorded study, including
-SQuAD~\cite{rajpurkar_squad_2016}, BioASQ~\cite{tsatsaronis_bioasq_2015},
-and TruthfulQA~\cite{lin_truthfulqa_2022}. Table~\ref{tab:dataset-samples}
-shows representative records from each dataset; the dataset rationale
-and exact prompt construction are given in
-Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
+Prior evaluations of semantic entropy report strong aggregate AUROC but
+leave three questions unresolved. First, they rarely include a
+normalized surface-form baseline, so it is unclear how much of the
+reported gain over ``naive'' entropy is attributable to semantic
+clustering rather than to simple answer normalization. Second, the
+short-answer and long-form settings are typically reported together
+rather than as a controlled contrast, even though these are precisely
+the regimes in which surface-level and meaning-level uncertainty should
+diverge; recent work already reports that semantic entropy loses
+discriminative power as one-sentence outputs
+lengthen~\cite{nguyen_beyond_semantic_entropy_2025}, but does not isolate
+the short-versus-long contrast under a single controlled protocol. Third,
+the dependence of sampling-based detection on the decoding temperature
+--- the very parameter that controls sample diversity --- has been
+examined only in isolated
+ablations~\cite{nguyen_beyond_semantic_entropy_2025} rather than
+characterized systematically across tasks and detector families. This
+thesis targets these three gaps directly.
 
-\begin{table}[htb]
-\thisfloatsetup{capposition=above}
-\centering
-\small
-\caption{Illustrative records from TriviaQA, SVAMP, and the biography task. TriviaQA
-  prompts are the raw question string; SVAMP prompts concatenate the
-  \texttt{Body} and \texttt{Question} fields. TriviaQA reference
-  answers include accepted aliases separated by semicolons; SVAMP
-  reference answers are the single numeric value; biography references
-  are pinned English Wikipedia lead paragraphs.}
-\label{tab:dataset-samples}
-\begingroup
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}p{1.45cm}>{\raggedright\arraybackslash}p{5.8cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
-\toprule
-Dataset & Prompt & \makecell[l]{Reference\\answer(s)} \\
-\midrule
-TriviaQA & What is the capital city of France?                        & Paris; Paris, France \\[4pt]
-TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
-TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
-\midrule
-SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
-SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
-SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
-\midrule
-Biography & Tell me a bio of Marie Curie. & English Wikipedia lead paragraph \\
-\bottomrule
-\end{tabular}
-\endgroup
-\end{table}
+Addressing them fixes the empirical scope to three short-answer tasks
+--- open-domain factual question answering with
+TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}
+and arithmetic word problems with SVAMP~\cite{patel_svamp_2021} --- and
+one long-form task, a FactScore-style biography
+task~\cite{min_factscore_2023}. The dataset rationale, the datasets left
+outside the recorded study, representative records, and the exact prompt
+construction are given in Chapter~\ref{ch:experimental_design} and
+Appendix~\ref{app:prompts}.
 
 Taken together, the literature positions semantic entropy as a middle
 ground between cheap surface-level uncertainty signals and expensive

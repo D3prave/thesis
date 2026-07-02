@@ -27,9 +27,16 @@ SVAMP provides short math word problems for which answer normalization
 and semantic equivalence matter at the level of numbers rather than
 phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
 apples does she have now?''}. The biography task prompts the model with
-\textit{``Tell me a bio of \{entity\}.''} for a held-out set of person
-entities and elicits a multi-sentence paragraph rather than a short
-answer. The three short-answer datasets are small enough to support
+\textit{``Tell me a bio of \{entity\}.''} and elicits a multi-sentence
+paragraph rather than a short answer; the person entities are drawn from
+English Wikipedia category listings (Nobel laureates, heads of state
+and government, major scientific-award winners, inventors, and
+novelists), following the FactScore setup~\cite{min_factscore_2023},
+and each entity's reference is the pinned lead section of its Wikipedia
+article. The evaluated prompt sets are fixed once and shared by every
+model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and
+the biography task, and 300 for SVAMP, drawn from the datasets'
+validation splits. The three short-answer datasets are small enough to support
 repeated sampling while exercising distinct failure modes ---
 trivia-style factual recall, search-query factual recall, and
 structured arithmetic reasoning --- and the biography task adds a
@@ -39,8 +46,40 @@ regime is the setting in which surface-form and meaning-level
 uncertainty are most likely to diverge, because after normalization
 the ten samples for a biography prompt are almost always ten distinct
 strings, so exact-match clustering can no longer collapse them.
-Example records are reproduced in
-Appendix~\ref{app:experiment-details}.
+Representative records from each dataset are shown in
+Table~\ref{tab:dataset-samples}, and further example records are
+reproduced in Appendix~\ref{app:experiment-details}.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Illustrative records from TriviaQA, SVAMP, and the biography task. TriviaQA
+  prompts are the raw question string; SVAMP prompts concatenate the
+  \texttt{Body} and \texttt{Question} fields. TriviaQA reference
+  answers include accepted aliases separated by semicolons; SVAMP
+  reference answers are the single numeric value; biography references
+  are pinned English Wikipedia lead paragraphs.}
+\label{tab:dataset-samples}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{1.45cm}>{\raggedright\arraybackslash}p{5.8cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
+\toprule
+Dataset & Prompt & \makecell[l]{Reference\\answer(s)} \\
+\midrule
+TriviaQA & What is the capital city of France?                        & Paris; Paris, France \\[4pt]
+TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
+TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
+\midrule
+SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
+SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
+SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
+\midrule
+Biography & Tell me a bio of Marie Curie. & English Wikipedia lead paragraph \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
 
 The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
 reports results across five short-answer datasets: TriviaQA, SQuAD,
@@ -63,6 +102,7 @@ separately; its protocol and results are reported in
 Section~\ref{sec:factualbio-results}.
 
 \section{Models and the replication condition}
+\label{sec:models-replication}
 
 The study generates answers with three open language models of different
 sizes: Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
@@ -114,9 +154,21 @@ recomputed for the NLI-clustered records. The NLI backend used is a
 Sentence-Transformers DeBERTa-v3-base
 cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022},
 a DeBERTa-v3 model~\cite{he_debertav3_2021} fine-tuned on SNLI and
-MultiNLI~\cite{williams_multinli_2018}. This is the
-configuration that corresponds most directly to the original
-semantic-entropy method.
+MultiNLI~\cite{williams_multinli_2018}. This is the lightest
+configuration faithful to the original semantic-entropy method, and it
+is the backend used for the full-grid generation runs.
+
+Two NLI cross-encoders therefore appear in the results. The replication
+condition above is run end-to-end with DeBERTa-v3-base. For the headline
+entropy numbers reported in Chapter~\ref{ch:results}, every saved sample
+set is additionally re-clustered \emph{post hoc} with the larger
+DeBERTa-v3-large cross-encoder, which is treated as the canonical
+backend. Because re-clustering reuses the same saved samples, any
+difference between the two backends reflects the equivalence judge alone.
+Throughout, a table or figure that reports ``canonical'' clustering
+refers to DeBERTa-v3-large; the base-backend numbers appear as one column
+of the clustering-sensitivity analysis
+(Section~\ref{sec:clustering-sensitivity}).
 
 The replication condition introduces no new research question; it tests whether the
 ranking behavior seen in the baseline survives when exact-match clustering is
@@ -145,17 +197,30 @@ string comparison against the reference answer, the same exact-string
 protocol used for the surface-form baseline. This is not available for
 paragraph-length biographies, which have no single short ground-truth
 string. The biography task therefore grades correctness with the open
-instruction-tuned judge (Qwen2.5-72B-Instruct) against the first
+instruction-tuned judge
+(Qwen2.5-72B-Instruct~\cite{yang_qwen25_2024}) against the first
 paragraph of the entity's English Wikipedia article. Because AUROC and
 AURAC need one correctness bit per prompt, the recorded label grades the
 representative response from the modal cluster, not all ten sampled
-paragraphs independently. The judge is asked whether that representative
+paragraphs independently; this assumes that the most frequently expressed
+paragraph is the one whose reliability the detector is being asked to
+predict. The judge is asked whether that representative
 biography is factually consistent with the reference, and the binary
 verdict becomes the correctness label used for AUROC and AURAC. The
 reference revision is pinned per record so the label is reproducible.
 This protocol matches the long-form correctness setup of Farquhar et
-al.~\cite{semantic_entropy_nature_2024}; its main limitation, the judge
-standing in for ground truth, is discussed in
+al.~\cite{semantic_entropy_nature_2024}. One caveat is specific to the
+long-form task. These correctness labels are produced by the
+Qwen2.5-72B-Instruct judge, and that same model is also one of the
+clustering backends (Section~\ref{sec:clustering-sensitivity}); in that
+sensitivity variant the clusterer and the grader coincide, so a
+systematic judge error could affect a detector score and its label in a
+correlated way. The canonical headline numbers avoid this coincidence,
+because their clustering uses the independent DeBERTa-v3-large
+cross-encoder rather than the grading model. Varying the clusterer while
+holding the label fixed (Section~\ref{sec:clustering-sensitivity})
+therefore also serves as a partial control; this and the more general
+limitation of a judge standing in for ground truth are discussed in
 Section~\ref{sec:discussion-limitations}.
 
 \section{Sampling settings}
@@ -173,7 +238,7 @@ appropriate for sentence-length question answering, and is raised for
 the biography task so that paragraph-length generations are not
 truncated.
 
-Correctness labelling on the short-answer datasets also follows the
+Correctness labeling on the short-answer datasets also follows the
 original protocol: in addition to the ten high-temperature samples,
 each prompt receives one low-temperature ($T=0.1$) most-likely answer,
 which is counted correct when its SQuAD token-F1 against any reference
@@ -206,8 +271,11 @@ Chapter~\ref{ch:semantic_entropy}).
 Beyond the entropy family, the final grid records three supervised or
 self-evaluation baselines:
 P(True)~\cite{kadavath_language_models_know_2022}, in which the
-generator judges few-shot in-context whether its own most-likely
-answer is true; embedding regression, a logistic probe on the final
+generator judges whether its own most-likely answer is true (the
+grading prompt shows a few solved examples of the true/false judgment
+--- ``few-shot in-context'' --- before the actual question, and the
+probability the model assigns to the token ``True'' is read off as the
+score); embedding regression, a logistic probe on the final
 hidden state trained to predict incorrectness, evaluated both
 in-distribution and trained on a different short-answer dataset
 (out-of-distribution); and the semantic-entropy probe defined in
@@ -216,8 +284,8 @@ SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
 sampling-based baseline but was not included in the recorded runs.
 
 Each saved sample set is additionally re-clustered posthoc under
-multiple semantic backends --- DeBERTa-v3-base, DeBERTa-v3-large, and
-DeBERTa-v2-xlarge-MNLI cross-encoders plus a Qwen2.5-72B-Instruct
+multiple semantic backends --- DeBERTa-v3-base and DeBERTa-v3-large
+cross-encoders plus a Qwen2.5-72B-Instruct
 LLM judge --- and re-scored with KLE under two sentence encoders
 (all-MiniLM-L6-v2 and nli-roberta-large). These checks reuse the saved
 answer samples, so any metric change comes from the semantic judge or
@@ -228,58 +296,18 @@ reported in Section~\ref{sec:clustering-sensitivity}.
 \section{Output schema}
 
 Each recorded run writes JSONL --- one JSON object per line --- with
-exactly one record per prompt. The schema below makes generation,
-clustering, scoring, and evaluation auditable while leaving extensions
-free to add method-specific fields:
-
-\begin{verbatim}
-{
-  "run_id": "string",
-  "phase": "<legacy condition label>",
-  "cluster": "local|alex",
-  "prompt_id": "string",
-  "dataset": "triviaqa|svamp|...",
-  "split": "validation|train|test",
-  "prompt": "string",
-  "reference_answers": ["string"],
-  "model": "string",
-  "model_tier": "7b_8b|70b_plus",
-  "decoding": {
-    "num_samples": 10,
-    "temperature": 1.0,
-    "top_p": 0.9,
-    "top_k": 50,
-    "max_new_tokens": 64,   // dataset-specific
-    "seed": 42              // 42 | 43 | 44
-  },
-  "sampled_answers": ["string"],
-  "normalized_answers": ["string"],
-  "sequence_logprobs": [0.0],   // length-normalized
-  "most_likely_answer": "string",   // low-T accuracy
-  "semantic_clusters": ["integer_per_sample"],
-  "cluster_representatives": ["string"],
-  "scores": {
-    "naive_sample_entropy": 0.0,
-    "surface_entropy": 0.0,
-    "naive_entropy": 0.0,
-    "discrete_semantic_entropy": 0.0,
-    "semantic_entropy_full": 0.0
-    // optional posthoc/extension fields:
-    // "kle": 0.0,
-    // "probe_uncertainty": 0.0,
-    // "ptrue_uncertainty": 0.0,
-    // "embedding_regression": 0.0
-  },
-  // optional (SEP collection runs only):
-  // "hidden_states": [[float, ...], ...],
-  // shape: (num_samples, hidden_dim)
-  "entailment_backend":
-    "exact-match|nli-deberta-v3-base|"
-    "nli-deberta-v3-large|deberta-v2-xlarge-mnli|"
-    "llm-judge-qwen2.5-72b-instruct",
-  "correctness_label": "boolean"
-}
-\end{verbatim}
+exactly one record per prompt. Every record stores the prompt and
+reference answers, the model and full decoding configuration (including
+the seed), the ten sampled answers with their normalized forms and
+length-normalized sequence log-probabilities, the low-temperature
+most-likely answer used for accuracy labeling, the cluster assignment
+of every sample together with one representative string per cluster,
+all entropy scores, the clustering backend, and the correctness label.
+This makes generation, clustering, scoring, and evaluation auditable
+from a single line of JSONL, while leaving extensions free to add
+method-specific fields (KLE, probe, and P(True) scores; hidden states
+in the SEP collection runs). The full field-by-field schema is
+reproduced in Appendix~\ref{app:schema}.
 
 In the exact-match baseline artifacts, \texttt{surface\_entropy} and
 \texttt{discrete\_semantic\_entropy} coincide by construction, because
@@ -350,6 +378,20 @@ on its own, because the practical goal is to decide when a model
 should answer, abstain, or route the prompt to a more expensive
 verification procedure, as in the selective-prediction framing of
 semantic entropy~\cite{semantic_entropy_nature_2024}.
+
+Two kinds of uncertainty are reported for these metrics, and they are
+kept strictly separate. The \emph{cross-seed spread} (the $\pm$ values
+in the result tables) is the standard deviation of a metric over the
+three decoding seeds; with only three seeds it indicates stability
+rather than statistical significance. Significance claims instead use a
+\emph{record-level paired bootstrap}: within one (task, model, seed)
+cell, two detectors are compared on exactly the same records, the
+records are resampled with replacement 2\,000 times, and the AUROC
+difference is recomputed on each resample. A method is reported as
+significantly different from the baseline in that seed when the
+resulting 95\,\% confidence interval excludes zero. Because both scores
+come from identical records, this comparison is paired and much more
+sensitive than comparing two independent averages.
 
 \section{Implementation and HPC execution}
 \label{sec:hpc-execution}

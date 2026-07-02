@@ -4,60 +4,46 @@
 Large language models often produce fluent answers that are wrong or
 unsupported by the input, and they rarely warn the reader when this
 happens. A useful question-answering system should also be able to say
-``I am not sure'' when its answer is unreliable.
+``I am not sure'' when its answer is unreliable. This thesis studies
+one signal for detecting such unreliable answers: semantic
+entropy~\cite{semantic_entropy_nature_2024}. The idea is simple. The
+model is asked the same question several times; the sampled answers are
+grouped so that answers meaning the same thing count as one; and the
+spread over these meaning groups is measured with Shannon entropy. If
+the samples agree in meaning, the answer is probably safe; if they
+scatter across incompatible meanings, it is probably not.
 
-This thesis builds on the work of Farquhar et al.~\cite{semantic_entropy_nature_2024},
-who proposed \emph{semantic entropy} as a training-free method for
-detecting such unreliable answers. The idea is to sample several answers
-from the model for the same question, group answers that mean the same
-thing, and compute the Shannon entropy of the resulting group sizes. A
-high entropy then signals that the model is internally inconsistent
-about the meaning of its answer. Grouping is done in one of two ways:
-exact-match clustering on a lightly normalized string, or bidirectional
-Natural Language Inference (NLI) entailment using a fine-tuned
-DeBERTa-v3 cross-encoder. The first version is referred to throughout
-the thesis as a \emph{surface-form} baseline and not as true semantic
-entropy.
+The thesis does not propose a new method. It re-implements the method
+of Farquhar et al.\ in a fully local, reproducible setup and asks when
+the meaning-level grouping actually helps, compared with a much cheaper
+baseline that only counts distinct answer strings. The evaluation runs
+three open generator models (Mistral-7B, Llama-3.1-8B, Llama-3.1-70B)
+on three short-answer tasks (TriviaQA, NQ-Open, SVAMP) and one
+long-form biography task graded by an LLM judge against Wikipedia, each
+decoded under three random seeds with the original paper's sampling and
+labeling protocol on the NHR@FAU computing cluster. Alongside the
+entropy scores it evaluates P(True), embedding regression,
+semantic-entropy probes, Kernel Language Entropy, several entailment
+backends, and a sampling-temperature sweep. Ranking quality is measured
+with AUROC and rejection-accuracy curves; seed stability and
+record-level paired-bootstrap significance are reported separately.
 
-The contribution of this thesis is not to invent semantic entropy but
-to re-implement and evaluate it reproducibly at full grid scale,
-including a controlled comparison between short-answer and long-form
-generation and a claim-level long-form extension. A reproducible
-pipeline is built on the NHR@FAU high-performance computing cluster.
-The final evaluation covers three open generators (Mistral-7B,
-Llama-3.1-8B, Llama-3.1-70B) on four tasks (TriviaQA, NQ-Open, SVAMP,
-and a FactScore-style biography task graded by an LLM judge against
-Wikipedia), each decoded under three seeds with the original paper's
-sampling and accuracy-labelling protocol, alongside P(True),
-embedding-regression and semantic-entropy probes, Kernel Language
-Entropy, multiple entailment backends, and a sampling-temperature
-sweep. AUROC and
-rejection-accuracy curves are the main quality metrics; cross-seed
-stability and record-level paired-bootstrap significance are reported
-separately.
+The answer depends on the length of the output. On short answers all
+sampling-based estimators work (AUROC 0.74--0.88) and reproduce the
+original results under the matched protocol, but entropy over
+normalized strings is the strongest single score in most cells, and no
+method beats it by a practically relevant margin: a record-level
+analysis shows that simple answer normalization, not semantic
+clustering, performs almost all of the grouping. On long-form biography
+the picture reverses. The surface baselines collapse to chance, the
+meaning-aware and representation-based detectors recover a
+statistically significant signal for every generator, and the choice of
+clustering backend becomes result-determining, spanning chance-level to
+clearly useful behavior on the same samples.
 
-The findings are regime-dependent. On short-answer tasks all
-sampling-based estimators work (AUROC 0.74--0.88), and the aggregates
-are quantitatively consistent with Farquhar et al.\ under the matched
-protocol, but entropy over normalized strings is the strongest single
-score in six of nine cells and no method beats it significantly: a
-record-level analysis shows that answer normalization, not semantic
-clustering, performs almost all of the grouping on short answers. On
-long-form biography the surface baselines collapse to chance while
-meaning-aware and representation-based detectors recover a significant
-signal for every generator; the strongest long-form scores come from
-probability-weighted naive entropy on the two smaller models and from a
-single-pass self-evaluation, P(True), on the largest. The clustering backend is result-determining on long-form
-inputs --- spanning chance-level to clearly useful behavior on the same
-samples --- and at claim level, semantic
-entropy's discriminative power decreases monotonically with generator
-scale (AUROC 0.69 $\rightarrow$ 0.64 $\rightarrow$ 0.52 from 7B to
-70B): larger models repeat their confabulations too consistently for
-consistency-based detection. The value of moving beyond surface-only
-uncertainty is therefore confined to --- and decisive in --- the
-long-form regime, where it depends critically on the clustering
-backend and erodes with model scale. A sampling-temperature sweep adds
-a deployment-facing qualification: sampling-based entropy and the
-hidden-state probe vary with decoding temperature in opposite
-directions and cross, so which detector is stronger is set by the
-decoding regime rather than fixed.
+Two further effects qualify practical use. Detection power falls as the
+generator scales, because larger models repeat their confabulations
+more consistently, leaving less inconsistency to measure. And
+sampling-based entropy and a single-pass hidden-state probe respond to
+decoding temperature in opposite directions, so which detector is
+stronger depends on how the model is decoded rather than being fixed.

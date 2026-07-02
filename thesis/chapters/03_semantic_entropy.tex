@@ -19,7 +19,7 @@ embedding regression.
 
 \section{Entropy as a measure of uncertainty}
 
-Before describing the algorithm, it helps to recall what the word
+Before describing the algorithm, recall what the word
 ``entropy'' means here. For a discrete probability distribution
 $p_1,\ldots,p_K$ over $K$ outcomes, the Shannon entropy is
 \[
@@ -30,20 +30,40 @@ carries, measured in nats when $\log$ is the natural logarithm. Its
 intuition is more useful here: $H(p)$ is small when the distribution
 puts almost all its mass on a single outcome (the next outcome is
 ``predictable''), and large when the mass spreads out over many
-outcomes (we are very uncertain which outcome will come next). The
+outcomes (it is very uncertain which outcome will come next). The
 maximum value for $K$ outcomes is $\log K$, achieved by the uniform
 distribution. The base of the logarithm changes the unit but not the
 ordering of distributions, so the choice between $\ln$, $\log_2$ and
 $\log_{10}$ does not affect ranking metrics such as AUROC. The thesis
 uses natural log throughout.
 
-For semantic entropy we use the same formula, but the ``outcomes'' are
+Entropy is not the only way to measure how spread out a distribution
+is; Gini impurity ($1-\sum_k p_k^2$), for example, is a common
+alternative in decision-tree learning and would rank most of the
+distributions in this thesis similarly (both are minimal when one
+outcome has all the mass and maximal for the uniform distribution).
+Entropy is used here for three reasons. First, it has a direct
+operational meaning --- the expected number of nats needed to describe
+which outcome occurred --- so its values are interpretable ($\ln K$ for
+$K$ equally likely meanings). Second, it is additive over independent
+questions, which is what makes sequence-level entropy decompose over
+tokens and makes the probability-weighted estimators of
+Section~\ref{sec:estimator-family} well-defined. Third, and most
+practically, it is the quantity the semantic-uncertainty literature
+defines and reports~\cite{kuhn_semantic_uncertainty_2023,%
+semantic_entropy_nature_2024}, so using it keeps every number in this
+thesis directly comparable with prior work. Nothing in the evaluation
+hinges on the choice: since AUROC depends only on how records are
+ranked, any strictly monotone measure of spread would give similar
+results.
+
+For semantic entropy the same formula applies, but the ``outcomes'' are
 not raw strings: they are groups of strings that are considered to mean
 the same thing. The entropy is then a measure of \emph{semantic}
 uncertainty: how spread out the meanings produced by the model are for
 a single prompt.
 
-\section*{Notation}
+\subsection{Notation}
 
 Table~\ref{tab:notation} summarizes the symbols used in this chapter.
 
@@ -79,7 +99,7 @@ AURAC & area under the rejection-accuracy curve \\
 
 \section{The method, step by step}
 
-At a high level, the method we use proceeds in the following three
+At a high level, the method proceeds in the following three
 computational steps. Each step is then explained in detail in the rest
 of the chapter, and a fully worked numerical example is given in
 Section~\ref{sec:worked_example}.
@@ -166,7 +186,7 @@ Section~\ref{sec:sampling-settings}.
 \label{sec:clustering}
 
 The crucial design choice is the equivalence relation used in the
-clustering step. We use two:
+clustering step. Two are used:
 
 \paragraph{Normalized exact match.} The simplest possible relation:
 $y_i \sim_{\mathrm{exact}} y_j$ iff their normalized strings are
@@ -201,10 +221,14 @@ harmless detail and merge answers that hide important factual
 differences. The empirical impact of these errors is examined through
 the worked examples in Section~\ref{sec:hand-audits} and the discussion
 in Chapter~\ref{ch:discussion}. The backends used to compute
-$e(\cdot,\cdot\mid x)$ are DeBERTa NLI cross-encoders (v3-base,
-v3-large, and v2-xlarge-MNLI) and a Qwen2.5-72B-Instruct LLM judge;
-DeBERTa-v3-large is the canonical backend for the headline results,
-and the sensitivity to this choice is quantified in
+$e(\cdot,\cdot\mid x)$ are DeBERTa NLI cross-encoders (v3-base and
+v3-large)~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
+sentence_transformers_nli_deberta_v3_large_2022} and a
+Qwen2.5-72B-Instruct LLM judge~\cite{yang_qwen25_2024}. DeBERTa-v3-large is the
+canonical backend for the headline results and DeBERTa-v3-base is the
+backend used for the full-grid generation runs
+(Section~\ref{sec:models-replication} explains this split); the
+sensitivity to this choice is quantified in
 Section~\ref{sec:clustering-sensitivity}.
 
 The grouping uses the same bidirectional-entailment criterion as Farquhar
@@ -268,7 +292,7 @@ maximum possible value of $\ln 10 \approx 2.30$, while the smaller
 worked example in Section~\ref{sec:worked_example} uses $M=5$, with
 maximum $\ln 5 \approx 1.61$.
 
-\paragraph{The estimator family.} The full evaluation grid reports
+\paragraph{The estimator family.}\label{sec:estimator-family} The full evaluation grid reports
 both this count-based estimator and the probability-weighted variants
 of Farquhar et al.~\cite{semantic_entropy_nature_2024,%
 kossen_semantic_uncertainty_code_2024}, which use length-normalized
@@ -279,6 +303,7 @@ uses the model's sequence probabilities or just occurrence counts:
 
 \begin{center}
 \small
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{@{}lll@{}}
 \toprule
  & Count-based & Probability-weighted \\
@@ -290,10 +315,11 @@ Semantic & \makecell[l]{discrete semantic entropy\\
   (the paper's discrete approx.)} &
   \makecell[l]{full semantic entropy\\(the paper's primary estimator)} \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{center}
 
-The naming is unfortunately confusing, so it is worth stating plainly.
+The terminology is dense, so the four scores are distinguished
+explicitly below.
 Two of these scores ignore meaning and just look at the answer strings:
 \emph{naive sample entropy} counts the raw strings and \emph{surface
 entropy} counts them after light clean-up (these are the project's
@@ -301,7 +327,7 @@ entropy} counts them after light clean-up (these are the project's
 ignores meaning but weights each distinct string by how likely the model
 thought it was. The two \emph{semantic} scores first group answers by
 meaning: \emph{discrete semantic entropy} counts the groups, and \emph{full
-semantic entropy} weights them by probability. A small but useful fact:
+semantic entropy} weights them by probability. Note that
 when every answer is equally likely, the full version reduces exactly to
 the discrete one (the code checks this). In short, the surface baselines
 test whether grouping by meaning helps at all, and the
@@ -312,11 +338,11 @@ each answer adds anything.
 \label{sec:worked_example}
 
 The following example makes the pipeline concrete. Consider the factual
-question $x = $ ``What is the capital of Australia?''. We instruct the
-language model to produce $M=5$ sampled answers under temperature
-$T=0.7$. ``Sampling'' here means we run the same prompt through the
+question $x = $ ``What is the capital of Australia?''. The
+language model is instructed to produce $M=5$ sampled answers under temperature
+$T=0.7$. ``Sampling'' here means running the same prompt through the
 model five times with the same decoding configuration but a different
-random seed each time, so that we get five different (but plausible)
+random seed each time, yielding five different (but plausible)
 completions:
 
 \begin{center}
@@ -441,8 +467,11 @@ method itself.
 
 \section{Related estimators evaluated alongside}
 
+The remaining estimators are not alternatives the thesis proposes but
+published baselines against which discrete semantic entropy is measured;
+each is defined here only as far as the results chapter needs.
 Discrete semantic entropy is the central method, but it is not the only
-way to turn a model's behaviour into an uncertainty score. The
+way to turn a model's behavior into an uncertainty score. The
 experiments compare it against four further estimators, defined here so
 that the results chapter can refer to them by name. Two of them
 (Kernel Language Entropy and Semantic Entropy Probes) come from the
@@ -467,8 +496,10 @@ sentence-embedding similarity.
 \begin{enumerate}
   \item \textbf{Embed.} Each sampled answer $y_i$ is turned into a dense
     vector $\mathbf{v}_i$ by a sentence-embedding model (the recorded
-    runs use a small general encoder, all-MiniLM-L6-v2, and a larger
-    NLI-tuned one, nli-roberta-large).
+    runs use a small general encoder,
+    all-MiniLM-L6-v2~\cite{sentence_transformers_all_minilm_l6_v2_2022},
+    and a larger NLI-tuned one,
+    nli-roberta-large~\cite{sentence_transformers_nli_roberta_large_2021}).
   \item \textbf{Build a similarity matrix.} A Gaussian kernel turns the
     pairwise distances between these vectors into similarities
     $K_{ij}=\exp(-\lVert\mathbf{v}_i-\mathbf{v}_j\rVert^2/2\sigma^2)$,
@@ -476,8 +507,10 @@ sentence-embedding similarity.
     The matrix is rescaled so its entries behave like a probability
     table (it sums to one along the diagonal).
   \item \textbf{Take the entropy of the matrix.} The KLE score is the
-    von~Neumann entropy of that matrix --- which is just the Shannon
-    entropy of its eigenvalues. It is low when the answer vectors point
+    von~Neumann entropy of that matrix --- a matrix generalization of
+    Shannon entropy, computed as the Shannon entropy of the matrix's
+    eigenvalues (the details are not needed to read the results). It is
+    low when the answer vectors point
     in nearly the same direction (the samples agree) and high when they
     spread across many directions (the samples disagree).
 \end{enumerate}
@@ -502,8 +535,8 @@ off the model's internal state, so that at test time only a
 entailment comparisons.
 
 \begin{itemize}
-  \item \textbf{Training.} On a set of questions for which we already
-    have answers and correctness labels, the model is run once per
+  \item \textbf{Training.} On a set of questions for which answers and
+    correctness labels are already available, the model is run once per
     question and the hidden state of the last generated token (at the
     final Transformer layer) is recorded as a feature vector. A simple
     logistic-regression classifier is then trained to predict, from that
@@ -518,10 +551,15 @@ entailment comparisons.
     meaning riskier.
 \end{itemize}
 
+Concretely, the probe used here is a scikit-learn logistic regression
+over the final-layer hidden state of the last generated token, trained
+separately per dataset, model, and seed on its own set of prompts and
+then scored on a disjoint evaluation set (the held-out evaluation
+counts are listed in Appendix Table~\ref{tab:sep-heldout-appendix}).
 Because the probe is trained and evaluated on \emph{disjoint} sets of
 questions, its scores are a genuine held-out test rather than a re-scoring
-of the same records. The feature choices (which layer, how to pool
-tokens) are fixed in advance rather than tuned on the test set, so they
+of the same records. The feature choices (final layer, last-token
+pooling) are fixed in advance rather than tuned on the test set, so they
 do not leak information. The trade-off is the obvious one: the probe is
 far cheaper than full semantic entropy, but it can only use what is
 linearly readable from one hidden state.
