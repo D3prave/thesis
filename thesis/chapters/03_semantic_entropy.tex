@@ -190,8 +190,13 @@ clustering step. Two are used:
 
 \paragraph{Normalized exact match.} The simplest possible relation:
 $y_i \sim_{\mathrm{exact}} y_j$ iff their normalized strings are
-identical, where ``normalization'' means lowercasing, stripping
-whitespace and obvious answer prefixes such as ``the answer is''. This
+identical. ``Normalization'' here is each dataset's standard
+answer-cleaning step: for the question-answering datasets it lowercases
+the string, removes punctuation and the articles \emph{a/an/the}, and
+collapses whitespace (the TriviaQA evaluation protocol), so ``The
+Eiffel Tower!'' and ``eiffel tower'' become the same string; for the
+arithmetic dataset it extracts the final numeric value, so ``The answer
+is 7 apples'' becomes ``7''. This
 is a \emph{surface-form} grouping, not a semantic one. As emphasized in
 the introduction, the exact-match baseline is therefore not true semantic
 entropy in Farquhar et
@@ -447,10 +452,11 @@ minimal:
   \item \emph{Input.} A benchmark prompt $x$ together with $M$ sampled
         answers $y_1,\ldots,y_M$ produced under a fixed decoding
         configuration.
-  \item \emph{Normalization.} Apply only obvious formatting
-        normalization to each $y_i$: strip surrounding whitespace and
-        a small set of simple answer prefixes (e.g.\ ``the answer
-        is''). No paraphrase normalization is attempted.
+  \item \emph{Normalization.} Apply the dataset's standard
+        answer-cleaning to each $y_i$, as defined in
+        Section~\ref{sec:clustering} (case, punctuation, articles, and
+        whitespace for the QA datasets; numeric extraction for the
+        arithmetic dataset). No paraphrase normalization is attempted.
   \item \emph{Clustering.} Group the normalized answers using the
         configured equivalence relation, which is either normalized
         exact match or bidirectional NLI entailment.

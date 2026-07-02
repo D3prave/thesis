@@ -92,10 +92,14 @@ clustering condition that follows Farquhar et
 al.~\cite{semantic_entropy_nature_2024} most directly.
 
 \textbf{Surface-form baselines.} For each prompt the generator is sampled
-several times, the answers are lightly normalized, and two answers are grouped
+several times, the answers are lightly normalized (case, punctuation,
+and whitespace differences are removed, so ``Paris!'' and ``paris''
+count as the same string), and two answers are grouped
 only if their normalized strings are identical. This is called
-\emph{exact-match} clustering. A deliberately naive companion score counts raw
-strings before normalization. These baselines make the whole pipeline easy to
+\emph{exact-match} clustering, and the entropy over these normalized
+string groups is called \emph{surface entropy} throughout. A
+deliberately naive companion score, \emph{naive sample entropy}, counts
+the raw strings before any normalization. These baselines make the whole pipeline easy to
 check end to end. Exact-match grouping is \emph{not} semantic entropy in
 Farquhar et al.'s sense~\cite{semantic_entropy_nature_2024}, because it
 ignores paraphrases; it is therefore reported as a surface-form baseline, not

@@ -74,11 +74,65 @@ Throughout, the positive class is the \emph{incorrect} answer, so
 averaged over three independent runs (random seeds 42, 43, 44); where a
 spread is shown it is the standard deviation across those three runs.
 The detectors compared are the ones defined in
-Chapter~\ref{ch:semantic_entropy}: the cheap surface baselines
-(counting distinct answer strings), discrete semantic entropy with
-meaning-based clustering, the probability-weighted variants, Kernel
-Language Entropy, the hidden-state probe (SEP), \mbox{P(True)}, and
-embedding regression.
+Chapter~\ref{ch:semantic_entropy}. Because their names are easy to mix
+up, Table~\ref{tab:detector-key} lists every detector name that appears
+in the result tables, with a one-line reminder of what it does and
+where it is defined; the naming convention is that ``surface''/``naive''
+scores look only at answer strings, ``semantic'' scores group answers
+by meaning first, and the parenthetical says what is counted or
+weighted.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Key to the detector names used in this chapter. The first
+  three scores never consider meaning; the next two group answers by
+  meaning (bidirectional NLI entailment) before measuring spread; the
+  rest are the related estimators of
+  Section~\ref{sec:other-estimators}.}
+\label{tab:detector-key}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}p{4.6cm}p{8.2cm}@{}}
+\toprule
+Name in the tables & What it does \\
+\midrule
+Naive sample entropy (raw strings) & counts how many of the $M$ sampled
+  answers are distinct character-for-character; no normalization, no
+  meaning (Section~\ref{sec:estimator-family}) \\
+Surface entropy (normalized strings) & the same count after the
+  dataset's standard normalization (case, punctuation, articles,
+  whitespace; numeric extraction for SVAMP); still no meaning
+  (Section~\ref{sec:clustering}) \\
+Naive entropy (prob.-weighted strings) & no meaning grouping either,
+  but weights each answer by the model's own sequence probability
+  instead of counting (Section~\ref{sec:estimator-family}) \\
+Discrete semantic entropy (NLI clusters) & groups answers that mutually
+  entail each other and takes the entropy of the group sizes
+  (Section~\ref{sec:estimator-family}) \\
+Semantic entropy (full, prob.-weighted) & the same NLI groups, weighted
+  by sequence probability; the original paper's primary estimator
+  (Section~\ref{sec:estimator-family}) \\
+KLE (MiniLM / RoBERTa-NLI) & soft meaning comparison through sentence
+  embeddings instead of hard NLI clusters; the suffix names the
+  embedding model used (Section~\ref{sec:kle}) \\
+SEP probe & logistic regression on the model's last hidden state,
+  trained to predict high semantic entropy; one forward pass, no
+  sampling at test time (Section~\ref{sec:sep-method}) \\
+Embedding regression (in-dist.\ / OOD) & the same kind of hidden-state
+  probe trained directly on correctness; in-dist.\ $=$ trained and
+  tested on the same task, OOD $=$ trained on the other tasks
+  (Section~\ref{sec:other-estimators}) \\
+P(True) & the model grades its own most-likely answer; the probability
+  it assigns to ``True'' is the score
+  (Section~\ref{sec:other-estimators}) \\
+Judge correctness score & biography only: the confidence the long-form
+  judge reports for its own verdict, recorded as a by-product of
+  grading and shown as a reference row
+  (Section~\ref{sec:bio-results}) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
 \section{The headline picture}
 \label{sec:headline}
@@ -460,6 +514,13 @@ baseline \mbox{P(True)} is the best on the largest ($0.777$). The lesson
 is that on long text the model's \emph{own probability signal} carries
 much of the confabulation information, and the hard-clustering step only
 partially recovers it.
+
+One row of Table~\ref{tab:auroc-bio} needs a word of explanation: the
+\emph{judge correctness score} is the confidence value the long-form
+judge reports for its own true/false verdict, recorded as a by-product
+of grading. It is shown only as a reference point --- it comes from the
+same judge that produces the correctness labels and presupposes access
+to the reference, so it is not a deployable detector.
 
 One regularity is worth flagging. The semantic-entropy AUROC
 \emph{decreases} as the generator gets larger ($0.708 \to 0.618 \to
