@@ -48,8 +48,8 @@ errors~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
 
 \section{Uncertainty in Free-Form Generation}
 
-When a model has to pick from a fixed, short list of answers --- say
-``cat'', ``dog'', or ``horse'' --- measuring its uncertainty is easy: it
+When a model has to pick from a fixed, short list of answers, say
+``cat'', ``dog'', or ``horse'', measuring its uncertainty is easy: it
 assigns a percentage to each option, and those percentages already say
 how sure it is. A language model has no such tidy list. It instead
 produces whole sentences, and the catch is that the \emph{same fact} can
@@ -143,7 +143,7 @@ specific NLI model used here is a DeBERTa-v3 \emph{cross-encoder}
 fine-tuned on the standard SNLI and MultiNLI inference
 datasets~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
 he_deberta_2021,he_debertav3_2021,williams_multinli_2018}. ``Cross-encoder''
-just means the two sentences (plus the question) are fed into the model
+just means the two sentences are fed into the model
 \emph{together}, so it can directly compare them; the alternative, a
 \emph{bi-encoder}, would encode each sentence on its own and compare the
 results afterwards. The cross-encoder is more accurate for this kind of
@@ -166,17 +166,17 @@ diverge; recent work already reports that semantic entropy loses
 discriminative power as one-sentence outputs
 lengthen~\cite{nguyen_beyond_semantic_entropy_2025}, but does not isolate
 the short-versus-long contrast under a single controlled protocol. Third,
-the dependence of sampling-based detection on the decoding temperature
---- the very parameter that controls sample diversity --- has been
+the dependence of sampling-based detection on the decoding temperature,
+the very parameter that controls sample diversity, has been
 examined only in isolated
 ablations~\cite{nguyen_beyond_semantic_entropy_2025} rather than
 characterized systematically across tasks and detector families. This
 thesis targets these three gaps directly.
 
-Addressing them fixes the empirical scope to three short-answer tasks
---- open-domain factual question answering with
+Addressing them fixes the empirical scope to three short-answer tasks,
+namely open-domain factual question answering with
 TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}
-and arithmetic word problems with SVAMP~\cite{patel_svamp_2021} --- and
+and arithmetic word problems with SVAMP~\cite{patel_svamp_2021}, and
 one long-form task, a FactScore-style biography
 task~\cite{min_factscore_2023}. The dataset rationale, the datasets left
 outside the recorded study, representative records, and the exact prompt

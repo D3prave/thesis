@@ -35,15 +35,34 @@ phrasing. If the samples split across genuinely different meanings, the model
 is uncertain about the content itself, and the answer should be treated as
 riskier. This follows the semantic uncertainty framing of Kuhn et
 al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. The aim of this thesis is not to
+al.~\cite{semantic_entropy_nature_2024}. Figure~\ref{fig:intro-schematic}
+illustrates the idea on a small example: the same five samples look very
+uncertain when distinct wordings are counted, but mostly agree once they
+are grouped by meaning. The aim of this thesis is not to
 propose the method, but to re-implement it in a smaller, locally reproducible
 setup and to study how well it works there, and under which conditions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{method_schematic.png}
+\caption{The semantic entropy pipeline on a small example. The model is
+  sampled several times for the same question; counting distinct
+  \emph{wordings} (top right) makes the model look very unsure, because
+  paraphrases such as ``Canberra'' and ``Canberra is the capital\ldots''
+  are treated as different answers. Grouping the samples by
+  \emph{meaning} with bidirectional NLI entailment (bottom right) shows
+  that the model has mostly settled on one answer, and the entropy over
+  these meaning-groups is the semantic entropy used throughout the
+  thesis. The same example is worked through numerically in
+  Chapter~\ref{ch:semantic_entropy}.}
+\label{fig:intro-schematic}
+\end{figure}
 
 \section{Research Aim}
 
 The main question is whether semantic entropy is a better signal for
-hallucination risk and selective abstention --- letting the system
-decline to answer the questions it is most likely to get wrong --- than
+hallucination risk and selective abstention (letting the system
+decline to answer the questions it is most likely to get wrong) than
 surface-form uncertainty,
 and how that comparison changes when the output grows from a short answer to
 a paragraph. The study uses TriviaQA, NQ-Open, and SVAMP as short-answer
@@ -63,8 +82,8 @@ al.~\cite{simhi_choke_2025}.
 
 The starting hypothesis, from Farquhar et
 al.~\cite{semantic_entropy_nature_2024}, is that discrete semantic entropy
-over entailment-based clusters gives a higher AUROC --- a ranking score for
-placing incorrect answers above correct ones --- than surface-form entropy
+over entailment-based clusters gives a higher AUROC (a ranking score for
+placing incorrect answers above correct ones) than surface-form entropy
 over sampled strings on the same prompts. A secondary hypothesis is that any
 improvement is at least directionally consistent across the three
 short-answer benchmarks, despite their different answer formats. The
@@ -162,7 +181,7 @@ Chapter~\ref{ch:background} reviews the forms of LLM hallucination, the role
 of uncertainty estimation, the notion of semantic equivalence, and related
 semantic uncertainty methods. Chapter~\ref{ch:semantic_entropy} defines the
 discrete semantic entropy method that the empirical work is based on,
-together with the related estimators it is compared against --- Kernel
+together with the related estimators it is compared against: Kernel
 Language Entropy, Semantic Entropy Probes, P(True), and embedding
 regression. Chapter~\ref{ch:experimental_design} turns the method into a
 reproducible experimental design and documents how it was implemented and

@@ -53,7 +53,7 @@ Actually & C & C & W & C & W \\
 \end{tabular}
 \end{center}
 
-\emph{AUROC by hand.} Form every (wrong, correct) pair --- there are
+\emph{AUROC by hand.} Form every (wrong, correct) pair; there are
 $2 \times 3 = 6$. The wrong answer gets the higher score in five of the
 six pairs; the only failure is the pair (\#3, \#4), where the wrong
 answer \#3 ($0.25$) scores below the correct answer \#4 ($0.30$). So
@@ -64,7 +64,7 @@ $3/4 = 0.75$. Reject the next (\#4, correct): accuracy dips to
 $2/3 \approx 0.67$, because the detector discarded a good answer. Reject
 the next (\#3, wrong): accuracy reaches $2/2 = 1.00$. The
 rejection--accuracy curve is the sequence $0.60, 0.75, 0.67, 1.00$, and
-AURAC is the area under it --- higher when accuracy climbs quickly and
+AURAC is the area under it, higher when accuracy climbs quickly and
 without dips. Every table in this chapter uses these two metrics, and
 for both of them \emph{higher is better}; bold entries mark the best
 value in each column (or row, where the caption says so).
@@ -153,8 +153,8 @@ spread over meanings.
   level of 0.5). On the three short-answer tasks the two scores are
   almost the same height: the cheap string-counting baseline is already
   as good as meaning-aware clustering. On the long-form biography task
-  the surface bar drops to the chance line --- it stops working
-  entirely --- while the meaning-aware bar stays well above it. This
+  the surface bar drops to the chance line (it stops working
+  entirely) while the meaning-aware bar stays well above it. This
   short-versus-long contrast is the central finding.}
 \label{fig:regime-split}
 \end{figure}
@@ -180,7 +180,7 @@ extends them with further recorded cluster examples, including the
 characteristic failure cases (over-merges, under-merges, and a
 confidently wrong answer that clustering makes \emph{worse}).
 
-\subsection{Example 1 --- meaning-based grouping lowers a falsely high
+\subsection{Example 1: meaning-based grouping lowers a falsely high
 score}
 \label{sec:audit-merge}
 
@@ -206,12 +206,12 @@ same thing in context; it judges the various ``triumph/defeat'' and
 ``success/failure'' phrasings to be mutually entailing and collapses
 nine of the ten samples into a single meaning, leaving only the odd
 ``Tyrant and a dreamer'' on its own. The semantic entropy is then only
-$0.33$ nats --- a much more honest reflection of the fact that the model
+$0.33$ nats, a much more honest reflection of the fact that the model
 basically settled on one idea. The answer was graded correct. This is
 the mechanism by which clustering is \emph{supposed} to help: it removes
 uncertainty that is only about wording.
 
-\subsection{Example 2 --- a confident wrong answer the method cannot
+\subsection{Example 2: a confident wrong answer the method cannot
 catch}
 \label{sec:audit-artifact}
 
@@ -219,7 +219,7 @@ catch}
 CIA from 1976--81?'' \textbf{Gold answer:} \emph{George Bush}. All ten
 samples were the same: \emph{Stansfield Turner}. Because every sample
 agrees, the spread over meanings is zero (semantic entropy $0.00$), so
-the detector reports maximum confidence --- yet the answer is graded
+the detector reports maximum confidence, yet the answer is graded
 incorrect.
 
 This single record illustrates two important limits at once. First, it
@@ -228,12 +228,12 @@ same way every time, and no consistency-based detector can flag it,
 because there is no inconsistency to measure. Second, it is partly a
 \emph{labeling artefact}: Stansfield Turner did head the CIA for most of
 1977--1981, so the ``wrong'' label here reflects an ambiguous gold answer
-as much as a model error. Both effects --- the blind spot for confident
-errors and the noise in automatic correctness labels --- recur in the
+as much as a model error. Both effects, the blind spot for confident
+errors and the noise in automatic correctness labels, recur in the
 aggregate numbers and are returned to in the discussion
 (Chapter~\ref{ch:discussion}).
 
-\subsection{Example 3 --- why the surface baseline fails on long-form
+\subsection{Example 3: why the surface baseline fails on long-form
 biographies}
 \label{sec:audit-bio}
 
@@ -245,7 +245,7 @@ Pourchot was in fact a seventeenth-century French philosopher; the
 paragraph is fabricated.) All ten paragraphs were different strings, so
 the surface baseline reports the \emph{maximum possible} value every
 time: $\ln 10 = 2.30$ nats. Across the whole biography set the average
-surface entropy is $2.303$ --- pinned at the ceiling --- which is exactly
+surface entropy is $2.303$, pinned at the ceiling, which is exactly
 why it carries no information and lands at the chance line in
 Figure~\ref{fig:regime-split}: a score that is always maximal cannot rank
 anything.
@@ -284,10 +284,10 @@ begin with: a high-accuracy cell (e.g.\ TriviaQA on the 70B model, 82.5\%
 correct) starts near the top and so has a high AURAC regardless of the
 detector, while a low-accuracy cell (e.g.\ NQ-Open on Mistral, 23\%
 correct) is bounded low. AURAC values are therefore comparable
-\emph{within} a task--model cell --- where a better detector gives a
-higher AURAC --- but not across cells. AURAC broadly follows AUROC within a cell, but
+\emph{within} a task--model cell, where a better detector gives a
+higher AURAC, but not across cells. AURAC broadly follows AUROC within a cell, but
 because it is bounded by the cell's accuracy it does not always rank
-detectors the same way --- on TriviaQA with the 70B model, for instance,
+detectors the same way: on TriviaQA with the 70B model, for instance,
 the hidden-state probe has a slightly higher AURAC than semantic entropy
 ($0.954$ vs $0.933$) despite a lower AUROC ($0.723$ vs $0.794$). This
 accuracy confound is exactly why AUROC, which is accuracy-independent, is
@@ -352,7 +352,7 @@ sampling-based detectors work: AUROC sits in roughly the
 $0.74$--$0.88$ band, which is consistent with the original semantic
 entropy paper under the matched protocol. Second, the
 \emph{surface/exact-match baseline is the strongest single score in most
-cells} --- for example on TriviaQA it reaches $0.819$ (Mistral),
+cells}: for example on TriviaQA it reaches $0.819$ (Mistral),
 $0.838$ (Llama-3.1-8B) and $0.802$ (Llama-3.1-70B), slightly ahead of
 the meaning-aware $0.799$, $0.814$ and $0.794$. It is the single
 strongest score in six of the nine short-answer cells (all of TriviaQA
@@ -395,7 +395,7 @@ beats the surface baseline by more than sampling noise would explain.
 On the short-answer tasks, no method beats the surface baseline by a
 margin that matters: in almost every cell where the difference is
 significant, it is the surface baseline that comes out ahead. The single
-exception runs the other way but is practically negligible ---
+exception runs the other way but is practically negligible:
 on SVAMP with the 70B model, discrete semantic entropy is ahead by
 $+0.003$ AUROC (significant in two of three seeds), a difference far too
 small to justify the cost of an NLI clustering step. In other
@@ -408,9 +408,9 @@ setting, which the next sections examine.
 
 The biography block of Table~\ref{tab:significance-vs-surface} shows
 that long-form setting in the same statistical terms. There the entropy
-estimators that group or weight by more than string identity ---
-probability-weighted naive entropy, discrete semantic entropy, and the
-full estimator --- beat the chance-level surface baseline by $+0.11$ to
+estimators that group or weight by more than string identity
+(probability-weighted naive entropy, discrete semantic entropy, and the
+full estimator) beat the chance-level surface baseline by $+0.11$ to
 $+0.28$ AUROC, significantly in all three seeds for every generator, as
 do the SEP probe and (on the two larger models) \mbox{P(True)}. The two
 exceptions are instructive: naive \emph{sample} entropy cannot escape
@@ -423,8 +423,8 @@ embedding-based sense, fails on paragraph-length text
 
 The meaning-based step needs a model to decide whether two answers are
 equivalent. Does the choice of that model matter?
-Table~\ref{tab:clustering-sensitivity} compares four backends ---
-exact-match, two sizes of DeBERTa NLI, and a large Qwen judge ---
+Table~\ref{tab:clustering-sensitivity} compares four backends
+(exact-match, two sizes of DeBERTa NLI, and a large Qwen judge)
 holding everything else fixed.
 
 \begin{table}[ht]
@@ -452,7 +452,7 @@ holding everything else fixed.
 \label{fig:bio-clustering-sensitivity}
 \end{figure}
 
-On short answers the backend barely matters --- exact-match, base NLI,
+On short answers the backend barely matters: exact-match, base NLI,
 large NLI and the Qwen judge land within a few points of each other,
 which is unsurprising given that normalization already does the work. On
 biographies the choice is decisive (Figure~\ref{fig:bio-clustering-sensitivity}):
@@ -486,7 +486,7 @@ three generators.
 \end{table}
 
 The contrast with short answers is stark. The two count-based surface
-scores --- naive \emph{sample} entropy and surface entropy --- sit at
+scores, naive \emph{sample} entropy and surface entropy, sit at
 $\approx 0.50$, pure chance, exactly as Example~\ref{sec:audit-bio}
 predicted: every long paragraph is a distinct string, so these scores
 are permanently pinned at their maximum and can rank nothing. Every
@@ -495,20 +495,20 @@ one exception: KLE, whose embedding-based score is at best marginally
 above chance ($0.545$, Mistral-7B with the RoBERTa-NLI encoder) and
 falls \emph{below} chance for both Llama generators
 ($0.360$--$0.464$). Escaping string identity is therefore necessary but
-not sufficient --- the meaning representation must also cope with
+not sufficient: the meaning representation must also cope with
 paragraph-length inputs, which the sentence-embedding kernels used by
 KLE evidently do not.
 Meaning-aware discrete semantic entropy reaches $0.708$ (Mistral-7B),
 $0.618$ (Llama-3.1-8B) and $0.612$ (Llama-3.1-70B), and the Qwen-judge
 clustering variant is stronger still ($0.736 / 0.685 / 0.666$),
 consistent with the backend sensitivity above. So the value of moving
-from surface comparison to meaning comparison is not marginal here --- it
+from surface comparison to meaning comparison is not marginal here; it
 is the difference between a useless detector and a working one.
 
 Two detectors that need no clustering at all are in fact the strongest on
-biography. Probability-weighted naive entropy --- which keeps each
+biography. Probability-weighted naive entropy, which keeps each
 distinct paragraph but weights it by the model's own sequence
-probability --- is the single best score on the two smaller models
+probability, is the single best score on the two smaller models
 ($0.781$ Mistral, $0.769$ Llama-3.1-8B), and the self-evaluation
 baseline \mbox{P(True)} is the best on the largest ($0.777$). The lesson
 is that on long text the model's \emph{own probability signal} carries
@@ -518,7 +518,7 @@ partially recovers it.
 One row of Table~\ref{tab:auroc-bio} needs a word of explanation: the
 \emph{judge correctness score} is the confidence value the long-form
 judge reports for its own true/false verdict, recorded as a by-product
-of grading. It is shown only as a reference point --- it comes from the
+of grading. It is shown only as a reference point: it comes from the
 same judge that produces the correctness labels and presupposes access
 to the reference, so it is not a deployable detector.
 
@@ -570,8 +570,8 @@ coincidental: both are linear probes over the model's hidden states, and
 the probe converges to the same solution whether its training target is
 correctness (embedding regression) or the semantic-entropy threshold
 (SEP). Under distribution shift the picture changes. The pooled
-leave-one-out variant --- trained on the other tasks and scored on the
-held-out one --- degrades toward chance, and the fall is largest on
+leave-one-out variant, trained on the other tasks and scored on the
+held-out one, degrades toward chance, and the fall is largest on
 biography ($0.549$, $0.635$, $0.582$ from 7B to 70B), where a probe
 fitted only on short answers transfers poorly to long-form paragraphs.
 The single-pass probes are therefore cheap and strong in-distribution
@@ -584,7 +584,7 @@ decoding temperature.
 
 Every result so far used the model's default sampling temperature. Since
 sampling-based detectors depend on getting \emph{diverse} samples, the
-decoding temperature ought to matter --- and it does.
+decoding temperature ought to matter, and it does.
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
 deterministic) to $1.0$.
@@ -617,8 +617,8 @@ At low temperature the model repeats nearly the same answer every time,
 so there is little diversity for a sampling-based method to work with and
 semantic entropy is weak (TriviaQA/70B: AUROC $0.54$ at $T{=}0.1$). As
 temperature rises the samples spread out and the same method becomes
-strong ($0.79$ at $T{=}1.0$). The hidden-state probe does the reverse ---
-it is best at low temperature and degrades as decoding gets noisier ---
+strong ($0.79$ at $T{=}1.0$). The hidden-state probe does the reverse
+(it is best at low temperature and degrades as decoding gets noisier),
 so the two families \emph{cross over}. The practical lesson is that there
 is no single best detector: at low decoding temperature, use the probe;
 at high temperature, use sampling-based entropy. On biography the curves
@@ -636,7 +636,7 @@ each generated biography it (i)~splits the paragraph into individual
 factual claims (e.g.\ ``born in 1911''), (ii)~turns each claim back into
 a question (``When was this person born?''), (iii)~samples several fresh
 answers to that question, and (iv)~groups those answers by meaning and
-computes the semantic entropy --- a high value flags the claim as a
+computes the semantic entropy; a high value flags the claim as a
 likely confabulation. A separate LLM judge then labels each claim as
 true or false against the reference, so the same AUROC measure can be
 applied at the level of single claims. Table~\ref{tab:factualbio}

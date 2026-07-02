@@ -17,8 +17,8 @@ closes with the limitations the numbers do not show on their own.
 The most consequential pattern in the study is the split between the
 short-answer and long-form regimes (Figure~\ref{fig:regime-split}). On
 the three short-answer tasks every sampling-based detector works (AUROC
-roughly $0.74$--$0.88$), and the cheapest of them --- entropy over
-normalized answer strings --- is the strongest single score in most
+roughly $0.74$--$0.88$), and the cheapest of them, entropy over
+normalized answer strings, is the strongest single score in most
 cells, with no method beating it by a margin of practical size anywhere
 (Table~\ref{tab:significance-vs-surface}). On long-form
 biography the same surface score sits at chance ($\approx 0.50$), and a
@@ -34,7 +34,7 @@ normalized strings, so simply \emph{normalizing} the answers already does
 most of the grouping; the extra meaning-based step only relabels a few
 boundary cases. On biographies (Example~3, Section~\ref{sec:audit-bio})
 every sampled paragraph is a unique string, so the surface score is
-permanently pinned at its maximum of $\ln 10$ and can rank nothing --- it
+permanently pinned at its maximum of $\ln 10$ and can rank nothing; it
 must be replaced by a method that groups paragraphs by what they claim.
 The biography task was added precisely to test this prediction, and it
 confirms it cleanly.
@@ -46,13 +46,13 @@ At the level of the full grid the answer is now clear in both
 directions. On short answers, no: with a single exception, wherever the
 paired bootstrap is significant it runs the other way, with surface
 entropy ahead (Table~\ref{tab:significance-vs-surface}). The exception
---- discrete semantic entropy on SVAMP with the 70B model, ahead by
-$+0.003$ AUROC --- is real but far too small to matter in practice. On
+(discrete semantic entropy on SVAMP with the 70B model, ahead by
+$+0.003$ AUROC) is real but far too small to matter in practice. On
 long-form generation, yes, decisively: the NLI-clustered and
 probability-weighted entropy estimators beat the chance-level surface
 baseline by $+0.11$ to $+0.28$ AUROC on biography, significantly in
-every seed for every generator, while KLE --- meaning-aware only in a
-soft, embedding-based sense --- fails to
+every seed for every generator, while KLE, meaning-aware only in a
+soft, embedding-based sense, fails to
 (Section~\ref{sec:bio-results}).
 
 The short-answer non-result is worth stating plainly, because the
@@ -61,14 +61,14 @@ noise to be removed. On these datasets that motivation is mostly
 already satisfied by normalization. SVAMP is the extreme case: integer
 answers normalize to identical digit strings, so meaning-based and
 exact-match clustering produce nearly the same groups and nearly the same
-scores. TriviaQA leaves a little more room --- Example~1 shows NLI
-genuinely merging paraphrases such as ``Triumph and Disaster'' with
-``Triumph and defeat'' --- but the records where this changes the ranking
+scores. TriviaQA leaves a little more room (Example~1 shows NLI
+merging paraphrases such as ``Triumph and Disaster'' with
+``Triumph and defeat''), but the records where this changes the ranking
 are a minority, and the net effect is not large enough to separate from
 run-to-run noise at $N=500$. Appendix~\ref{app:gallery} quantifies this
 record by record: NLI merges help on some model cells and hurt on
 others, with no consistent net gain, and the appendix's
-false-confidence example shows the failure mode --- a consistently
+false-confidence example shows the failure mode: a consistently
 wrong answer whose ten paraphrases NLI correctly merges, converting a
 correctly flagged record into a maximally confident error. The honest
 reading is a small positive
@@ -94,7 +94,7 @@ accordingly.
 Two cautions follow. First, ``bigger judge'' is not automatically
 ``better judge'': the relationship between backend capacity and which
 generator it helps is not monotone, and a backend that mis-merges
-paragraph-length pairs does not just add noise --- it can invert the
+paragraph-length pairs does not just add noise; it can invert the
 entropy ranking, turning a useful detector into an anti-predictive one.
 Second, this is the long-form counterpart of the short-answer negative
 result: clustering quality matters exactly where clustering matters at
@@ -125,14 +125,14 @@ the practical ceiling for this probe family.
 On biography the probe is far stronger than on short answers: it beats
 every meaning-based clustering method for both Llama generators
 ($0.728$ at 8B, $0.731$ at 70B). It is not, however, the single best
-long-form detector --- probability-weighted naive entropy is higher on
+long-form detector: probability-weighted naive entropy is higher on
 the two smaller models, and P(True) is highest on the 70B model
 ($0.777$). What is most telling is the \emph{direction} of the scale
 effect: on biography the probe's AUROC \emph{rises} with model size
 ($0.656 \to 0.728 \to 0.731$), the opposite of the claim-level entropy
 trend in Section~\ref{sec:scale-factualbio}. The probe wins relative to
-clustering exactly where sampling-based clustering is weakest --- fluent,
-internally consistent confabulated paragraphs --- because it reads the
+clustering exactly where sampling-based clustering is weakest, on fluent,
+internally consistent confabulated paragraphs, because it reads the
 representation rather than the diversity of the samples. This makes it
 the natural complement to semantic entropy: cheap at test time, and
 relatively strongest precisely in the regime where entropy struggles.
@@ -176,8 +176,8 @@ in meaning. A larger model that has confabulated a biographical detail
 tends to regenerate the \emph{same} wrong detail fluently and
 consistently, leaving little disagreement to detect. By the 70B model the
 claim-level signal is barely above chance. This is not a uniform decay of
-the method with scale --- the whole-paragraph probe actually improves with
-scale --- but a specific erosion of the regime where detection depends on
+the method with scale (the whole-paragraph probe actually improves with
+scale) but a specific erosion of the regime where detection depends on
 the model re-rolling its errors differently each time. It is also a
 caution for the field: the detectors that look best on small models may be
 the ones that fade first as models improve.
@@ -199,21 +199,21 @@ in place of GPT-style judges, and 500-record evaluation sets.
 
 Under these settings the replication is quantitatively consistent with
 the original. Averaged over the nine short-answer cells evaluated here at
-the canonical backend --- against the original work's thirty task--model
-combinations --- the semantic estimators land in the same AUROC band as
-the paper's $0.790$ aggregate and reproduce its headline ordering ---
+the canonical backend (against the original work's thirty task--model
+combinations), the semantic estimators land in the same AUROC band as
+the paper's $0.790$ aggregate and reproduce its headline ordering of
 semantic entropy above naive entropy and P(True). This is a band-level
 agreement, not a cell-for-cell match. One claim of the original work
 does \emph{not} reproduce as stated: that semantic entropy beats the
-naive baselines. Count-based surface entropy --- which the paper does not
-report as a separate baseline --- is the strongest single short-answer
+naive baselines. Count-based surface entropy, which the paper does not
+report as a separate baseline, is the strongest single short-answer
 score in most cells, and no semantic estimator beats it by more than a
 practically negligible margin (Section~\ref{sec:significance}).
 Semantic clustering provides measurable value only in the long-form regime, where
 the paper's qualitative claim is strongly confirmed: surface scores
 collapse to chance and NLI-clustered entropy recovers a statistically
 significant signal for every generator. The grid also extends the original analysis in a
-direction it did not quantify --- the entailment backend, which is
+direction it did not quantify: the entailment backend, which is
 immaterial on short answers, is result-determining on whole paragraphs
 (Section~\ref{sec:nli-sensitivity}).
 
@@ -225,14 +225,14 @@ targets the confabulation case defined in Chapter~\ref{ch:background}: it
 detects answers the model is internally inconsistent about. It is blind
 to \emph{confident systematic errors}, where the model is wrong the same
 way every time. Example~2 (Section~\ref{sec:audit-artifact}) is exactly
-this case --- ten identical wrong answers, entropy zero, maximum
+this case: ten identical wrong answers, entropy zero, maximum
 (mis)confidence. A deployed system would need a complementary detector
 for that failure mode.
 
 \paragraph{Noisy correctness labels.} On short-answer tasks correctness
 is decided by string matching against a reference list, which marks a
 correct answer wrong whenever the model uses an unlisted alias, stage
-name, or title --- again Example~2, where ``Stansfield Turner'' is graded
+name, or title; see again Example~2, where ``Stansfield Turner'' is graded
 against a gold list of ``George Bush''. This adds noise to every
 short-answer AUROC and is a lower bound on the gap to studies that use an
 LLM-based correctness judge throughout. The numeric SVAMP task is largely

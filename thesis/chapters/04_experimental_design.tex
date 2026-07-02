@@ -37,9 +37,9 @@ article. The evaluated prompt sets are fixed once and shared by every
 model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and
 the biography task, and 300 for SVAMP, drawn from the datasets'
 validation splits. The three short-answer datasets are small enough to support
-repeated sampling while exercising distinct failure modes ---
-trivia-style factual recall, search-query factual recall, and
-structured arithmetic reasoning --- and the biography task adds a
+repeated sampling while exercising distinct failure modes
+(trivia-style factual recall, search-query factual recall, and
+structured arithmetic reasoning), and the biography task adds a
 qualitatively different regime in which each sample is a free-form
 paragraph rather than a normalizable token string. This long-form
 regime is the setting in which surface-form and meaning-level
@@ -54,9 +54,12 @@ reproduced in Appendix~\ref{app:experiment-details}.
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{Illustrative records from TriviaQA, SVAMP, and the biography task. TriviaQA
-  prompts are the raw question string; SVAMP prompts concatenate the
-  \texttt{Body} and \texttt{Question} fields. TriviaQA reference
+\caption{Illustrative records from TriviaQA, NQ-Open, SVAMP, and the
+  biography task. TriviaQA and NQ-Open
+  prompts are the raw question string (NQ-Open questions are real
+  search queries, kept in their original lowercase form without a
+  question mark); SVAMP prompts concatenate the
+  \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open reference
   answers include accepted aliases separated by semicolons; SVAMP
   reference answers are the single numeric value; biography references
   are pinned English Wikipedia lead paragraphs.}
@@ -71,6 +74,10 @@ TriviaQA & What is the capital city of France?                        & Paris; P
 TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
 TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
 \midrule
+NQ-Open  & when was the last time anyone was on the moon              & 14 December 1972 UTC; December 1972 \\[4pt]
+NQ-Open  & how many seasons of the bastard executioner are there      & one; one season \\[4pt]
+NQ-Open  & when did the eagles win last super bowl                    & 2017 \\
+\midrule
 SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
 SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
 SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
@@ -84,8 +91,8 @@ Biography & Tell me a bio of Marie Curie. & English Wikipedia lead paragraph \\
 The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
 reports results across five short-answer datasets: TriviaQA, SQuAD,
 BioASQ, NQ-Open, and SVAMP. The grid used here covers three of these
-(TriviaQA, NQ-Open, SVAMP) --- spanning open-domain factual recall and
-short-answer arithmetic --- together with the long-form biography
+(TriviaQA, NQ-Open, SVAMP), spanning open-domain factual recall and
+short-answer arithmetic, together with the long-form biography
 setting that the original work also evaluates and that is precisely
 where the surface-form baseline is expected to break down.
 SQuAD~\cite{rajpurkar_squad_2016} is omitted because its
@@ -137,8 +144,8 @@ on the normalized string, as defined in
 Chapter~\ref{ch:semantic_entropy}. Entropy is computed over these
 normalized exact-match clusters and, as a deliberately naive companion,
 over the raw unnormalized strings. The baseline therefore acts both as a
-sanity check on the full pipeline --- generation, normalization,
-clustering, entropy scoring, correctness labeling, JSONL output ---
+sanity check on the full pipeline (generation, normalization,
+clustering, entropy scoring, correctness labeling, JSONL output)
 and as the surface-form reference against which the NLI numbers are
 compared. Because exact-match clustering ignores paraphrases, the
 exact-match entropy score is reported as a surface-form baseline rather
@@ -248,9 +255,9 @@ record, so all methods share one accuracy definition. The biography
 task instead grades correctness with the long-form judge, as described
 above.
 
-During pipeline development an earlier configuration was used --- the
+During pipeline development an earlier configuration was used, the
 instruction-tuned models' default deployment settings ($T=0.7$,
-top-$p=0.95$) with string-comparison correctness labels --- to debug the
+top-$p=0.95$) with string-comparison correctness labels, to debug the
 pipeline before the evaluation grid was locked. All headline numbers in
 this thesis come from the paper-faithful configuration above. The
 meaning of $M$, $T$, and top-$p$ is explained in
@@ -272,8 +279,8 @@ Beyond the entropy family, the final grid records three supervised or
 self-evaluation baselines:
 P(True)~\cite{kadavath_language_models_know_2022}, in which the
 generator judges whether its own most-likely answer is true (the
-grading prompt shows a few solved examples of the true/false judgment
---- ``few-shot in-context'' --- before the actual question, and the
+grading prompt shows a few solved examples of the true/false judgment,
+``few-shot in-context'', before the actual question, and the
 probability the model assigns to the token ``True'' is read off as the
 score); embedding regression, a logistic probe on the final
 hidden state trained to predict incorrectness, evaluated both
@@ -284,9 +291,9 @@ SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
 sampling-based baseline but was not included in the recorded runs.
 
 Each saved sample set is additionally re-clustered posthoc under
-multiple semantic backends --- DeBERTa-v3-base and DeBERTa-v3-large
+multiple semantic backends (DeBERTa-v3-base and DeBERTa-v3-large
 cross-encoders plus a Qwen2.5-72B-Instruct
-LLM judge --- and re-scored with KLE under two sentence encoders
+LLM judge) and re-scored with KLE under two sentence encoders
 (all-MiniLM-L6-v2 and nli-roberta-large). These checks reuse the saved
 answer samples, so any metric change comes from the semantic judge or
 entropy estimator rather than from new generations. The KLE method is
@@ -295,7 +302,7 @@ reported in Section~\ref{sec:clustering-sensitivity}.
 
 \section{Output schema}
 
-Each recorded run writes JSONL --- one JSON object per line --- with
+Each recorded run writes JSONL (one JSON object per line) with
 exactly one record per prompt. Every record stores the prompt and
 reference answers, the model and full decoding configuration (including
 the seed), the ten sampled answers with their normalized forms and
@@ -417,8 +424,8 @@ DeBERTa-v3 cross-encoder, KLE uses sentence-transformer encoders, and the
 small logistic-regression probes use scikit-learn. The pipeline reads a
 processed dataset, samples $M$ answers per prompt, normalizes them,
 clusters them with the configured backend, computes the entropy scores,
-attaches a correctness label, and writes the JSONL schema above --- the
-same script for both the baseline and the replication, with the
+attaches a correctness label, and writes the JSONL schema above; the
+same script serves both the baseline and the replication, with the
 clustering backend chosen by a command-line flag.
 
 \paragraph{What ran where.} Generation and NLI clustering ran on Alex
@@ -431,7 +438,7 @@ large models never ran on login nodes.
 
 \paragraph{Reproducibility and auditing.} Every run writes a
 \texttt{job\_meta.json} recording the Slurm job id, host, model, dataset,
-full decoding parameters, seed, backend, and input path --- enough to
+full decoding parameters, seed, backend, and input path: enough to
 reproduce or audit it later. Source code, configs, small result tables,
 and final figures are version-controlled; bulky artifacts (model caches,
 raw generations, hidden states) live in separate project storage. The
@@ -440,5 +447,5 @@ is recomputed from the saved per-record JSONL by a single aggregation
 step, and an independent audit recomputes the headline AUROC values
 directly from the raw records to confirm they match the reported tables.
 This separation is what makes the worked examples in
-Section~\ref{sec:hand-audits} possible --- each one is a single line of
+Section~\ref{sec:hand-audits} possible: each one is a single line of
 the recorded JSONL, read back and inspected by hand.

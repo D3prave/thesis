@@ -4,8 +4,8 @@
 This chapter defines the main method used in the thesis: discrete
 semantic entropy over sampled answers. The aim is to preserve the
 central idea of semantic entropy from
-Farquhar et al.~\cite{semantic_entropy_nature_2024} --- that uncertainty
-should be measured over meanings rather than over surface strings ---
+Farquhar et al.~\cite{semantic_entropy_nature_2024}, that uncertainty
+should be measured over meanings rather than over surface strings,
 while keeping the implementation small enough to verify. This
 meaning-level framing follows Kuhn et
 al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
@@ -43,8 +43,8 @@ alternative in decision-tree learning and would rank most of the
 distributions in this thesis similarly (both are minimal when one
 outcome has all the mass and maximal for the uniform distribution).
 Entropy is used here for three reasons. First, it has a direct
-operational meaning --- the expected number of nats needed to describe
-which outcome occurred --- so its values are interpretable ($\ln K$ for
+operational meaning, the expected number of nats needed to describe
+which outcome occurred, so its values are interpretable ($\ln K$ for
 $K$ equally likely meanings). Second, it is additive over independent
 questions, which is what makes sequence-level entropy decompose over
 tokens and makes the probability-weighted estimators of
@@ -80,8 +80,8 @@ $x$ & prompt (question) supplied to the model \\
 $M$ & number of sampled answers drawn from the model per prompt \\
 $y_i$ & the $i$-th sampled answer, $i \in \{1,\ldots,M\}$ \\
 $Y(x)$ & the multiset of all $M$ sampled answers for prompt $x$ \\
-$e(y_i, y_j \mid x)$ & NLI entailment decision: 1 if $y_i$ entails
-                        $y_j$ given $x$, 0 otherwise \\
+$e(y_i, y_j)$ & NLI entailment decision: 1 if $y_i$ entails
+                        $y_j$, 0 otherwise \\
 $\sim_{\mathrm{sem}}$ & semantic equivalence relation used by the
                         clustering step (see Section~\ref{sec:clustering}) \\
 $C(x)$ & the set of clusters $\{c_1,\ldots,c_K\}$ induced on $Y(x)$ \\
@@ -120,8 +120,8 @@ Section~\ref{sec:worked_example}.
         $\widehat{H}_{\mathrm{sem}}(x)=-\sum_k \hat{p}_k\log\hat{p}_k$.
 \end{enumerate}
 
-An optional fourth step --- attaching a correctness label and using
-$\widehat{H}_{\mathrm{sem}}(x)$ as a selective-prediction signal ---
+An optional fourth step, attaching a correctness label and using
+$\widehat{H}_{\mathrm{sem}}(x)$ as a selective-prediction signal,
 belongs to the \emph{evaluation} of the method rather than to the
 method itself, and is treated separately in
 Chapter~\ref{ch:experimental_design}.
@@ -185,7 +185,7 @@ Section~\ref{sec:sampling-settings}.
 \section{Clustering by equivalence}
 \label{sec:clustering}
 
-The crucial design choice is the equivalence relation used in the
+The main design choice is the equivalence relation used in the
 clustering step. Two are used:
 
 \paragraph{Normalized exact match.} The simplest possible relation:
@@ -207,26 +207,39 @@ exact-match results will be labeled as either ``surface entropy''
 ``exact-match-clustered entropy''.
 
 \paragraph{Bidirectional NLI.} Rather than use string
-identity, we ask whether two answers entail each other in the context
-of the prompt. For answers $y_i$ and $y_j$ the method asks whether
-$y_i$ entails $y_j$ \emph{and} whether $y_j$ entails $y_i$, both
-conditioned on $x$. If both directions hold, the answers are treated as
+identity, we ask whether two answers entail each other. For answers
+$y_i$ and $y_j$ the method asks whether
+$y_i$ entails $y_j$ \emph{and} whether $y_j$ entails $y_i$. If both
+directions hold, the answers are treated as
 the same semantic answer:
 \[
   y_i \sim_{\mathrm{sem}} y_j
   \quad\Longleftrightarrow\quad
-  e(y_i,y_j\mid x)=1 \ \text{and}\ e(y_j,y_i\mid x)=1.
+  e(y_i,y_j)=1 \ \text{and}\ e(y_j,y_i)=1.
 \]
-This bidirectional-entailment rule is the practical approximation of
-``meaning equivalence'' proposed by Farquhar et
-al.~\cite{semantic_entropy_nature_2024}; it is an approximation rather
-than a definition, because NLI judgments made by a small cross-encoder
+Farquhar et al.~\cite{semantic_entropy_nature_2024} define meaning
+equivalence \emph{in the context of the question} $x$. The backends in
+this thesis realize that context differently. The DeBERTa
+cross-encoders judge the bare answer pair: each entailment query sees
+only the two normalized answer strings, not the question. For the short
+answers studied here this is usually harmless, since a normalized short
+answer carries little meaning outside the question anyway, but it is a
+deliberate simplification relative to the question-conditioned
+definition, and it is stated here so the algorithm below can be read
+literally. The LLM judge, in contrast, receives the question together
+with both answers, and the claim-level biography clustering in
+Chapter~\ref{ch:experimental_design} prefixes each answer with its
+question before the NLI call, matching the paper's definition.
+
+The bidirectional-entailment rule is in any case an approximation
+rather than a definition of meaning equivalence, because NLI judgments
+made by a small cross-encoder
 can be noisy. In particular it may split answers that differ only in
 harmless detail and merge answers that hide important factual
 differences. The empirical impact of these errors is examined through
 the worked examples in Section~\ref{sec:hand-audits} and the discussion
 in Chapter~\ref{ch:discussion}. The backends used to compute
-$e(\cdot,\cdot\mid x)$ are DeBERTa NLI cross-encoders (v3-base and
+$e(\cdot,\cdot)$ are DeBERTa NLI cross-encoders (v3-base and
 v3-large)~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
 sentence_transformers_nli_deberta_v3_large_2022} and a
 Qwen2.5-72B-Instruct LLM judge~\cite{yang_qwen25_2024}. DeBERTa-v3-large is the
@@ -244,7 +257,7 @@ representative, the implementation here tests \emph{every} pair of
 sampled answers for mutual entailment and then forms the
 \emph{connected groups} of the resulting graph: any two answers that
 entail each other in both directions are placed together, and this
-merging is transitive --- if answer~A matches answer~B and B matches~C,
+merging is transitive: if answer~A matches answer~B and B matches~C,
 then A, B and C all end up in one group, even if A and C were never a
 direct match. Algorithm~\ref{alg:clustering} states this procedure
 exactly as implemented, and the worked example in
@@ -256,15 +269,16 @@ groups directly off the pairwise entailment matrix.
   implemented in this thesis
   (\texttt{semantic\_entropy.clustering.nli\_cluster}).}
 \label{alg:clustering}
-\KwIn{question $x$; normalized answers $y_1,\ldots,y_M$; NLI model
-  $\mathcal{M}(\cdot,\cdot\mid x)$ returning entailment, neutral, or
-  contradiction}
+\KwIn{normalized answers $y_1,\ldots,y_M$; NLI model
+  $\mathcal{M}(\cdot,\cdot)$ returning entailment, neutral, or
+  contradiction (the cross-encoder backends judge the answer pair
+  alone; the LLM-judge backend additionally sees the question)}
 \KwOut{one cluster identifier per answer}
 initialise union--find: $\mathrm{parent}[i] \gets i$ for $i=1,\ldots,M$\;
 \For{$i \gets 1$ \KwTo $M-1$}{
   \For{$j \gets i+1$ \KwTo $M$}{
-    $a \gets \mathcal{M}(y_i, y_j \mid x)$\tcp*{does $y_i$ entail $y_j$?}
-    $b \gets \mathcal{M}(y_j, y_i \mid x)$\tcp*{and $y_j$ entail $y_i$?}
+    $a \gets \mathcal{M}(y_i, y_j)$\tcp*{does $y_i$ entail $y_j$?}
+    $b \gets \mathcal{M}(y_j, y_i)$\tcp*{and $y_j$ entail $y_i$?}
     \If{$a$ is entailment \textbf{and} $b$ is entailment}{
       $\textsc{union}(i,j)$\tcp*{merge the two answers' groups}
     }
@@ -302,9 +316,9 @@ both this count-based estimator and the probability-weighted variants
 of Farquhar et al.~\cite{semantic_entropy_nature_2024,%
 kossen_semantic_uncertainty_code_2024}, which use length-normalized
 sequence log-probabilities instead of sample counts. The four
-sampling-based entropy estimators are organized by two axes ---
+sampling-based entropy estimators are organized by two axes:
 whether paraphrases are clustered by meaning, and whether the score
-uses the model's sequence probabilities or just occurrence counts:
+uses the model's sequence probabilities or just occurrence counts.
 
 \begin{center}
 \small
@@ -365,12 +379,12 @@ Index & Sampled answer $y_i$ \\
 \end{center}
 
 The example is intentionally small ($M=5$) and intentionally a case in
-which the model is mostly right but somewhat uncertain --- a useful
+which the model is mostly right but somewhat uncertain, a useful
 sanity check on the pipeline.
 
 \paragraph{Step 1: Bidirectional entailment.}
-The NLI model is applied to each ordered pair $(y_i, y_j)$ conditioned
-on $x$. Table~\ref{tab:entailment_example} shows the resulting binary
+The NLI model is applied to each ordered pair $(y_i, y_j)$.
+Table~\ref{tab:entailment_example} shows the resulting binary
 entailment decisions; a cell $(i,j)$ equals 1 if the row answer entails
 the column answer, 0 otherwise.
 
@@ -378,7 +392,7 @@ the column answer, 0 otherwise.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Pairwise entailment matrix for the worked example.
-         A cell $(i,j)=1$ means $y_i$ entails $y_j$ given $x$.}
+         A cell $(i,j)=1$ means $y_i$ entails $y_j$.}
 \label{tab:entailment_example}
 \begin{tabular}{c|ccccc}
        & $y_1$ & $y_2$ & $y_3$ & $y_4$ & $y_5$ \\\hline
@@ -436,8 +450,8 @@ different answer from \emph{``Canberra''}, inflating the apparent
 uncertainty. After semantic clustering, the correct answer class
 ($c_1$, Canberra) accounts for 60\,\% of samples, and the entropy is
 correspondingly lower and arguably better calibrated to the actual
-semantic situation. The model is genuinely somewhat uncertain --- two
-samples confabulated wrong cities --- but less so than the surface-form
+semantic situation. The model really is somewhat uncertain (two
+samples confabulated wrong cities) but less so than the surface-form
 score implies.
 
 \section{Method contract}
@@ -484,7 +498,7 @@ that the results chapter can refer to them by name. Two of them
 recent literature and address a practical weakness of the main method:
 its cost. Computing discrete semantic entropy needs $M$ sampled answers
 per question and up to $M^2$ pairwise entailment checks to build the
-clusters --- affordable for a study, but heavy at deployment scale. The
+clusters: affordable for a study, but heavy at deployment scale. The
 other two (P(True) and embedding regression) are simple, widely used
 baselines.
 
@@ -513,7 +527,7 @@ sentence-embedding similarity.
     The matrix is rescaled so its entries behave like a probability
     table (it sums to one along the diagonal).
   \item \textbf{Take the entropy of the matrix.} The KLE score is the
-    von~Neumann entropy of that matrix --- a matrix generalization of
+    von~Neumann entropy of that matrix, a matrix generalization of
     Shannon entropy, computed as the Shannon entropy of the matrix's
     eigenvalues (the details are not needed to read the results). It is
     low when the answer vectors point
@@ -537,7 +551,7 @@ A Semantic Entropy Probe
 (SEP)~\cite{kossen_semantic_entropy_probes_2024} attacks the cost
 problem from the other side: it tries to read the uncertainty directly
 off the model's internal state, so that at test time only a
-\emph{single} forward pass is needed --- no multi-sampling and no
+\emph{single} forward pass is needed, with no multi-sampling and no
 entailment comparisons.
 
 \begin{itemize}
@@ -584,8 +598,8 @@ training, which makes it a natural cheap reference point.
 \textbf{Embedding regression} is a close cousin of the SEP probe: the
 same kind of linear model trained on the same last-token hidden states,
 but supervised directly on \emph{judged correctness} rather than on a
-semantic-entropy threshold. It is reported in two forms ---
-\emph{in-distribution}, trained and tested on the same task, and
-\emph{out-of-distribution}, trained on one task and tested on another ---
+semantic-entropy threshold. It is reported in two forms,
+\emph{in-distribution} (trained and tested on the same task) and
+\emph{out-of-distribution} (trained on one task and tested on another),
 so that the experiments can measure how well a hidden-state probe
 transfers between datasets.
