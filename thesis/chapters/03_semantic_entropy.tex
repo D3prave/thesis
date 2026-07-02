@@ -346,9 +346,9 @@ The following example makes the pipeline concrete. Consider the factual
 question $x = $ ``What is the capital of Australia?''. The
 language model is instructed to produce $M=5$ sampled answers under temperature
 $T=0.7$. ``Sampling'' here means running the same prompt through the
-model five times with the same decoding configuration but a different
-random seed each time, yielding five different (but plausible)
-completions:
+model five times with the same decoding configuration, each time
+drawing a fresh stochastic completion, yielding five different (but
+plausible) answers:
 
 \begin{center}
 \begin{tabular}{cl}
