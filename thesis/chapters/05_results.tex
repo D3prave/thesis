@@ -433,8 +433,8 @@ holding everything else fixed.
 \caption{Discrete semantic entropy AUROC by clustering backend
   (mean $\pm$ std over seeds). Best backend per row in bold (higher is
   better). ``--'' marks a backend not run for that
-  cell; the DeBERTa-v3-base backend was applied to a subset of
-  short-answer cells only, as a sensitivity check. On biography,
+  cell; the DeBERTa-v3-base backend is reported as a sensitivity
+  comparison against the large NLI model. On biography,
   exact-match clustering reduces to the surface-entropy baseline (every
   paragraph is a distinct string) and sits at chance.}
 \label{tab:clustering-sensitivity}
@@ -458,7 +458,11 @@ which is unsurprising given that normalization already does the work. On
 biographies the choice is decisive (Figure~\ref{fig:bio-clustering-sensitivity}):
 exact-match clustering collapses to the chance line, while the
 DeBERTa-v3-large NLI backend and the Qwen judge both recover a clear
-signal, the Qwen judge being strongest. This is the long-form
+signal, the Qwen judge being strongest. The smaller DeBERTa-v3-base
+backend stays near chance on biography (e.g.\ Llama-3.1-8B at AUROC
+$0.46$), unlike its large counterpart, which suggests that on long-form
+inputs the capacity of the entailment model, not merely its presence, is
+what recovers the signal. This is the long-form
 counterpart to the short-answer negative result: when clustering matters
 at all, \emph{which} clusterer is used matters a great deal.
 

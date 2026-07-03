@@ -353,6 +353,41 @@ test whether grouping by meaning helps at all, and the
 probability-weighted versions test whether the model's own confidence in
 each answer adds anything.
 
+Algorithm~\ref{alg:scoring} collects these steps into the exact procedure
+the implementation runs on each prompt: normalize the sampled answers,
+group them with the bidirectional-entailment clustering of
+Algorithm~\ref{alg:clustering}, and then score. The count-based branch
+yields the discrete estimator and the probability-weighted branch the full
+estimator; as noted above, the two coincide when the sampled sequences are
+equally likely.
+
+\begin{algorithm}
+\caption{Semantic-entropy scoring from sampled answers, as implemented in
+  \texttt{semantic\_entropy.scoring}.}
+\label{alg:scoring}
+\KwIn{raw sampled answers $s_1,\ldots,s_M$ for prompt $x$; optional
+  length-normalized sequence log-probabilities $\ell_1,\ldots,\ell_M$;
+  NLI model $\mathcal{M}$}
+\KwOut{discrete semantic entropy $\widehat{H}_{\mathrm{sem}}$ and, when
+  log-probabilities are available, full semantic entropy
+  $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}}$}
+$y_i \gets \textsc{normalize}(s_i)$ for $i=1,\ldots,M$\tcp*{lowercase, strip, collapse whitespace}
+$(c_1,\ldots,c_M) \gets \textsc{cluster}(y_1,\ldots,y_M;\mathcal{M})$\tcp*{Algorithm~\ref{alg:clustering}}
+let $K$ be the number of distinct clusters\;
+\For{$k \gets 1$ \KwTo $K$}{
+  $n_k \gets |\{\,i : c_i = k\,\}|$\tcp*{count-based cluster mass}
+  $\hat{p}_k \gets n_k / M$\;
+}
+$\widehat{H}_{\mathrm{sem}} \gets -\sum_{k=1}^{K}\hat{p}_k \log \hat{p}_k$\tcp*{discrete semantic entropy}
+\If{sequence log-probabilities are available}{
+  $\log P_k \gets \operatorname{logsumexp}_{\,i:\,c_i=k}\ \ell_i$ for each $k$\;
+  $Z \gets \operatorname{logsumexp}_{\,k}\ \log P_k$\tcp*{renormalize over clusters}
+  $q_k \gets \exp(\log P_k - Z)$ for each $k$\;
+  $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}} \gets -\sum_{k=1}^{K} q_k \log q_k$\tcp*{full semantic entropy}
+}
+\Return $\widehat{H}_{\mathrm{sem}}$ (and $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}}$ if computed)\;
+\end{algorithm}
+
 \section{Worked example}
 \label{sec:worked_example}
 
