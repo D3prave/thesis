@@ -459,10 +459,10 @@ biographies the choice is decisive (Figure~\ref{fig:bio-clustering-sensitivity})
 exact-match clustering collapses to the chance line, while the
 DeBERTa-v3-large NLI backend and the Qwen judge both recover a clear
 signal, the Qwen judge being strongest. The smaller DeBERTa-v3-base
-backend stays near chance on biography (e.g.\ Llama-3.1-8B at AUROC
-$0.46$), unlike its large counterpart, which suggests that on long-form
-inputs the capacity of the entailment model, not merely its presence, is
-what recovers the signal. This is the long-form
+backend underperforms the large model in every biography cell and falls
+toward chance for the two Llama generators, retaining only moderate signal
+for Mistral-7B; this reinforces that on long-form inputs the capacity of
+the entailment model, not merely its presence, is what recovers the signal. This is the long-form
 counterpart to the short-answer negative result: when clustering matters
 at all, \emph{which} clusterer is used matters a great deal.
 
