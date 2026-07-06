@@ -42,21 +42,21 @@ are grouped by meaning. The aim of this thesis is not to
 propose the method, but to re-implement it in a smaller, locally reproducible
 setup and to study how well it works there, and under which conditions.
 
-\begin{figure}[ht]
+\begin{figure*}[!ht]
 \centering
-\includegraphics[width=\textwidth]{method_schematic.png}
+\includegraphics[width=\linewidth]{method_schematic.png}
 \caption{The semantic entropy pipeline on a small example. The model is
   sampled several times for the same question; counting distinct
-  \emph{wordings} (top right) makes the model look very unsure, because
+  \emph{wordings} (left path) makes the model look very unsure, because
   paraphrases such as ``Canberra'' and ``Canberra is the capital\ldots''
   are treated as different answers. Grouping the samples by
-  \emph{meaning} with bidirectional NLI entailment (bottom right) shows
+  \emph{meaning} with bidirectional NLI entailment (right path) shows
   that the model has mostly settled on one answer, and the entropy over
   these meaning-groups is the semantic entropy used throughout the
   thesis. The same example is worked through numerically in
   Chapter~\ref{ch:semantic_entropy}.}
 \label{fig:intro-schematic}
-\end{figure}
+\end{figure*}
 
 \section{Research Aim}
 

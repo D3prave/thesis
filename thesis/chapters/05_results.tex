@@ -275,7 +275,7 @@ Table~\ref{tab:auroc-overview} gives the bird's-eye view: discrete
 semantic entropy, the full probability-weighted estimator, and the
 hidden-state probe, for all three models and four tasks.
 
-\begin{table}[ht]
+\begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Selective-prediction AUROC overview (seed-mean over 42/43/44).
@@ -284,7 +284,7 @@ hidden-state probe, for all three models and four tasks.
   picture changes sharply (Section~\ref{sec:bio-results}).}
 \label{tab:auroc-overview}
 \input{includes/generated_overview.tex}
-\end{table}
+\end{table*}
 
 The companion AURAC view is given in Table~\ref{tab:aurac-overview}. AURAC
 measures how fast accuracy rises as the most-uncertain answers are
@@ -302,7 +302,7 @@ the hidden-state probe has a slightly higher AURAC than semantic entropy
 accuracy confound is exactly why AUROC, which is accuracy-independent, is
 used as the primary metric throughout.
 
-\begin{table}[ht]
+\begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Selective-prediction AURAC overview (seed-mean over 42/43/44),
@@ -310,7 +310,7 @@ used as the primary metric throughout.
   accuracy, so values are comparable within a cell but not across cells.}
 \label{tab:aurac-overview}
 \input{includes/generated_overview_aurac.tex}
-\end{table}
+\end{table*}
 
 \begin{figure*}[!t]
 \centering
