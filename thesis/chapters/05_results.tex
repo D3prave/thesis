@@ -32,7 +32,7 @@ Two summary measures are used throughout.
   \item \textbf{AURAC} (area under the rejection--accuracy curve). If the
     answers the detector is most worried about are discarded, the
     accuracy of what remains should go up. AURAC summarizes how quickly
-    accuracy improves as we discard flagged answers; higher is better.
+    accuracy improves as flagged answers are discarded; higher is better.
     Unlike AUROC, it also depends on how accurate the model was to begin
     with, so AURAC values are only comparable within the same task and
     model.
@@ -194,7 +194,7 @@ score}
 \label{sec:audit-merge}
 
 \textbf{Question (TriviaQA, Llama-3.1-8B):} ``According to Rudyard
-Kipling, what were the two impostors to meet and treat the same day?''
+Kipling what were the `two imposters' to meet and treat the same day?''
 \textbf{Gold answer:} \emph{Triumph and Disaster}. The ten sampled
 answers were:
 
@@ -226,7 +226,8 @@ catch}
 
 \textbf{Question (TriviaQA, Llama-3.1-8B):} ``Who was the director of the
 CIA from 1976--81?'' \textbf{Gold answer:} \emph{George Bush}. All ten
-samples were the same: \emph{Stansfield Turner}. Because every sample
+samples gave the same answer, \emph{Stansfield Turner} (differing only
+in a trailing period). Because every sample
 agrees, the spread over meanings is zero (semantic entropy $0.00$), so
 the detector reports maximum confidence, yet the answer is graded
 incorrect.
@@ -362,9 +363,10 @@ SVAMP respectively.
 \end{table}
 
 Three things stand out on short answers. First, all of the
-sampling-based detectors work: AUROC sits in roughly the
-$0.74$--$0.88$ band, which is consistent with the original semantic
-entropy paper under the matched protocol. Second, the
+sampling-based detectors work: AUROC sits in the $0.67$--$0.88$ band,
+and the normalized surface baseline and the two semantic scores all
+fall between $0.74$ and $0.88$, which is consistent with the original
+semantic entropy paper under the matched protocol. Second, the
 \emph{surface/exact-match baseline is the strongest single score in most
 cells}: for example on TriviaQA it reaches $0.819$ (Mistral),
 $0.838$ (Llama-3.1-8B) and $0.802$ (Llama-3.1-70B), slightly ahead of
@@ -692,7 +694,7 @@ The experiments support a single, regime-dependent picture.
 \begin{enumerate}
   \item \textbf{Short answers: semantic clustering is close to
     redundant.} All sampling-based detectors work (AUROC
-    $\approx 0.74$--$0.88$), but the cheap surface/exact-match baseline
+    $\approx 0.67$--$0.88$), but the cheap surface/exact-match baseline
     is the strongest single score in most cells and no method beats it
     by more than a practically negligible margin
     (Section~\ref{sec:significance}).
