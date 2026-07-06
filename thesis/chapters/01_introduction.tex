@@ -127,7 +127,9 @@ as semantic entropy.
 \textbf{Replication condition.} The main semantic-entropy condition repeats
 the same model--dataset grid on the NHR@FAU high-performance computing
 cluster and replaces exact-match clustering with a bidirectional Natural
-Language Inference (NLI) clustering step using a DeBERTa-v3 cross-encoder.
+Language Inference (NLI) clustering step using DeBERTa-v3 cross-encoders
+(the base model end to end, and the large model as the canonical
+post-hoc backend).
 This is the configuration that corresponds most closely to the method of
 Farquhar et al.
 
@@ -153,7 +155,8 @@ meaning-level clustering helps. Concretely, it delivers:
 \begin{enumerate}
   \item an implementation of discrete semantic entropy for short-answer and
     long-form hallucination detection, covering answer normalization,
-    exact-match clustering, bidirectional NLI clustering with DeBERTa-v3,
+    exact-match clustering, bidirectional NLI clustering with DeBERTa-v3
+    cross-encoders,
     entropy scoring, and correctness labeling;
   \item an experimental design that separates surface-form baselines, the
     NLI-clustered replication condition, and additional analyses, with Slurm

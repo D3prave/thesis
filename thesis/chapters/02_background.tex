@@ -139,8 +139,8 @@ model reads two sentences and labels their relationship as
 \emph{entailment} (the first implies the second), \emph{contradiction},
 or \emph{neutral}. Checking entailment in both directions is then a
 practical stand-in for ``these two answers mean the same thing.'' The
-specific NLI model used here is a DeBERTa-v3 \emph{cross-encoder}
-fine-tuned on the standard SNLI and MultiNLI inference
+specific NLI models used here are DeBERTa-v3 \emph{cross-encoders} (in
+two sizes, base and large) fine-tuned on the standard SNLI and MultiNLI inference
 datasets~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
 he_deberta_2021,he_debertav3_2021,williams_multinli_2018}. ``Cross-encoder''
 just means the two sentences are fed into the model

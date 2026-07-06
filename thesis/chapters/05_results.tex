@@ -92,39 +92,48 @@ weighted.
   Section~\ref{sec:other-estimators}.}
 \label{tab:detector-key}
 \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
-\begin{tabular}{@{}p{4.6cm}p{8.2cm}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{8.2cm}@{}}
 \toprule
 Name in the tables & What it does \\
 \midrule
 Naive sample entropy (raw strings) & counts how many of the $M$ sampled
   answers are distinct character-for-character; no normalization, no
   meaning (Section~\ref{sec:estimator-family}) \\
+\addlinespace[3pt]
 Surface entropy (normalized strings) & the same count after the
   dataset's standard normalization (case, punctuation, articles,
   whitespace; numeric extraction for SVAMP); still no meaning
   (Section~\ref{sec:clustering}) \\
+\addlinespace[3pt]
 Naive entropy (prob.-weighted strings) & no meaning grouping either,
   but weights each answer by the model's own sequence probability
   instead of counting (Section~\ref{sec:estimator-family}) \\
+\addlinespace[3pt]
 Discrete semantic entropy (NLI clusters) & groups answers that mutually
   entail each other and takes the entropy of the group sizes
   (Section~\ref{sec:estimator-family}) \\
+\addlinespace[3pt]
 Semantic entropy (full, prob.-weighted) & the same NLI groups, weighted
   by sequence probability; the original paper's primary estimator
   (Section~\ref{sec:estimator-family}) \\
+\addlinespace[3pt]
 KLE (MiniLM / RoBERTa-NLI) & soft meaning comparison through sentence
   embeddings instead of hard NLI clusters; the suffix names the
   embedding model used (Section~\ref{sec:kle}) \\
+\addlinespace[3pt]
 SEP probe & logistic regression on the model's last hidden state,
   trained to predict high semantic entropy; one forward pass, no
   sampling at test time (Section~\ref{sec:sep-method}) \\
+\addlinespace[3pt]
 Embedding regression (in-dist.\ / OOD) & the same kind of hidden-state
   probe trained directly on correctness; in-dist.\ $=$ trained and
   tested on the same task, OOD $=$ trained on the other tasks
   (Section~\ref{sec:other-estimators}) \\
+\addlinespace[3pt]
 P(True) & the model grades its own most-likely answer; the probability
   it assigns to ``True'' is the score
   (Section~\ref{sec:other-estimators}) \\
+\addlinespace[3pt]
 Judge correctness score & biography only: the confidence the long-form
   judge reports for its own verdict, recorded as a by-product of
   grading and shown as a reference row
@@ -145,9 +154,18 @@ different strings, and the \emph{meaning-aware} semantic entropy, which
 first groups answers that mean the same thing and then measures the
 spread over meanings.
 
-\begin{figure}[ht]
+The pattern is the same for all three models. On short answers the two
+bars are nearly equal, so the expensive meaning-based machinery yields
+little measurable improvement over simply noticing that the model wrote
+different strings. On long-form biographies the cheap baseline collapses to the
+chance line while the meaning-aware score survives. \emph{Where you need
+semantic clustering is precisely the long-form regime; on short answers
+it is close to redundant.} The remainder of the chapter establishes this
+quantitatively and explains why it happens.
+
+\begin{figure*}[!ht]
 \centering
-\includegraphics[width=\textwidth]{regime_split.png}
+\includegraphics[width=\linewidth]{regime_split.png}
 \caption{Surface-form versus meaning-aware detection across tasks
   (AUROC, higher is better; the dashed line is the useless ``coin-flip''
   level of 0.5). On the three short-answer tasks the two scores are
@@ -157,16 +175,7 @@ spread over meanings.
   entirely) while the meaning-aware bar stays well above it. This
   short-versus-long contrast is the central finding.}
 \label{fig:regime-split}
-\end{figure}
-
-The pattern is the same for all three models. On short answers the two
-bars are nearly equal, so the expensive meaning-based machinery yields
-little measurable improvement over simply noticing that the model wrote
-different strings. On long-form biographies the cheap baseline collapses to the
-chance line while the meaning-aware score survives. \emph{Where you need
-semantic clustering is precisely the long-form regime; on short answers
-it is close to redundant.} The remainder of the chapter establishes this
-quantitatively and explains why it happens.
+\end{figure*}
 
 \section{Worked examples: what the detector sees}
 \label{sec:hand-audits}
@@ -303,16 +312,16 @@ used as the primary metric throughout.
 \input{includes/generated_overview_aurac.tex}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{multiseed_auroc.png}
+\includegraphics[width=\linewidth]{multiseed_auroc.png}
 \caption{Per-task AUROC for the main detectors, averaged over three
   seeds (error bars are the seed spread). The detectors cluster
   together on every short-answer task: no single method dominates, and
   the cheap surface baseline sits inside the same band as the
   meaning-aware scores.}
 \label{fig:multiseed-auroc}
-\end{figure}
+\end{figure*}
 
 The detailed per-task tables follow.
 Tables~\ref{tab:auroc-triviaqa}, \ref{tab:auroc-nqopen}
@@ -323,8 +332,9 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{TriviaQA AUROC by detector and model (mean $\pm$ std over
-  seeds). Canonical DeBERTa-v3-large clustering for the entropy methods.
-  Best value per model column in bold (higher is better).}
+  seeds). Canonical setup: sampling temperature $1.0$, $M=10$ samples
+  per question, post-hoc DeBERTa-v3-large clustering for the entropy
+  methods. Best value per model column in bold (higher is better).}
 \label{tab:auroc-triviaqa}
 \input{includes/generated_auroc_triviaqa.tex}
 \end{table}
@@ -333,7 +343,9 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{NQ-Open AUROC by detector and model (mean $\pm$ std over seeds).
-  Best value per model column in bold (higher is better).}
+  Canonical setup as in Table~\ref{tab:auroc-triviaqa} (temperature
+  $1.0$, $M=10$, DeBERTa-v3-large clustering). Best value per model
+  column in bold (higher is better).}
 \label{tab:auroc-nqopen}
 \input{includes/generated_auroc_nqopen.tex}
 \end{table}
@@ -342,7 +354,9 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{SVAMP AUROC by detector and model (mean $\pm$ std over seeds).
-  Best value per model column in bold (higher is better).}
+  Canonical setup as in Table~\ref{tab:auroc-triviaqa} (temperature
+  $1.0$, $M=10$, DeBERTa-v3-large clustering). Best value per model
+  column in bold (higher is better).}
 \label{tab:auroc-svamp}
 \input{includes/generated_auroc_svamp.tex}
 \end{table}
@@ -379,7 +393,9 @@ beats the surface baseline by more than sampling noise would explain.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Paired-bootstrap comparison against the surface baseline.
+\caption{Paired-bootstrap comparison against the surface baseline,
+  in the canonical setup (temperature $1.0$, $M=10$; DeBERTa-v3-large
+  clustering for the entropy methods).
   Each cell shows the mean AUROC difference across the three seeds
   (positive $=$ the method is ahead of the baseline), and $(k/3)$ counts
   the seeds in which the 95\,\% bootstrap confidence interval of that
@@ -558,10 +574,12 @@ probe reaches $0.728$ (8B) and $0.731$ (70B), \emph{above} every
 meaning-based clustering method on those models, and \mbox{P(True)} is
 the single best biography detector on the 70B model at $0.777$. (Only
 the probability-weighted naive entropy, noted above, beats the probe on
-the two smaller models.) These are the canonical full-grid SEP figures;
-the slightly different SEP numbers in Appendix
-Table~\ref{tab:sep-heldout-appendix} come from the probe's own held-out
-evaluation split and are not directly comparable. This matters for
+the two smaller models.) The SEP probe is always scored on its own
+held-out evaluation split; Appendix
+Table~\ref{tab:sep-heldout-appendix} lists the per-split record counts
+together with same-split entropy baselines, which differ from the
+full-grid entropy tables in this chapter and are not directly
+comparable to them. This matters for
 deployment, because a single-pass probe is far cheaper than drawing ten
 samples and running pairwise entailment.
 
@@ -603,9 +621,9 @@ deterministic) to $1.0$.
 \input{includes/generated_temp_sweep_auroc.tex}}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{auroc_vs_temperature.png}
+\includegraphics[width=\linewidth]{auroc_vs_temperature.png}
 \caption{AUROC as a function of sampling temperature, per task and
   model. The sampling-based scores (semantic entropy, surface entropy)
   climb as temperature increases, because more diverse samples reveal
@@ -614,7 +632,7 @@ deterministic) to $1.0$.
   temperature $0.7$ and $1.0$ on short answers; on biography the curves
   are flat.}
 \label{fig:temp-sweep}
-\end{figure}
+\end{figure*}
 
 At low temperature the model repeats nearly the same answer every time,
 so there is little diversity for a sampling-based method to work with and
@@ -649,9 +667,11 @@ reports the result.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Claim-level FactualBio AUROC and AURAC by generator, under NLI
-  and exact-match clustering. Better clustering per metric in bold
-  (higher is better). Detection quality decreases as the generator gets
-  larger.}
+  (DeBERTa-v3-base cross-encoder) and exact-match clustering of the
+  re-sampled claim answers (mean $\pm$ std over seeds 42/43/44;
+  $\approx$6{,}500--6{,}800 judged claims per run). Better clustering
+  per metric in bold (higher is better). Detection quality decreases as
+  the generator gets larger.}
 \label{tab:factualbio}
 \input{includes/generated_factualbio_main.tex}
 \end{table}

@@ -267,7 +267,8 @@ groups directly off the pairwise entailment matrix.
 \begin{algorithm}
 \caption{Bidirectional-entailment clustering by connected components, as
   implemented in this thesis
-  (\texttt{semantic\_entropy.clustering.nli\_cluster}).}
+  (\texttt{semantic\_entropy.\allowbreak clustering.\allowbreak
+  nli\_cluster}).}
 \label{alg:clustering}
 \KwIn{normalized answers $y_1,\ldots,y_M$; NLI model
   $\mathcal{M}(\cdot,\cdot)$ returning entailment, neutral, or
@@ -280,7 +281,7 @@ initialise union--find: $\mathrm{parent}[i] \gets i$ for $i=1,\ldots,M$\;
     $a \gets \mathcal{M}(y_i, y_j)$\tcp*{does $y_i$ entail $y_j$?}
     $b \gets \mathcal{M}(y_j, y_i)$\tcp*{and $y_j$ entail $y_i$?}
     \If{$a$ is entailment \textbf{and} $b$ is entailment}{
-      $\textsc{union}(i,j)$\tcp*{merge the two answers' groups}
+      $\textsc{union}(i,j)$\tcp*{merge the two groups}
     }
   }
 }
@@ -363,7 +364,7 @@ equally likely.
 
 \begin{algorithm}
 \caption{Semantic-entropy scoring from sampled answers, as implemented in
-  \texttt{semantic\_entropy.scoring}.}
+  \texttt{semantic\_entropy.\allowbreak scoring}.}
 \label{alg:scoring}
 \KwIn{raw sampled answers $s_1,\ldots,s_M$ for prompt $x$; optional
   length-normalized sequence log-probabilities $\ell_1,\ldots,\ell_M$;
@@ -371,7 +372,8 @@ equally likely.
 \KwOut{discrete semantic entropy $\widehat{H}_{\mathrm{sem}}$ and, when
   log-probabilities are available, full semantic entropy
   $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}}$}
-$y_i \gets \textsc{normalize}(s_i)$ for $i=1,\ldots,M$\tcp*{lowercase, strip, collapse whitespace}
+\tcp{normalize: lowercase, strip, collapse whitespace}
+$y_i \gets \textsc{normalize}(s_i)$ for $i=1,\ldots,M$\;
 $(c_1,\ldots,c_M) \gets \textsc{cluster}(y_1,\ldots,y_M;\mathcal{M})$\tcp*{Algorithm~\ref{alg:clustering}}
 let $K$ be the number of distinct clusters\;
 \For{$k \gets 1$ \KwTo $K$}{
@@ -381,7 +383,8 @@ let $K$ be the number of distinct clusters\;
 $\widehat{H}_{\mathrm{sem}} \gets -\sum_{k=1}^{K}\hat{p}_k \log \hat{p}_k$\tcp*{discrete semantic entropy}
 \If{sequence log-probabilities are available}{
   $\log P_k \gets \operatorname{logsumexp}_{\,i:\,c_i=k}\ \ell_i$ for each $k$\;
-  $Z \gets \operatorname{logsumexp}_{\,k}\ \log P_k$\tcp*{renormalize over clusters}
+  \tcp{renormalize the cluster masses}
+  $Z \gets \operatorname{logsumexp}_{\,k}\ \log P_k$\;
   $q_k \gets \exp(\log P_k - Z)$ for each $k$\;
   $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}} \gets -\sum_{k=1}^{K} q_k \log q_k$\tcp*{full semantic entropy}
 }

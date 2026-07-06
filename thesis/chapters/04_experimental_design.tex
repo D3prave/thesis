@@ -123,7 +123,8 @@ the same small-versus-large contrast (and adding a middle size, the 8B
 model, so the size axis has three points rather than two). Every model--dataset
 cell is decoded under three seeds (42, 43, 44), and all headline
 results are reported as cross-seed means with seed standard
-deviations. The NLI judge in the replication condition is a local DeBERTa-v3 cross-encoder rather
+deviations. The NLI judges in this study are local DeBERTa-v3
+cross-encoders (two sizes, base and large, introduced below) rather
 than the proprietary GPT-3.5 used by Farquhar et al.
 Using a local model rather than a closed API matters for several
 reasons: the model version is fixed and publicly available, so results
