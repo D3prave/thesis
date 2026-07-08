@@ -158,8 +158,8 @@ The pattern is the same for all three models. On short answers the two
 bars are nearly equal, so the expensive meaning-based machinery yields
 little measurable improvement over simply noticing that the model wrote
 different strings. On long-form biographies the cheap baseline collapses to the
-chance line while the meaning-aware score survives. \emph{Where you need
-semantic clustering is precisely the long-form regime; on short answers
+chance line while the meaning-aware score survives. \emph{Semantic
+clustering is needed precisely in the long-form regime; on short answers
 it is close to redundant.} The remainder of the chapter establishes this
 quantitatively and explains why it happens.
 
@@ -417,8 +417,8 @@ exception runs the other way but is practically negligible:
 on SVAMP with the 70B model, discrete semantic entropy is ahead by
 $+0.003$ AUROC (significant in two of three seeds), a difference far too
 small to justify the cost of an NLI clustering step. In other
-words, once you have normalized the answer strings, paying for an NLI
-model to cluster them does not meaningfully improve short-answer
+words, once the answer strings are normalized, adding an NLI
+clustering step does not meaningfully improve short-answer
 hallucination detection.
 This is a negative result, and an important one: it says the
 meaning-clustering step provides measurable value only in the long-form
@@ -545,11 +545,9 @@ to the reference, so it is not a deployable detector.
 
 One regularity is worth flagging. The semantic-entropy AUROC
 \emph{decreases} as the generator gets larger ($0.708 \to 0.618 \to
-0.612$ from 7B to 70B). The discussion returns to this, but the short
-explanation is that larger models confabulate more \emph{consistently}:
-when a big model invents a fact, its ten samples tend to agree on the
-invention, leaving little spread for a consistency-based detector to
-find.
+0.612$ from 7B to 70B); Section~\ref{sec:scale-factualbio} traces this
+to larger models confabulating more \emph{consistently}, which leaves
+little spread for a consistency-based detector to find.
 
 \section{Supervised baselines and hidden-state probes}
 \label{sec:probes-results}
@@ -610,7 +608,9 @@ sampling-based detectors depend on getting \emph{diverse} samples, the
 decoding temperature ought to matter, and it does.
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
-deterministic) to $1.0$.
+deterministic) to $1.0$; the table reports the sweep for the largest
+generator, and Figure~\ref{fig:temp-sweep} shows the same pattern for
+all three.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
@@ -662,8 +662,15 @@ answers to that question, and (iv)~groups those answers by meaning and
 computes the semantic entropy; a high value flags the claim as a
 likely confabulation. A separate LLM judge then labels each claim as
 true or false against the reference, so the same AUROC measure can be
-applied at the level of single claims. Table~\ref{tab:factualbio}
-reports the result.
+applied at the level of single claims. Unlike the whole-paragraph
+results, the claim-level clustering uses the DeBERTa-v3-base
+cross-encoder (question-conditioned) rather than the posthoc v3-large
+backend: each regenerated answer is a short, question-conditioned
+string, which is the regime where
+Section~\ref{sec:clustering-sensitivity} shows the choice of entailment
+backend barely matters, and the lighter backend keeps the
+$\approx$6{,}500--6{,}800 pairwise-clustered claims per run tractable.
+Table~\ref{tab:factualbio} reports the result.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}

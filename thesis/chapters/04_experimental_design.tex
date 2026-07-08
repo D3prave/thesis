@@ -35,8 +35,9 @@ novelists), following the FactScore setup~\cite{min_factscore_2023},
 and each entity's reference is the pinned lead section of its Wikipedia
 article. The evaluated prompt sets are fixed once and shared by every
 model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and
-the biography task, and 300 for SVAMP, drawn from the datasets'
-validation splits. The three short-answer datasets are small enough to support
+the biography task, and 300 for SVAMP. The short-answer prompts are
+drawn from the datasets' validation splits; the biography prompts are
+drawn from the Wikipedia category listings described above. The three short-answer datasets are small enough to support
 repeated sampling while exercising distinct failure modes
 (trivia-style factual recall, search-query factual recall, and
 structured arithmetic reasoning), and the biography task adds a

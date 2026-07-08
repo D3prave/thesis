@@ -92,7 +92,14 @@ head~\cite{lm_polygraph_vashurin_2025}.
 The motivation for estimating uncertainty is not only to attach a score
 to an answer, but to decide what should happen next: answer, abstain,
 defer to retrieval, request human review, or invoke a more expensive
-verification procedure. This makes selective prediction and
+verification procedure. A related notion is \emph{calibration}: a model
+is well calibrated when its stated confidence matches how often it is
+actually right, so that among all answers given with 90\,\% confidence,
+roughly 90\,\% are correct. Calibration and accuracy are different
+properties --- a model can be accurate but poorly calibrated, and vice
+versa --- and the selective-prediction view used here needs only a good
+\emph{ranking} of risky answers, not calibrated probabilities. This
+makes selective prediction and
 rejection-based evaluation the natural evaluation lens for the thesis.
 Accuracy alone is insufficient, because many benchmarks reward a lucky
 guess more than an honest admission of uncertainty, a problem discussed
@@ -168,8 +175,8 @@ lengthen~\cite{nguyen_beyond_semantic_entropy_2025}, but does not isolate
 the short-versus-long contrast under a single controlled protocol. Third,
 the dependence of sampling-based detection on the decoding temperature,
 the very parameter that controls sample diversity, has been
-examined only in isolated
-ablations~\cite{nguyen_beyond_semantic_entropy_2025} rather than
+examined only in isolated ablations (including in the same
+work~\cite{nguyen_beyond_semantic_entropy_2025}) rather than
 characterized systematically across tasks and detector families. This
 thesis targets these three gaps directly.
 

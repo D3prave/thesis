@@ -53,7 +53,9 @@ probability-weighted entropy estimators beat the chance-level surface
 baseline by $+0.11$ to $+0.28$ AUROC on biography, significantly in
 every seed for every generator, while KLE, meaning-aware only in a
 soft, embedding-based sense, fails to
-(Section~\ref{sec:bio-results}).
+(Section~\ref{sec:bio-results}). In the terms of
+Section~\ref{sec:research-aim}: H1 and H2 are not supported on these
+datasets, while H3 is confirmed decisively.
 
 The short-answer non-result is worth stating plainly, because the
 theoretical motivation for semantic entropy is that surface variation is
@@ -79,17 +81,12 @@ work~\cite{semantic_entropy_nature_2024}.
 \section{Sensitivity to the clustering backend}
 \label{sec:nli-sensitivity}
 
-The meaning-based step needs a model to decide whether two answers are
-equivalent, and Table~\ref{tab:clustering-sensitivity} shows that the
-importance of that choice is itself regime-dependent. On short answers
-the backend barely matters: exact-match, DeBERTa-v3-base, DeBERTa-v3-large
-and the Qwen judge all land within a few AUROC points of each other,
-which is unsurprising given that normalization is doing the work. On
-biography the backend is \emph{result-determining}
-(Figure~\ref{fig:bio-clustering-sensitivity}): on the same saved
-paragraphs, the Qwen-72B judge ($0.736 / 0.685 / 0.666$) clusters
-meanings more reliably than the DeBERTa cross-encoder and lifts AUROC
-accordingly.
+Table~\ref{tab:clustering-sensitivity} established that the
+equivalence backend barely matters on short answers but is
+\emph{result-determining} on biography
+(Figure~\ref{fig:bio-clustering-sensitivity}), where the Qwen-72B judge
+($0.736 / 0.685 / 0.666$) clusters meanings more reliably than the
+DeBERTa cross-encoders and lifts AUROC accordingly.
 
 Two cautions follow. First, ``bigger judge'' is not automatically
 ``better judge'': the relationship between backend capacity and which

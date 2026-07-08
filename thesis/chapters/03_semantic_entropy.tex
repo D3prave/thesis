@@ -80,8 +80,10 @@ $x$ & prompt (question) supplied to the model \\
 $M$ & number of sampled answers drawn from the model per prompt \\
 $y_i$ & the $i$-th sampled answer, $i \in \{1,\ldots,M\}$ \\
 $Y(x)$ & the multiset of all $M$ sampled answers for prompt $x$ \\
-$e(y_i, y_j)$ & NLI entailment decision: 1 if $y_i$ entails
-                        $y_j$, 0 otherwise \\
+$e(y_i, y_j)$ & NLI entailment decision: 1 if the NLI model labels
+                        the pair $y_i \to y_j$ as \emph{entailment},
+                        0 if it labels it \emph{neutral} or
+                        \emph{contradiction} \\
 $\sim_{\mathrm{sem}}$ & semantic equivalence relation used by the
                         clustering step (see Section~\ref{sec:clustering}) \\
 $C(x)$ & the set of clusters $\{c_1,\ldots,c_K\}$ induced on $Y(x)$ \\
@@ -418,7 +420,9 @@ Index & Sampled answer $y_i$ \\
 
 The example is intentionally small ($M=5$) and intentionally a case in
 which the model is mostly right but somewhat uncertain, a useful
-sanity check on the pipeline.
+sanity check on the pipeline. The temperature here ($0.7$) is chosen
+for the illustration only; the recorded experiments use the
+paper-faithful configuration of Section~\ref{sec:sampling-settings}.
 
 \paragraph{Step 1: Bidirectional entailment.}
 The NLI model is applied to each ordered pair $(y_i, y_j)$.
@@ -524,6 +528,7 @@ outputs but are part of the surrounding evaluation pipeline, not of the
 method itself.
 
 \section{Related estimators evaluated alongside}
+\label{sec:related-estimators}
 
 The remaining estimators are not alternatives the thesis proposes but
 published baselines against which discrete semantic entropy is measured;

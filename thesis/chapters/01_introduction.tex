@@ -59,6 +59,7 @@ setup and to study how well it works there, and under which conditions.
 \end{figure*}
 
 \section{Research Aim}
+\label{sec:research-aim}
 
 The main question is whether semantic entropy is a better signal for
 hallucination risk and selective abstention (letting the system
@@ -89,8 +90,12 @@ improvement is at least directionally consistent across the three
 short-answer benchmarks, despite their different answer formats. The
 biography task tests a complementary hypothesis: that meaning-aware methods
 separate more clearly once raw surface diversity stops being informative.
+These expectations are referred to below as H1 (semantic entropy beats
+surface entropy on short answers), H2 (any improvement is directionally
+consistent across the three short-answer benchmarks), and H3
+(meaning-aware methods separate clearly on the long-form task).
 
-One result of this study qualifies the first hypothesis in a way the original
+One result of this study qualifies the first hypothesis (H1) in a way the original
 aggregate evaluation does not show. On short answers, the value of
 sampling-based methods such as semantic entropy depends strongly on the
 decoding temperature. At low temperature the repeated samples are nearly

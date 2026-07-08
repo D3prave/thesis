@@ -5,8 +5,8 @@ Large language models often produce fluent answers that are wrong or
 unsupported by the input, and they rarely warn the reader when this
 happens. A useful question-answering system should also be able to say
 ``I am not sure'' when its answer is unreliable. This thesis studies
-one signal for detecting such unreliable answers: semantic
-entropy~\cite{semantic_entropy_nature_2024}. The idea is simple. The
+one signal for detecting such unreliable answers: semantic entropy,
+introduced by Farquhar et al.\ in \emph{Nature} (2024). The idea is simple. The
 model is asked the same question several times; the sampled answers are
 grouped so that answers meaning the same thing count as one; and the
 spread over these meaning groups is measured with Shannon entropy. If
