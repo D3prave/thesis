@@ -96,9 +96,12 @@ entropy ranking, turning a useful detector into an anti-predictive one.
 Second, this is the long-form counterpart of the short-answer negative
 result: clustering quality matters exactly where clustering matters at
 all. The same backend effect reappears at claim level in FactualBio
-(Section~\ref{sec:scale-factualbio}), where exact-match grouping of the
-regenerated claims understates AUROC everywhere and pushes the largest
-model artificially below chance. Promoting clustering choice from an
+(Section~\ref{sec:scale-factualbio}) in attenuated form: exact-match
+grouping of the regenerated claims understates AUROC everywhere and
+pushes the largest model artificially below chance, but the two DeBERTa
+cross-encoder sizes agree to within $0.02$ AUROC on the short
+regenerated answers --- consistent with backend capacity mattering in
+proportion to input length. Promoting clustering choice from an
 implementation detail to a first-order design decision on everything
 long-form is one of the study's main methodological points.
 
@@ -162,10 +165,11 @@ this trade-off is specific to the short-answer regime.
 The FactualBio claim-level extension
 (Section~\ref{sec:factualbio-results}) gives the clearest scale result in
 the study: claim-level semantic entropy weakens monotonically as the
-generator grows, from AUROC $0.688$ (Mistral-7B) through $0.644$
-(Llama-3.1-8B) to $0.521$ (Llama-3.1-70B), with seed standard deviations
-below $0.01$. The same downward direction is visible in the
-whole-paragraph biography numbers of Section~\ref{sec:bio-results}.
+generator grows, from AUROC $0.707$ (Mistral-7B) through $0.652$
+(Llama-3.1-8B) to $0.528$ (Llama-3.1-70B), with seed standard deviations
+below $0.01$ and the same ordering under the v3-base backend. The same
+downward direction is visible in the whole-paragraph biography numbers
+of Section~\ref{sec:bio-results}.
 
 The reason follows from what semantic entropy actually measures:
 \emph{inconsistency}. It flags an answer when regenerated samples disagree

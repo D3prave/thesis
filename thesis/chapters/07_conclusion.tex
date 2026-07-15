@@ -45,10 +45,10 @@ clearly useful behavior on the same saved samples, and the same
 artifact reappears at claim level, where exact-match clustering wrongly
 makes the largest model look worse than chance. Second, the claim-level FactualBio extension shows that
 semantic entropy's discriminative power decreases monotonically with
-generator scale (AUROC 0.688 $\rightarrow$ 0.644 $\rightarrow$ 0.521
-from 7B to 70B): larger models repeat their confabulations more
-consistently, eroding exactly the inconsistency that the method
-measures. Hidden-state probes invert this picture. On short answers they
+generator scale (AUROC 0.707 $\rightarrow$ 0.652 $\rightarrow$ 0.528
+from 7B to 70B, robust to the choice of entailment backend): larger
+models repeat their confabulations more consistently, eroding exactly
+the inconsistency that the method measures. Hidden-state probes invert this picture. On short answers they
 are merely a cheap alternative, strictly weaker than sampling-based
 entropy, and converging to the same performance whether trained on
 correctness or on the semantic-entropy threshold. On long-form

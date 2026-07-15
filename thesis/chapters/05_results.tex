@@ -662,33 +662,38 @@ answers to that question, and (iv)~groups those answers by meaning and
 computes the semantic entropy; a high value flags the claim as a
 likely confabulation. A separate LLM judge then labels each claim as
 true or false against the reference, so the same AUROC measure can be
-applied at the level of single claims. Unlike the whole-paragraph
-results, the claim-level clustering uses the DeBERTa-v3-base
-cross-encoder (question-conditioned) rather than the posthoc v3-large
-backend: each regenerated answer is a short, question-conditioned
-string, which is the regime where
-Section~\ref{sec:clustering-sensitivity} shows the choice of entailment
-backend barely matters, and the lighter backend keeps the
-$\approx$6{,}500--6{,}800 pairwise-clustered claims per run tractable.
-Table~\ref{tab:factualbio} reports the result.
+applied at the level of single claims. The claim-level clustering is
+run with both DeBERTa cross-encoder sizes (question-conditioned): the
+canonical v3-large and the lighter v3-base used in the generation runs.
+Because each regenerated answer is a short, question-conditioned
+string, the backend choice is expected to matter far less here than on
+whole paragraphs (Section~\ref{sec:clustering-sensitivity}); the
+results confirm this directly. Table~\ref{tab:factualbio} reports the
+result.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Claim-level FactualBio AUROC and AURAC by generator, under NLI
-  (DeBERTa-v3-base cross-encoder) and exact-match clustering of the
-  re-sampled claim answers (mean $\pm$ std over seeds 42/43/44;
-  $\approx$6{,}500--6{,}800 judged claims per run). Better clustering
-  per metric in bold (higher is better). Detection quality decreases as
-  the generator gets larger.}
+\caption{Claim-level FactualBio AUROC and AURAC by generator, under the
+  canonical DeBERTa-v3-large NLI backend, the v3-base backend, and
+  exact-match clustering of the re-sampled claim answers (mean $\pm$
+  std over seeds 42/43/44; $\approx$5{,}200--6{,}800 judged claims per
+  run). Better clustering per metric in bold (higher is better).
+  Detection quality decreases as the generator gets larger.}
 \label{tab:factualbio}
 \input{includes/generated_factualbio_main.tex}
 \end{table}
 
 At the claim level the same scale effect from
 Section~\ref{sec:bio-results} appears even more cleanly: claim-level
-detection AUROC falls monotonically with model size, $0.688$ (Mistral-7B)
-$\to 0.644$ (Llama-3.1-8B) $\to 0.521$ (Llama-3.1-70B). By the 70B
+detection AUROC falls monotonically with model size, $0.707$ (Mistral-7B)
+$\to 0.652$ (Llama-3.1-8B) $\to 0.528$ (Llama-3.1-70B) under the
+canonical v3-large backend. The trend is robust to the entailment
+backend: moving from v3-base to v3-large lifts every cell by only
+$+0.007$ to $+0.019$ AUROC, in sharp contrast to the whole-paragraph
+setting, where the same swap is result-determining
+(Section~\ref{sec:clustering-sensitivity}), while exact-match grouping
+of the regenerated answers understates AUROC everywhere. By the 70B
 model, claim-level semantic entropy is barely above chance.
 Larger models repeat their confabulations too consistently for a
 consistency-based signal to separate true from false claims.
