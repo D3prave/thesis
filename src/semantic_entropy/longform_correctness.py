@@ -6,8 +6,8 @@ record against its Wikipedia reference paragraph using a vLLM-backed judge
 (Qwen2.5-72B-Instruct by default).
 
 Why grade the majority answer rather than all M samples: the
-``correctness_label`` is per-record (a single ground-truth bit for AUROC), and
-the selective-prediction table needs one correctness label per uncertainty
+``correctness_label`` is per-record (a single operational target bit for
+AUROC), and the selective-prediction table needs one label per uncertainty
 score. Grading the modal cluster representative is the cheapest fixed policy
 for deriving that label, but the label can change when a different clustering
 backend changes the modal representative. Backend-specific bio comparisons
@@ -16,7 +16,8 @@ from a previous clustering pass.
 
 The module also provides :func:`grade_records_inplace`, which loads a scored
 JSONL, fills the ``correctness_label`` and optional ``scores.correctness_score``
-fields, and returns the updated list. This is called by
+fields, marks their provenance as an exploratory automated proxy, and returns
+the updated list. This is called by
 ``scripts/score_longform_correctness.py``.
 
 Prompt template: ``src/semantic_entropy/prompts/bio_judge.txt``
@@ -26,9 +27,14 @@ Secondary confidence prompt: inline in :const:`CONFIDENCE_USER_TEMPLATE`.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
+
+from semantic_entropy.label_provenance import (
+    automated_label_provenance,
+    validate_label_provenance,
+)
 
 # ---------------------------------------------------------------------------
 # Type aliases
@@ -71,18 +77,25 @@ DEFAULT_CORRECTNESS_SYSTEM_PROMPT = (
 def parse_correctness_judgment(raw: str) -> bool:
     """Map a raw LLM response to a boolean correctness label.
 
-    Returns ``True`` if the response begins with ``correct`` (case-insensitive),
-    ``False`` otherwise. Defaults to ``False`` on any parse failure, matching
-    the conservative stance taken by the rest of the pipeline.
+    Accepts only responses beginning with ``correct`` or ``incorrect``
+    (case-insensitive). Unrecognized or empty output raises instead of silently
+    turning a judge failure into a factual-error label.
 
     Args:
         raw: Free-text response from the judge model.
 
     Returns:
-        ``True`` for CORRECT, ``False`` for INCORRECT or unrecognized output.
+        ``True`` for CORRECT and ``False`` for INCORRECT.
+
+    Raises:
+        ValueError: If the verdict is empty or unrecognized.
     """
     cleaned = raw.strip().lower().lstrip("\"' .:,-*")
-    return cleaned.startswith("correct") and not cleaned.startswith("incorrect")
+    if cleaned.startswith("incorrect"):
+        return False
+    if cleaned.startswith("correct"):
+        return True
+    raise ValueError(f"unrecognized correctness judgment: {raw!r}")
 
 
 def parse_confidence_score(raw: str) -> float | None:
@@ -142,7 +155,7 @@ def _majority_representative(
 def _fixed_representative(record: dict[str, Any]) -> str:
     """Return a clustering-INDEPENDENT answer to grade for correctness.
 
-    The bio correctness label must be a property of the generation, not of the
+    The bio correctness proxy must be a property of the generation, not of the
     clustering backend used downstream. Grading the *majority-cluster*
     representative made the label depend on the backend (different clusters →
     different modal answer → different label), so the same record could be
@@ -168,6 +181,25 @@ def _fixed_representative(record: dict[str, Any]) -> str:
     from collections import Counter
 
     return Counter(sampled).most_common(1)[0][0]
+
+
+def _fixed_representative_policy(record: dict[str, Any]) -> str:
+    if str(record.get("most_likely_answer") or "").strip():
+        return "most_likely_answer"
+    return "exact_surface_mode_first_tie"
+
+
+def _record_question(record: dict[str, Any]) -> str:
+    """Resolve the original question from either supported schema field."""
+
+    question = str(record.get("question") or "").strip()
+    prompt = str(record.get("prompt") or "").strip()
+    if question and prompt and question != prompt:
+        raise ValueError("record has conflicting question and prompt fields")
+    resolved = question or prompt
+    if not resolved:
+        raise ValueError("record has no non-empty question or prompt field")
+    return resolved
 
 
 # ---------------------------------------------------------------------------
@@ -323,18 +355,28 @@ def grade_records_inplace(
     for idx, record in enumerate(records):
         prompt_id = record.get("prompt_id", f"<record {idx}>")
 
-        # Skip records that already have a real label (not the placeholder).
-        if skip_already_graded and isinstance(record.get("correctness_label"), bool):
-            # The placeholder is always False; we can't distinguish it from a
-            # real False without a separate flag. The --idempotent flag on the
-            # CLI script handles this by re-grading all records unconditionally
-            # when the user wants a fresh pass.
-            pass
+        # A boolean with provenance is a real label; a bare False remains the
+        # historical phase-1 placeholder. Never overwrite a provenance-bearing
+        # label on the default path, especially a published human annotation.
+        existing_provenance = record.get("correctness_label_provenance")
+        if (
+            skip_already_graded
+            and isinstance(record.get("correctness_label"), bool)
+            and existing_provenance is not None
+        ):
+            validate_label_provenance(existing_provenance)
+            continue
+        if not skip_already_graded and isinstance(existing_provenance, Mapping):
+            validated = validate_label_provenance(existing_provenance)
+            if validated["scope"] == "primary_human_annotation":
+                raise ValueError(
+                    "published human correctness labels are immutable in the "
+                    "automated long-form grading path"
+                )
 
-        question = record.get("prompt", "")
+        question = _record_question(record)
         reference_answers = record.get("reference_answers", [""])
         sampled_answers = record.get("sampled_answers", [])
-        semantic_clusters = record.get("semantic_clusters")
 
         if not sampled_answers:
             print(f"  [{idx}] SKIP (no sampled_answers): {prompt_id}", flush=True)
@@ -351,6 +393,11 @@ def grade_records_inplace(
         )
 
         record["correctness_label"] = label
+        record["correctness_label_provenance"] = automated_label_provenance(
+            judge_model=str(getattr(judge, "model_name", "")),
+            target="selected_biography_response_against_reference",
+            representative_policy=_fixed_representative_policy(record),
+        )
         if "correctness_score" in extra:
             record.setdefault("scores", {})
             record["scores"]["correctness_score"] = extra["correctness_score"]

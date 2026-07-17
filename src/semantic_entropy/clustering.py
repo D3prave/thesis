@@ -48,6 +48,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+PUBLISHED_FACTUALBIO_ASSIGNMENT_ALGORITHM = (
+    "published_factualbio_anchor_scan_v1"
+)
+
 # ---------------------------------------------------------------------------
 # NLI label constants and type alias
 # ---------------------------------------------------------------------------
@@ -249,13 +253,14 @@ def nli_nondefeating_cluster(
     normalized_answers: list[str],
     entailment_fn: NliFn,
 ) -> tuple[list[int], list[str]]:
-    """Assign cluster IDs with the laxer FactualBio equivalence rule.
+    """Assign IDs with the released FactualBio anchor-scan algorithm.
 
     Farquhar et al. (2024) use this relation for their FactualBio claim
     experiments: two answers are placed in the same cluster when at least one
     direction entails the other and neither direction contradicts the other.
     This differs from :func:`nli_cluster`, which requires entailment in both
-    directions.
+    directions. It also deliberately matches the released order-dependent
+    anchor scan rather than taking a transitive connected-components closure.
 
     Args:
         normalized_answers: A non-empty list of normalized answer strings.
@@ -271,29 +276,25 @@ def nli_nondefeating_cluster(
     if not normalized_answers:
         raise ValueError("normalized_answers must not be empty")
 
-    n = len(normalized_answers)
-    parent = list(range(n))
-
-    def find(x: int) -> int:
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(x: int, y: int) -> None:
-        px, py = find(x), find(y)
-        if px != py:
-            parent[px] = py
-
-    for i in range(n):
-        for j in range(i + 1, n):
+    cluster_ids = [-1] * len(normalized_answers)
+    next_id = 0
+    for i in range(len(normalized_answers)):
+        if cluster_ids[i] != -1:
+            continue
+        cluster_ids[i] = next_id
+        for j in range(i + 1, len(normalized_answers)):
             forward = entailment_fn(normalized_answers[i], normalized_answers[j])
             backward = entailment_fn(normalized_answers[j], normalized_answers[i])
             labels = {forward, backward}
             if NLI_ENTAILMENT in labels and NLI_CONTRADICTION not in labels:
-                union(i, j)
+                cluster_ids[j] = next_id
+        next_id += 1
 
-    return _cluster_output_from_parent(normalized_answers, find)
+    representatives = [
+        normalized_answers[cluster_ids.index(cluster_id)]
+        for cluster_id in range(next_id)
+    ]
+    return cluster_ids, representatives
 
 
 def _cluster_output_from_parent(

@@ -1,11 +1,12 @@
 """Semantic Entropy Probes (SEP): linear probes over hidden states.
 
 SEP trains a small linear classifier on a generation model's *internal*
-hidden states to predict whether the generation is uncertain — proxied
-either by the correctness label, or by a binarization of an already-computed
-semantic entropy score.  Reference: Slobodkin et al. (2023), "The Curious
-Case of Hallucinatory (Un)answerability"; probing baseline in Farquhar
-et al. (2024).
+hidden states to predict a binarization of semantic entropy. The entropy
+target comes from separate high-temperature samples, while the feature is
+the final content token of one greedy response. A probe trained directly on
+correctness is retained as a distinct accuracy-probe baseline; it is not a
+Semantic Entropy Probe. Reference: Kossen et al. (2024), "Semantic Entropy
+Probes".
 
 The motivation is test-time cost: discrete semantic entropy requires
 sampling ``M = 10`` generations per prompt plus pairwise entailment, while
@@ -24,11 +25,13 @@ dataclass:
 
 The training routine accepts records produced by the run-pipeline when
 invoked with a ``ModelFnWithStates`` adapter (see
-:mod:`semantic_entropy.models`).  Each record must carry a
-``hidden_states`` array of shape ``(num_samples, hidden_dim)``; the probe
-labels can either be ``correctness_label`` (already a per-record bool) or
-the *binarized* version of an existing entropy score using a
-caller-supplied threshold.
+:mod:`semantic_entropy.models`). Canonical probes consume one
+``sep_hidden_state`` vector from a separate greedy response; legacy accuracy
+baselines may still consume a ``hidden_states`` matrix. Probe labels can be
+``correctness_label`` (already a per-record bool) or
+the *binarized* version of an existing entropy score. Canonical SEP-v2 derives
+the entropy threshold from the training records with Eq. (5); artifacts made
+with a caller-supplied threshold remain noncanonical and cannot be scored as SEP.
 
 ``numpy`` and ``scikit-learn`` are deferred imports so the rest of the
 package keeps its stdlib-only runtime contract.  Installing the optional
@@ -37,14 +40,68 @@ extras (``pip install -e '.[sep]'``) brings both in.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
+import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     import numpy as np
+
+
+CANONICAL_SEP_ARTIFACT_SCHEMA = "semantic_entropy_probe_v2"
+CANONICAL_SEP_TOKEN_SELECTION = "final_content_token_before_eos_or_eot"
+CANONICAL_SEP_LAYER_SELECTION = "preregistered_final_layer"
+CANONICAL_SEP_FEATURE_DEFINITION = (
+    "greedy_response_final_content_token_before_eos_or_eot"
+)
+CANONICAL_SEP_TARGET_NLI_MODEL = "cross-encoder/nli-deberta-v3-large"
+CANONICAL_SEP_TARGET_PROVENANCE_SCHEMA = "qconditioned_entropy_target_v1"
+CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE = 0.01
+_FULL_REVISION_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+_SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+
+_SEP_FEATURE_IDENTITY_FIELDS = (
+    "protocol",
+    "feature_response_decoding",
+    "token_selection",
+    "layer_selection",
+    "hidden_layer",
+    "model_id",
+    "model_revision",
+    "tokenizer_id",
+    "tokenizer_revision",
+    "hidden_dimension",
+    "generation_termination",
+    "termination_token_ids",
+    "generation_config_source",
+)
+
+_ENTROPY_TARGET_SHARED_FIELDS = (
+    "question_conditioned",
+    "question_conditioned_entailment",
+    "entailment_input_format",
+    "clustering_rule",
+    "nli_model_id",
+    "nli_model_revision",
+    "nli_tokenizer_id",
+    "nli_tokenizer_revision",
+    "analysis_code_commit",
+)
+
+_SEP_CELL_DECODING_FIELDS = (
+    "num_samples",
+    "temperature",
+    "top_p",
+    "top_k",
+    "max_new_tokens",
+    "seed",
+)
 
 # ---------------------------------------------------------------------------
 # Public dataclass
@@ -64,10 +121,10 @@ class SEPProbe:
             ``hidden_dim``.
         intercept: Scalar bias term.
         hidden_dim: Expected dimensionality of the input hidden state.
-        label_source: Either ``"correctness"`` (probe trained from
-            ``correctness_label``, *uncertain = incorrect*) or
-            ``"semantic_entropy_threshold"`` (probe trained from a
-            binarized entropy score).
+        label_source: ``"semantic_entropy_threshold"`` for a genuine SEP,
+            or ``"correctness"`` for the separately named accuracy probe.
+        probe_kind: Explicit artifact identity. Legacy entropy-target artifacts
+            without this field are deliberately not upgraded to SEP.
         label_threshold: For ``label_source == "semantic_entropy_threshold"``,
             the threshold that was used to binarize the source entropy.
             ``None`` otherwise.
@@ -98,17 +155,44 @@ class SEPProbe:
     intercept: float
     hidden_dim: int
     label_source: Literal["correctness", "semantic_entropy_threshold"]
+    probe_kind: Literal["semantic_entropy_probe", "accuracy_probe"] | None = None
     label_threshold: float | None = None
     source_score_field: str | None = None
     train_size: int = 0
     positive_rate: float = 0.0
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = dataclass_field(default_factory=dict)
     pooling: Literal["last", "mean", "mean_last_k"] = "last"
     mean_last_k: int = 8  # used only when pooling == "mean_last_k"
+    artifact_schema: str | None = CANONICAL_SEP_ARTIFACT_SCHEMA
+
+    @property
+    def effective_probe_kind(
+        self,
+    ) -> Literal["semantic_entropy_probe", "accuracy_probe"]:
+        """Return the explicit kind without upgrading a legacy SEP artifact."""
+        inferred = (
+            "semantic_entropy_probe"
+            if self.label_source == "semantic_entropy_threshold"
+            else "accuracy_probe"
+        )
+        if self.probe_kind is None and inferred == "semantic_entropy_probe":
+            raise ValueError(
+                "semantic-entropy-target artifacts must explicitly declare "
+                "probe_kind='semantic_entropy_probe'; legacy label-only artifacts "
+                "are not canonical SEP artifacts"
+            )
+        if self.probe_kind is not None and self.probe_kind != inferred:
+            raise ValueError(
+                f"probe_kind={self.probe_kind!r} conflicts with "
+                f"label_source={self.label_source!r}"
+            )
+        return self.probe_kind or inferred
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation of the probe."""
         return {
+            "artifact_schema": self.artifact_schema,
+            "probe_kind": self.effective_probe_kind,
             "coef": list(self.coef),
             "intercept": float(self.intercept),
             "hidden_dim": int(self.hidden_dim),
@@ -127,11 +211,15 @@ class SEPProbe:
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "SEPProbe":
         """Reconstruct a probe from :meth:`to_dict` output."""
-        return cls(
+        label_source = payload["label_source"]
+        if label_source not in {"correctness", "semantic_entropy_threshold"}:
+            raise ValueError(f"unknown probe label_source={label_source!r}")
+        probe = cls(
             coef=[float(c) for c in payload["coef"]],
             intercept=float(payload["intercept"]),
             hidden_dim=int(payload["hidden_dim"]),
-            label_source=payload["label_source"],
+            label_source=label_source,
+            probe_kind=payload.get("probe_kind"),
             label_threshold=(
                 None
                 if payload.get("label_threshold") is None
@@ -143,7 +231,10 @@ class SEPProbe:
             metadata=dict(payload.get("metadata", {})),
             pooling=payload.get("pooling", "last"),
             mean_last_k=int(payload.get("mean_last_k", 8)),
+            artifact_schema=payload.get("artifact_schema"),
         )
+        probe.effective_probe_kind
+        return probe
 
     def save(self, path: Path | str) -> None:
         """Write the probe to *path* as a single JSON file."""
@@ -161,6 +252,840 @@ class SEPProbe:
 # ---------------------------------------------------------------------------
 # Training and inference
 # ---------------------------------------------------------------------------
+
+
+def best_split_threshold(values: Sequence[float]) -> float:
+    """Return the deterministic Eq. (5) semantic-entropy split threshold.
+
+    Candidate thresholds are midpoints between adjacent distinct training
+    values. The selected threshold minimizes the sum of within-group squared
+    deviations for values below versus at-or-above the threshold. Ties choose
+    the lower threshold. Evaluation values must never be passed here.
+    """
+    if len(values) < 2:
+        raise ValueError("best-split threshold requires at least two values")
+    cleaned: list[float] = []
+    for index, value in enumerate(values):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"entropy value {index} must be numeric")
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError(f"entropy value {index} must be finite")
+        cleaned.append(numeric)
+
+    unique = sorted(set(cleaned))
+    if len(unique) < 2:
+        raise ValueError(
+            "best-split threshold requires at least two distinct entropy values"
+        )
+
+    candidates = [
+        (left + right) / 2.0 for left, right in zip(unique, unique[1:])
+    ]
+
+    def objective(threshold: float) -> float:
+        low = [value for value in cleaned if value < threshold]
+        high = [value for value in cleaned if value >= threshold]
+        low_mean = sum(low) / len(low)
+        high_mean = sum(high) / len(high)
+        return sum((value - low_mean) ** 2 for value in low) + sum(
+            (value - high_mean) ** 2 for value in high
+        )
+
+    return min(candidates, key=lambda threshold: (objective(threshold), threshold))
+
+
+def prompt_content_sha256(records: Sequence[Mapping[str, Any]]) -> str:
+    """Hash the exact held-out prompt set independently of model outputs."""
+
+    rows: list[list[Any]] = []
+    seen_ids: set[str] = set()
+    for index, record in enumerate(records):
+        prompt_id = record.get("prompt_id")
+        prompt = record.get("prompt")
+        dataset = record.get("dataset")
+        split = record.get("split")
+        references = record.get("reference_answers")
+        if not isinstance(prompt_id, str) or not prompt_id.strip():
+            raise ValueError(f"record {index}: prompt_id must be non-empty")
+        if prompt_id in seen_ids:
+            raise ValueError(f"records contain duplicate prompt_id={prompt_id!r}")
+        seen_ids.add(prompt_id)
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError(f"record {index}: prompt must be non-empty")
+        if not isinstance(dataset, str) or not dataset.strip():
+            raise ValueError(f"record {index}: dataset must be non-empty")
+        if not isinstance(split, str) or not split.strip():
+            raise ValueError(f"record {index}: split must be non-empty")
+        if not isinstance(references, list) or not all(
+            isinstance(value, str) for value in references
+        ):
+            raise ValueError(f"record {index}: reference_answers must be strings")
+        rows.append([prompt_id, dataset, split, prompt, references])
+    payload = json.dumps(
+        sorted(rows, key=lambda row: row[0]),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _entropy_target_record_provenance(
+    record: Mapping[str, Any], *, role: str
+) -> dict[str, Any]:
+    """Validate and normalize one q-conditioned entropy-target lineage."""
+
+    required_values = {
+        "question_conditioned": True,
+        "question_conditioned_entailment": True,
+        "entailment_input_format": "question_answer_v1",
+        "clustering_rule": "bidirectional",
+        "nli_model_id": CANONICAL_SEP_TARGET_NLI_MODEL,
+        "nli_tokenizer_id": CANONICAL_SEP_TARGET_NLI_MODEL,
+    }
+    for field_name, expected in required_values.items():
+        if record.get(field_name) != expected:
+            raise ValueError(
+                f"{role}: entropy-target {field_name} must equal {expected!r}; "
+                f"got {record.get(field_name)!r}"
+            )
+
+    normalized = dict(required_values)
+    for field_name in (
+        "nli_model_revision",
+        "nli_tokenizer_revision",
+        "analysis_code_commit",
+    ):
+        value = record.get(field_name)
+        if not isinstance(value, str) or _FULL_REVISION_RE.fullmatch(value) is None:
+            raise ValueError(
+                f"{role}: entropy-target {field_name} must be a full 40-character "
+                "commit SHA"
+            )
+        normalized[field_name] = value.lower()
+
+    source_hash = record.get("source_artifact_sha256")
+    if not isinstance(source_hash, str) or _SHA256_RE.fullmatch(source_hash) is None:
+        raise ValueError(
+            f"{role}: entropy-target source_artifact_sha256 must be SHA-256"
+        )
+    normalized["source_artifact_sha256"] = source_hash.lower()
+    return normalized
+
+
+def _common_entropy_target_provenance(
+    records: Sequence[Mapping[str, Any]], *, role: str
+) -> dict[str, Any]:
+    if not records:
+        raise ValueError(f"{role}: entropy-target records must not be empty")
+    first = _entropy_target_record_provenance(records[0], role=f"{role} record 0")
+    for index, record in enumerate(records[1:], start=1):
+        current = _entropy_target_record_provenance(
+            record, role=f"{role} record {index}"
+        )
+        if current != first:
+            differing = sorted(
+                field
+                for field in first
+                if current.get(field) != first.get(field)
+            )
+            raise ValueError(
+                f"{role} entropy-target provenance differs across records: "
+                f"{', '.join(differing)}"
+            )
+    return first
+
+
+def validate_entropy_target_provenance(
+    value: Mapping[str, Any], *, role: str = "entropy_target_provenance"
+) -> dict[str, Any]:
+    """Validate the serialized train/eval q-conditioned target lineage."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{role} must be a mapping")
+    expected_values = {
+        "schema": CANONICAL_SEP_TARGET_PROVENANCE_SCHEMA,
+        "question_conditioned": True,
+        "question_conditioned_entailment": True,
+        "entailment_input_format": "question_answer_v1",
+        "clustering_rule": "bidirectional",
+        "nli_model_id": CANONICAL_SEP_TARGET_NLI_MODEL,
+        "nli_tokenizer_id": CANONICAL_SEP_TARGET_NLI_MODEL,
+    }
+    normalized = dict(expected_values)
+    for field_name, expected in expected_values.items():
+        if value.get(field_name) != expected:
+            raise ValueError(
+                f"{role}.{field_name} must equal {expected!r}; "
+                f"got {value.get(field_name)!r}"
+            )
+    for field_name in (
+        "nli_model_revision",
+        "nli_tokenizer_revision",
+        "analysis_code_commit",
+    ):
+        field_value = value.get(field_name)
+        if (
+            not isinstance(field_value, str)
+            or _FULL_REVISION_RE.fullmatch(field_value) is None
+        ):
+            raise ValueError(
+                f"{role}.{field_name} must be a full 40-character commit SHA"
+            )
+        normalized[field_name] = field_value.lower()
+    for field_name in (
+        "train_source_artifact_sha256",
+        "eval_source_artifact_sha256",
+    ):
+        field_value = value.get(field_name)
+        if not isinstance(field_value, str) or _SHA256_RE.fullmatch(field_value) is None:
+            raise ValueError(f"{role}.{field_name} must be SHA-256")
+        normalized[field_name] = field_value.lower()
+    return normalized
+
+
+def canonical_entropy_target_provenance(
+    train_records: Sequence[Mapping[str, Any]],
+    eval_records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Bind a canonical SEP target to one identical q-conditioned method."""
+
+    train = _common_entropy_target_provenance(train_records, role="training")
+    evaluation = _common_entropy_target_provenance(
+        eval_records, role="evaluation"
+    )
+    for field_name in _ENTROPY_TARGET_SHARED_FIELDS:
+        if train[field_name] != evaluation[field_name]:
+            raise ValueError(
+                "training/evaluation entropy-target provenance differs for "
+                f"{field_name}: {train[field_name]!r} != "
+                f"{evaluation[field_name]!r}"
+            )
+    return validate_entropy_target_provenance(
+        {
+            "schema": CANONICAL_SEP_TARGET_PROVENANCE_SCHEMA,
+            **{
+                field_name: train[field_name]
+                for field_name in _ENTROPY_TARGET_SHARED_FIELDS
+            },
+            "train_source_artifact_sha256": train["source_artifact_sha256"],
+            "eval_source_artifact_sha256": evaluation["source_artifact_sha256"],
+        }
+    )
+
+
+def validate_sep_cell_identity(
+    value: Mapping[str, Any], *, role: str = "SEP cell identity"
+) -> dict[str, Any]:
+    """Validate one serialized dataset/model/decoding identity for SEP."""
+
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{role} must be a mapping")
+    normalized: dict[str, Any] = {}
+    for field_name in ("dataset", "model_id"):
+        field_value = value.get(field_name)
+        if not isinstance(field_value, str) or not field_value.strip():
+            raise ValueError(f"{role}.{field_name} must be non-empty")
+        normalized[field_name] = field_value
+
+    decoding = value.get("decoding")
+    if not isinstance(decoding, Mapping):
+        raise ValueError(f"{role}.decoding must be a mapping")
+    normalized_decoding: dict[str, Any] = {}
+    canonical_integers = {"num_samples": 10, "top_k": 50}
+    for field, expected in canonical_integers.items():
+        field_value = decoding.get(field)
+        if (
+            isinstance(field_value, bool)
+            or not isinstance(field_value, int)
+            or field_value != expected
+        ):
+            raise ValueError(
+                f"{role}.decoding.{field} must equal {expected!r}; "
+                f"got {field_value!r}"
+            )
+        normalized_decoding[field] = field_value
+    canonical_floats = {"temperature": 1.0, "top_p": 0.9}
+    for field, expected in canonical_floats.items():
+        field_value = decoding.get(field)
+        if (
+            isinstance(field_value, bool)
+            or not isinstance(field_value, (int, float))
+            or not math.isfinite(float(field_value))
+            or float(field_value) != expected
+        ):
+            raise ValueError(
+                f"{role}.decoding.{field} must equal {expected!r}; "
+                f"got {field_value!r}"
+            )
+        normalized_decoding[field] = float(field_value)
+    max_new_tokens = decoding.get("max_new_tokens")
+    if (
+        isinstance(max_new_tokens, bool)
+        or not isinstance(max_new_tokens, int)
+        or max_new_tokens <= 0
+    ):
+        raise ValueError(
+            f"{role}.decoding.max_new_tokens must be a positive integer"
+        )
+    normalized_decoding["max_new_tokens"] = max_new_tokens
+    seed = decoding.get("seed")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(f"{role}.decoding.seed must be an integer")
+    normalized_decoding["seed"] = seed
+    normalized["decoding"] = {
+        field: normalized_decoding[field] for field in _SEP_CELL_DECODING_FIELDS
+    }
+    return normalized
+
+
+def _record_sep_cell_identity(
+    record: Mapping[str, Any], *, role: str
+) -> dict[str, Any]:
+    identity = validate_sep_cell_identity(
+        {
+            "dataset": record.get("dataset"),
+            "model_id": record.get("model"),
+            "decoding": record.get("decoding"),
+        },
+        role=role,
+    )
+    feature_metadata = record.get("sep_feature_metadata")
+    if not isinstance(feature_metadata, Mapping):
+        raise ValueError(f"{role}.sep_feature_metadata must be a mapping")
+    if feature_metadata.get("model_id") != identity["model_id"]:
+        raise ValueError(
+            f"{role}.sep_feature_metadata.model_id must equal record.model"
+        )
+    metadata_fields = {
+        "sampling_num_responses": ("num_samples", int),
+        "sampling_temperature": ("temperature", float),
+        "sampling_top_p": ("top_p", float),
+        "sampling_top_k": ("top_k", int),
+        "base_seed": ("seed", int),
+    }
+    decoding = identity["decoding"]
+    for metadata_field, (decoding_field, expected_type) in metadata_fields.items():
+        actual = feature_metadata.get(metadata_field)
+        expected = decoding[decoding_field]
+        valid_type = (
+            isinstance(actual, (int, float))
+            if expected_type is float
+            else isinstance(actual, int)
+        ) and not isinstance(actual, bool)
+        if (
+            not valid_type
+            or (expected_type is float and not math.isfinite(float(actual)))
+            or float(actual) != float(expected)
+        ):
+            raise ValueError(
+                f"{role}.sep_feature_metadata.{metadata_field} must equal "
+                f"decoding.{decoding_field}={expected!r}; got {actual!r}"
+            )
+    return identity
+
+
+def canonical_sep_cell_identity(
+    records: Sequence[Mapping[str, Any]], *, role: str
+) -> dict[str, Any]:
+    """Validate that every record in one split belongs to one SEP cell."""
+
+    if not records:
+        raise ValueError(f"{role} SEP cell records must not be empty")
+    first = _record_sep_cell_identity(records[0], role=f"{role} record 0")
+    for index, record in enumerate(records[1:], start=1):
+        current = _record_sep_cell_identity(record, role=f"{role} record {index}")
+        if current != first:
+            differing = [
+                field
+                for field in ("dataset", "model_id")
+                if current[field] != first[field]
+            ]
+            differing.extend(
+                f"decoding.{field}"
+                for field in _SEP_CELL_DECODING_FIELDS
+                if current["decoding"][field] != first["decoding"][field]
+            )
+            raise ValueError(
+                f"{role} SEP cell identity differs across records: "
+                f"{', '.join(differing)}"
+            )
+    return first
+
+
+def canonical_shared_sep_cell_identity(
+    train_records: Sequence[Mapping[str, Any]],
+    eval_records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Require training and evaluation records to share one exact SEP cell."""
+
+    training = canonical_sep_cell_identity(train_records, role="training")
+    evaluation = canonical_sep_cell_identity(eval_records, role="evaluation")
+    if training != evaluation:
+        differing = [
+            field
+            for field in ("dataset", "model_id")
+            if training[field] != evaluation[field]
+        ]
+        differing.extend(
+            f"decoding.{field}"
+            for field in _SEP_CELL_DECODING_FIELDS
+            if training["decoding"][field] != evaluation["decoding"][field]
+        )
+        raise ValueError(
+            "training/evaluation SEP cell identity differs for "
+            f"{', '.join(differing)}"
+        )
+    return training
+
+
+def _sep_feature_identity(metadata: Mapping[str, Any], *, role: str) -> dict[str, Any]:
+    """Return and validate the immutable identity of one canonical SEP feature."""
+
+    identity = {field: metadata.get(field) for field in _SEP_FEATURE_IDENTITY_FIELDS}
+    required_values = {
+        "protocol": "kossen_sep_2024",
+        "feature_response_decoding": "greedy",
+        "token_selection": CANONICAL_SEP_TOKEN_SELECTION,
+        "layer_selection": CANONICAL_SEP_LAYER_SELECTION,
+        "generation_termination": "eos_or_eot",
+        "generation_config_source": "model_generation_config_clone",
+    }
+    for field_name, expected in required_values.items():
+        if identity[field_name] != expected:
+            raise ValueError(
+                f"{role}: SEP feature {field_name} must equal {expected!r}; "
+                f"got {identity[field_name]!r}"
+            )
+    for field_name in ("model_id", "tokenizer_id"):
+        if (
+            not isinstance(identity[field_name], str)
+            or not identity[field_name].strip()
+        ):
+            raise ValueError(f"{role}: SEP feature {field_name} must be non-empty")
+    for field_name in ("model_revision", "tokenizer_revision"):
+        if not isinstance(
+            identity[field_name], str
+        ) or not _FULL_REVISION_RE.fullmatch(
+            identity[field_name]
+        ):
+            raise ValueError(
+                f"{role}: SEP feature {field_name} must be a full 40-character "
+                "Hugging Face commit SHA"
+            )
+    for field in ("hidden_layer", "hidden_dimension"):
+        if not isinstance(identity[field], int) or isinstance(identity[field], bool):
+            raise ValueError(f"{role}: SEP feature {field} must be an integer")
+    if identity["hidden_dimension"] <= 0:
+        raise ValueError(f"{role}: SEP feature hidden_dimension must be positive")
+    termination_token_ids = identity["termination_token_ids"]
+    if (
+        not isinstance(termination_token_ids, list)
+        or not termination_token_ids
+        or any(
+            not isinstance(token_id, int) or isinstance(token_id, bool)
+            for token_id in termination_token_ids
+        )
+        or termination_token_ids != sorted(set(termination_token_ids))
+    ):
+        raise ValueError(
+            f"{role}: SEP feature termination_token_ids must be a non-empty "
+            "sorted list of unique integers"
+        )
+    return identity
+
+
+def _validate_sampled_truncation_audit(metadata: Mapping[str, Any]) -> None:
+    limit = metadata.get("sampled_truncation_rate_limit")
+    if (
+        isinstance(limit, bool)
+        or not isinstance(limit, (int, float))
+        or float(limit) != CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE
+    ):
+        raise ValueError(
+            "canonical SEP metadata.sampled_truncation_rate_limit must equal "
+            f"{CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE}"
+        )
+    for role in ("train", "eval"):
+        total = metadata.get(f"{role}_sampled_response_count")
+        truncated = metadata.get(f"{role}_sampled_max_new_tokens_count")
+        rate = metadata.get(f"{role}_sampled_truncation_rate")
+        if isinstance(total, bool) or not isinstance(total, int) or total <= 0:
+            raise ValueError(
+                f"canonical SEP metadata.{role}_sampled_response_count must be "
+                "positive"
+            )
+        if (
+            isinstance(truncated, bool)
+            or not isinstance(truncated, int)
+            or not 0 <= truncated <= total
+        ):
+            raise ValueError(
+                f"canonical SEP metadata.{role}_sampled_max_new_tokens_count "
+                "must be between zero and the sampled response count"
+            )
+        expected_rate = truncated / total
+        if (
+            isinstance(rate, bool)
+            or not isinstance(rate, (int, float))
+            or not math.isfinite(float(rate))
+            or not math.isclose(float(rate), expected_rate, rel_tol=0.0, abs_tol=1e-15)
+        ):
+            raise ValueError(
+                f"canonical SEP metadata.{role}_sampled_truncation_rate must "
+                "match the audited counts"
+            )
+        if truncated * 100 > total:
+            raise ValueError(
+                f"canonical SEP {role} sampled max-token truncation rate "
+                f"{expected_rate:.6f} exceeds the 1% limit"
+            )
+
+
+def _validate_canonical_probe_structure_and_split(
+    probe: SEPProbe,
+    *,
+    expected_kind: Literal["semantic_entropy_probe", "accuracy_probe"],
+    expected_target: str,
+    expected_threshold_selection: str,
+    expected_threshold_fit_scope: str,
+) -> None:
+    """Validate fields shared by canonical SEP and accuracy probes."""
+
+    if probe.effective_probe_kind != expected_kind:
+        raise ValueError(
+            f"artifact kind is {probe.effective_probe_kind!r}, expected "
+            f"{expected_kind!r}"
+        )
+    if probe.artifact_schema != CANONICAL_SEP_ARTIFACT_SCHEMA:
+        raise ValueError(
+            "canonical probe scoring requires artifact_schema="
+            f"{CANONICAL_SEP_ARTIFACT_SCHEMA!r}; got {probe.artifact_schema!r}"
+        )
+    if probe.pooling != "last":
+        raise ValueError("canonical probe pooling must be 'last'")
+    if probe.hidden_dim <= 0 or len(probe.coef) != probe.hidden_dim:
+        raise ValueError("canonical probe coefficient dimension is invalid")
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(float(value))
+        for value in probe.coef
+    ) or not math.isfinite(float(probe.intercept)):
+        raise ValueError("canonical probe coefficients and intercept must be finite")
+    if probe.train_size <= 0:
+        raise ValueError("canonical probe train_size must be positive")
+    if not math.isfinite(probe.positive_rate) or not 0.0 <= probe.positive_rate <= 1.0:
+        raise ValueError("canonical probe positive_rate must be in [0, 1]")
+
+    metadata = probe.metadata
+    required_metadata = {
+        "artifact_schema": CANONICAL_SEP_ARTIFACT_SCHEMA,
+        "target_definition": expected_target,
+        "feature_definition": CANONICAL_SEP_FEATURE_DEFINITION,
+        "threshold_selection": expected_threshold_selection,
+        "threshold_fit_scope": expected_threshold_fit_scope,
+        "probe_fit_scope": "training_records_only",
+        "feature_aggregate": "first",
+        "split_overlap_count": 0,
+        "split_content_overlap_count": 0,
+    }
+    for field_name, expected in required_metadata.items():
+        if metadata.get(field_name) != expected:
+            raise ValueError(
+                f"canonical probe metadata.{field_name} must equal {expected!r}; "
+                f"got {metadata.get(field_name)!r}"
+            )
+    analysis_code_commit = metadata.get("analysis_code_commit")
+    if (
+        not isinstance(analysis_code_commit, str)
+        or _FULL_REVISION_RE.fullmatch(analysis_code_commit) is None
+    ):
+        raise ValueError(
+            "canonical probe metadata.analysis_code_commit must be a full "
+            "40-character commit SHA"
+        )
+    inverse_l2 = metadata.get("inverse_l2_regularization")
+    if (
+        isinstance(inverse_l2, bool)
+        or not isinstance(inverse_l2, (int, float))
+        or not math.isfinite(float(inverse_l2))
+        or float(inverse_l2) <= 0.0
+    ):
+        raise ValueError(
+            "canonical probe metadata.inverse_l2_regularization must be positive"
+        )
+    training_seed = metadata.get("training_seed")
+    if isinstance(training_seed, bool) or not isinstance(training_seed, int):
+        raise ValueError("canonical probe metadata.training_seed must be an integer")
+    for role in ("train", "eval"):
+        count = metadata.get(f"{role}_prompt_count")
+        if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+            raise ValueError(
+                f"canonical SEP metadata.{role}_prompt_count must be positive"
+            )
+        for suffix in (
+            "prompt_ids_sha256",
+            "prompt_content_sha256",
+            "prompt_identity_sha256",
+        ):
+            value = metadata.get(f"{role}_{suffix}")
+            if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                raise ValueError(
+                    f"canonical SEP metadata.{role}_{suffix} must be a SHA-256"
+                )
+    if metadata["train_prompt_count"] != probe.train_size:
+        raise ValueError(
+            "canonical SEP train_prompt_count must equal probe.train_size"
+        )
+    feature_identity = metadata.get("feature_identity")
+    if not isinstance(feature_identity, Mapping):
+        raise ValueError("canonical SEP metadata.feature_identity must be a mapping")
+    validated_identity = _sep_feature_identity(
+        feature_identity, role="probe metadata.feature_identity"
+    )
+    if validated_identity["hidden_dimension"] != probe.hidden_dim:
+        raise ValueError(
+            "probe feature hidden_dimension does not match probe.hidden_dim"
+        )
+    cell_identity = validate_sep_cell_identity(
+        metadata.get("cell_identity"),
+        role="canonical probe metadata.cell_identity",
+    )
+    if cell_identity["model_id"] != validated_identity["model_id"]:
+        raise ValueError(
+            "canonical probe cell_identity.model_id must match "
+            "feature_identity.model_id"
+        )
+
+
+def validate_canonical_sep_probe(probe: SEPProbe) -> None:
+    """Reject any artifact that does not meet the canonical SEP-v2 contract."""
+
+    if probe.label_source != "semantic_entropy_threshold":
+        raise ValueError("canonical SEP must target thresholded semantic entropy")
+    if (
+        probe.label_threshold is None
+        or isinstance(probe.label_threshold, bool)
+        or not math.isfinite(float(probe.label_threshold))
+    ):
+        raise ValueError("canonical SEP label_threshold must be finite")
+    if not isinstance(probe.source_score_field, str) or not probe.source_score_field:
+        raise ValueError("canonical SEP source_score_field must be non-empty")
+    _validate_canonical_probe_structure_and_split(
+        probe,
+        expected_kind="semantic_entropy_probe",
+        expected_target="high_semantic_entropy",
+        expected_threshold_selection="eq5_best_split_training_records_only",
+        expected_threshold_fit_scope="training_records_only",
+    )
+    target_provenance = probe.metadata.get("entropy_target_provenance")
+    validate_entropy_target_provenance(
+        target_provenance,
+        role="canonical SEP metadata.entropy_target_provenance",
+    )
+    _validate_sampled_truncation_audit(probe.metadata)
+
+
+def validate_canonical_accuracy_probe(probe: SEPProbe) -> None:
+    """Reject correctness probes that do not use the canonical held-out feature."""
+
+    if probe.probe_kind != "accuracy_probe":
+        raise ValueError(
+            "canonical accuracy probe must explicitly declare "
+            "probe_kind='accuracy_probe'"
+        )
+    if probe.label_source != "correctness":
+        raise ValueError("canonical accuracy probe must target correctness")
+    if probe.label_threshold is not None or probe.source_score_field is not None:
+        raise ValueError(
+            "canonical accuracy probe cannot carry an entropy threshold or source"
+        )
+    _validate_canonical_probe_structure_and_split(
+        probe,
+        expected_kind="accuracy_probe",
+        expected_target="model_incorrectness",
+        expected_threshold_selection="not_applicable",
+        expected_threshold_fit_scope="not_applicable",
+    )
+
+
+def _validate_scoring_prompt_content(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    expected_count = probe.metadata["eval_prompt_count"]
+    if len(records) != expected_count:
+        raise ValueError(
+            f"held-out record count {len(records)} does not match the probe audit "
+            f"count {expected_count}"
+        )
+    actual_hash = prompt_content_sha256(records)
+    expected_hash = probe.metadata["eval_prompt_content_sha256"]
+    if actual_hash != expected_hash:
+        raise ValueError(
+            "held-out prompt-content hash does not match the probe's audited "
+            "evaluation split"
+        )
+
+
+def validate_canonical_sep_scoring_prompt_content(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    """Bind a canonical SEP to the exact audited held-out prompt content."""
+
+    validate_canonical_sep_probe(probe)
+    _validate_scoring_prompt_content(records, probe)
+
+
+def validate_canonical_accuracy_scoring_prompt_content(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    """Bind an accuracy probe to the exact audited held-out prompt content."""
+
+    validate_canonical_accuracy_probe(probe)
+    _validate_scoring_prompt_content(records, probe)
+
+
+def _validate_scoring_record_features(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    expected_identity = dict(probe.metadata["feature_identity"])
+    expected_cell_identity = validate_sep_cell_identity(
+        probe.metadata["cell_identity"], role="probe metadata.cell_identity"
+    )
+    for index, record in enumerate(records):
+        actual_cell_identity = _record_sep_cell_identity(
+            record, role=f"evaluation record {index}"
+        )
+        if actual_cell_identity != expected_cell_identity:
+            raise ValueError(
+                f"evaluation record {index}: SEP cell identity does not match "
+                "the trained probe"
+            )
+        feature_metadata = record.get("sep_feature_metadata")
+        if not isinstance(feature_metadata, Mapping):
+            raise ValueError(f"evaluation record {index}: sep_feature_metadata missing")
+        actual_identity = _sep_feature_identity(
+            feature_metadata, role=f"evaluation record {index}"
+        )
+        if actual_identity != expected_identity:
+            raise ValueError(
+                f"evaluation record {index}: SEP feature identity does not match "
+                "the trained probe"
+            )
+        hidden = record.get("sep_hidden_state")
+        if not isinstance(hidden, list) or len(hidden) != probe.hidden_dim:
+            raise ValueError(
+                f"evaluation record {index}: sep_hidden_state dimension does not "
+                f"match probe.hidden_dim={probe.hidden_dim}"
+            )
+        if any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in hidden
+        ):
+            raise ValueError(
+                f"evaluation record {index}: sep_hidden_state must contain only "
+                "finite numbers"
+            )
+
+
+def validate_canonical_sep_scoring_records(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    """Bind a canonical SEP to exact held-out records and feature identity."""
+
+    validate_canonical_sep_scoring_prompt_content(records, probe)
+    _validate_scoring_record_features(records, probe)
+
+
+def validate_canonical_accuracy_scoring_records(
+    records: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    """Bind an accuracy probe to exact held-out records and feature identity."""
+
+    validate_canonical_accuracy_scoring_prompt_content(records, probe)
+    _validate_scoring_record_features(records, probe)
+
+
+def _canonical_probe_provenance(probe: SEPProbe) -> dict[str, Any]:
+    metadata = probe.metadata
+    artifact_payload = (
+        json.dumps(probe.to_dict(), indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    provenance = {
+        "artifact_schema": probe.artifact_schema,
+        "probe_kind": probe.effective_probe_kind,
+        "probe_artifact_sha256": hashlib.sha256(artifact_payload).hexdigest(),
+        "label_source": probe.label_source,
+        "label_threshold": (
+            None
+            if probe.label_threshold is None
+            else float(probe.label_threshold)
+        ),
+        "source_score_field": probe.source_score_field,
+        "threshold_selection": metadata["threshold_selection"],
+        "threshold_fit_scope": metadata["threshold_fit_scope"],
+        "analysis_code_commit": metadata["analysis_code_commit"],
+        "inverse_l2_regularization": metadata["inverse_l2_regularization"],
+        "training_seed": metadata["training_seed"],
+        "split_overlap_count": metadata["split_overlap_count"],
+        "split_content_overlap_count": metadata["split_content_overlap_count"],
+        "train_prompt_count": metadata["train_prompt_count"],
+        "train_prompt_content_sha256": metadata["train_prompt_content_sha256"],
+        "train_prompt_identity_sha256": metadata["train_prompt_identity_sha256"],
+        "eval_prompt_count": metadata["eval_prompt_count"],
+        "eval_prompt_content_sha256": metadata["eval_prompt_content_sha256"],
+        "eval_prompt_identity_sha256": metadata["eval_prompt_identity_sha256"],
+        "feature_definition": metadata["feature_definition"],
+        "cell_identity": dict(metadata["cell_identity"]),
+        "feature_identity": dict(metadata["feature_identity"]),
+    }
+    if probe.effective_probe_kind == "semantic_entropy_probe":
+        provenance.update(
+            {
+                "entropy_target_provenance": dict(
+                    metadata["entropy_target_provenance"]
+                ),
+                "sampled_truncation_rate_limit": metadata[
+                    "sampled_truncation_rate_limit"
+                ],
+                "train_sampled_response_count": metadata[
+                    "train_sampled_response_count"
+                ],
+                "train_sampled_max_new_tokens_count": metadata[
+                    "train_sampled_max_new_tokens_count"
+                ],
+                "train_sampled_truncation_rate": metadata[
+                    "train_sampled_truncation_rate"
+                ],
+                "eval_sampled_response_count": metadata[
+                    "eval_sampled_response_count"
+                ],
+                "eval_sampled_max_new_tokens_count": metadata[
+                    "eval_sampled_max_new_tokens_count"
+                ],
+                "eval_sampled_truncation_rate": metadata[
+                    "eval_sampled_truncation_rate"
+                ],
+            }
+        )
+    return provenance
+
+
+def canonical_sep_provenance(probe: SEPProbe) -> dict[str, Any]:
+    """Return compact, coefficient-free provenance for a canonical SEP score."""
+
+    validate_canonical_sep_probe(probe)
+    return _canonical_probe_provenance(probe)
+
+
+def canonical_accuracy_probe_provenance(probe: SEPProbe) -> dict[str, Any]:
+    """Return compact provenance for a separately named accuracy probe score."""
+
+    validate_canonical_accuracy_probe(probe)
+    return _canonical_probe_provenance(probe)
 
 
 def _pool_hidden_states(
@@ -202,37 +1127,37 @@ def train_probe(
     mean_last_k: int = 8,
     C: float = 1.0,
     seed: int = 0,
+    metadata: Mapping[str, Any] | None = None,
 ) -> SEPProbe:
     """Fit a logistic-regression probe on per-record hidden states.
 
     Args:
-        records: Iterable of scored records.  Each record must contain a
-            ``hidden_states`` field shaped ``(num_samples, hidden_dim)``
-            and the relevant label field (``correctness_label`` for
-            ``label_source="correctness"`` or
-            ``scores[source_score_field]`` for the threshold source).
+        records: Iterable of scored records. Each record must contain a
+            singular ``sep_hidden_state`` from a greedy response for SEP, or
+            a legacy ``hidden_states`` matrix for an accuracy probe, plus the
+            relevant target field.
         label_source: Defines what the probe predicts.
 
             * ``"correctness"`` — the positive class is *incorrect*
               (``not correctness_label``), matching the AUROC convention
-              used throughout the metrics module.  This is the canonical
-              SEP target.
+              used throughout the metrics module. This creates an explicitly
+              identified accuracy probe, not SEP.
             * ``"semantic_entropy_threshold"`` — the positive class is
-              ``scores[source_score_field] >= label_threshold``.  Useful
-              when you want the probe to mimic an entropy estimator
-              rather than the correctness label.
+              ``scores[source_score_field] >= label_threshold``. If no
+              threshold is supplied, Eq. (5)'s best split is derived from
+              these training records only. This creates a genuine SEP.
 
         source_score_field: Name of the entropy score under
             ``records[i]["scores"]`` to binarize.  Required when
             ``label_source == "semantic_entropy_threshold"``.
-        label_threshold: Threshold for the entropy binarization.
-            Required when ``label_source == "semantic_entropy_threshold"``.
+        label_threshold: Threshold for the entropy binarization. When omitted
+            for SEP, derive it from the training records only. A supplied value
+            creates a noncanonical artifact that SEP scoring rejects.
         aggregate: How to convert the per-sample hidden states of a single
             record into one feature vector for training.
 
-            * ``"first"`` (default) — use the hidden state of the first
-              sampled generation.  This matches the SEP inference path,
-              where only a single forward pass is performed per prompt.
+            * ``"first"`` (default) — for an accuracy probe over legacy
+              records, use the first sampled generation's state.
             * ``"mean"`` — average the per-sample hidden states.  This is
               useful when the probe is trained from records that already
               have ``M`` samples and we want to give the trainer the
@@ -242,6 +1167,10 @@ def train_probe(
             ``sklearn.linear_model.LogisticRegression``.  Larger means
             weaker L2 regularization.
         seed: Random seed forwarded to the scikit-learn solver.
+        metadata: Additional audited provenance to serialize with the probe.
+            Canonical entropy-target training requires the complete
+            ``entropy_target_provenance`` produced by the train/evaluation split
+            audit.
 
     Returns:
         A trained :class:`SEPProbe`.
@@ -254,12 +1183,67 @@ def train_probe(
     """
     if not records:
         raise ValueError("records must not be empty")
+    if (
+        isinstance(C, bool)
+        or not isinstance(C, (int, float))
+        or not math.isfinite(float(C))
+        or float(C) <= 0.0
+    ):
+        raise ValueError("C must be a positive finite number")
 
+    threshold_was_derived = False
+    target_provenance: dict[str, Any] | None = None
     if label_source == "semantic_entropy_threshold":
-        if source_score_field is None or label_threshold is None:
+        if source_score_field is None:
             raise ValueError(
-                "label_source='semantic_entropy_threshold' requires both "
-                "source_score_field and label_threshold to be set"
+                "label_source='semantic_entropy_threshold' requires "
+                "source_score_field to be set"
+            )
+        if pooling != "last" or aggregate != "first":
+            raise ValueError(
+                "semantic_entropy_threshold SEP uses one greedy final-content-token "
+                "feature; aggregate must be 'first' and pooling must be 'last'"
+            )
+        if label_threshold is None:
+            entropy_values: list[float] = []
+            for index, record in enumerate(records):
+                scores = record.get("scores", {})
+                if source_score_field not in scores:
+                    raise ValueError(
+                        f"record {index}: scores.{source_score_field} is missing"
+                    )
+                entropy_values.append(scores[source_score_field])
+            label_threshold = best_split_threshold(entropy_values)
+            threshold_was_derived = True
+        elif isinstance(label_threshold, bool) or not math.isfinite(
+            float(label_threshold)
+        ):
+            raise ValueError("label_threshold must be a finite number")
+        training_target = _common_entropy_target_provenance(
+            records, role="training"
+        )
+        supplied_target = (
+            metadata.get("entropy_target_provenance")
+            if isinstance(metadata, Mapping)
+            else None
+        )
+        target_provenance = validate_entropy_target_provenance(
+            supplied_target,
+            role="training metadata.entropy_target_provenance",
+        )
+        for field in _ENTROPY_TARGET_SHARED_FIELDS:
+            if target_provenance[field] != training_target[field]:
+                raise ValueError(
+                    "training entropy-target records do not match serialized "
+                    f"provenance for {field}"
+                )
+        if (
+            target_provenance["train_source_artifact_sha256"]
+            != training_target["source_artifact_sha256"]
+        ):
+            raise ValueError(
+                "training entropy-target source artifact does not match "
+                "serialized provenance"
             )
     elif label_source != "correctness":
         raise ValueError(
@@ -279,39 +1263,118 @@ def train_probe(
     features: list[list[float]] = []
     labels: list[int] = []
     hidden_dim: int | None = None
+    sep_feature_identity: dict[str, Any] | None = None
+    accuracy_uses_singular_feature: bool | None = None
     for index, record in enumerate(records):
-        hidden = record.get("hidden_states")
-        if hidden is None:
-            raise ValueError(
-                f"record {index}: missing 'hidden_states' field; was the "
-                "model_fn_with_states adapter used during sampling?"
+        if label_source == "semantic_entropy_threshold":
+            hidden = record.get("sep_hidden_state")
+            if hidden is None:
+                raise ValueError(
+                    f"record {index}: genuine SEP requires 'sep_hidden_state' "
+                    "from a separate greedy response"
+                )
+            feature = np.asarray(hidden, dtype=float)
+            if feature.ndim != 1 or feature.shape[0] == 0:
+                raise ValueError(
+                    f"record {index}: sep_hidden_state must be a non-empty 1D "
+                    f"vector; got shape {feature.shape}"
+                )
+            feature_metadata = record.get("sep_feature_metadata")
+            if not isinstance(feature_metadata, Mapping):
+                raise ValueError(
+                    f"record {index}: sep_feature_metadata must be a mapping"
+                )
+            record_identity = _sep_feature_identity(
+                feature_metadata, role=f"training record {index}"
             )
-        arr = np.asarray(hidden, dtype=float)
-        if arr.ndim != 2:
-            raise ValueError(
-                f"record {index}: hidden_states must be 2D "
-                f"(num_samples, hidden_dim); got shape {arr.shape}"
-            )
+            if record_identity["hidden_dimension"] != int(feature.shape[0]):
+                raise ValueError(
+                    f"record {index}: feature metadata hidden_dimension does not "
+                    "match sep_hidden_state"
+                )
+            if sep_feature_identity is None:
+                sep_feature_identity = record_identity
+            elif record_identity != sep_feature_identity:
+                raise ValueError(
+                    f"record {index}: SEP feature identity differs from the first "
+                    "training record"
+                )
+        else:
+            singular = record.get("sep_hidden_state")
+            if singular is not None:
+                if accuracy_uses_singular_feature is False:
+                    raise ValueError(
+                        "accuracy-probe training cannot mix singular greedy "
+                        "features with legacy per-sample hidden states"
+                    )
+                accuracy_uses_singular_feature = True
+                feature = np.asarray(singular, dtype=float)
+                if feature.ndim != 1 or feature.shape[0] == 0:
+                    raise ValueError(
+                        f"record {index}: sep_hidden_state must be a non-empty "
+                        f"1D vector; got shape {feature.shape}"
+                    )
+                feature_metadata = record.get("sep_feature_metadata")
+                if not isinstance(feature_metadata, Mapping):
+                    raise ValueError(
+                        f"record {index}: sep_feature_metadata must be a mapping"
+                    )
+                record_identity = _sep_feature_identity(
+                    feature_metadata, role=f"training record {index}"
+                )
+                if record_identity["hidden_dimension"] != int(feature.shape[0]):
+                    raise ValueError(
+                        f"record {index}: feature metadata hidden_dimension does "
+                        "not match sep_hidden_state"
+                    )
+                if sep_feature_identity is None:
+                    sep_feature_identity = record_identity
+                elif record_identity != sep_feature_identity:
+                    raise ValueError(
+                        f"record {index}: SEP feature identity differs from the "
+                        "first training record"
+                    )
+            else:
+                if accuracy_uses_singular_feature is True:
+                    raise ValueError(
+                        "accuracy-probe training cannot mix singular greedy "
+                        "features with legacy per-sample hidden states"
+                    )
+                accuracy_uses_singular_feature = False
+                hidden = record.get("hidden_states")
+                if hidden is None:
+                    raise ValueError(
+                        f"record {index}: missing hidden-state feature"
+                    )
+                arr = np.asarray(hidden, dtype=float)
+                if arr.ndim != 2:
+                    raise ValueError(
+                        f"record {index}: hidden_states must be 2D "
+                        f"(num_samples, hidden_dim); got shape {arr.shape}"
+                    )
+                feature = _pool_hidden_states(
+                    arr, pooling=pooling, mean_last_k=mean_last_k
+                )
+                if feature is None:
+                    if aggregate == "first":
+                        feature = arr[0]
+                    elif aggregate == "mean":
+                        feature = arr.mean(axis=0)
+                    else:
+                        raise ValueError(
+                            f"unknown aggregate: {aggregate!r}; expected "
+                            "'first' or 'mean'"
+                        )
+
         if hidden_dim is None:
-            hidden_dim = int(arr.shape[1])
-        elif int(arr.shape[1]) != hidden_dim:
+            hidden_dim = int(feature.shape[0])
+        elif int(feature.shape[0]) != hidden_dim:
             raise ValueError(
-                f"record {index}: hidden_dim {arr.shape[1]} does not match "
+                f"record {index}: hidden_dim {feature.shape[0]} does not match "
                 f"the first record's hidden_dim {hidden_dim}"
             )
-
-        feature = _pool_hidden_states(arr, pooling=pooling, mean_last_k=mean_last_k)
-        if feature is None:
-            # Legacy path: aggregate keyword takes precedence when pooling=="last"
-            # and aggregate is explicitly "mean".
-            if aggregate == "first":
-                feature = arr[0]
-            elif aggregate == "mean":
-                feature = arr.mean(axis=0)
-            else:
-                raise ValueError(
-                    f"unknown aggregate: {aggregate!r}; expected 'first' or 'mean'"
-                )
+        if not np.isfinite(feature).all():
+            raise ValueError(f"record {index}: hidden-state feature must be finite")
         features.append(feature.tolist())
 
         if label_source == "correctness":
@@ -359,17 +1422,87 @@ def train_probe(
     coef = model.coef_[0].astype(float).tolist()
     intercept = float(model.intercept_[0])
 
+    artifact_metadata = dict(metadata or {})
+    if target_provenance is not None:
+        artifact_metadata["entropy_target_provenance"] = target_provenance
+    artifact_metadata.update(
+        {
+            "artifact_schema": CANONICAL_SEP_ARTIFACT_SCHEMA,
+            "target_definition": (
+                "high_semantic_entropy"
+                if label_source == "semantic_entropy_threshold"
+                else "model_incorrectness"
+            ),
+            "feature_definition": (
+                CANONICAL_SEP_FEATURE_DEFINITION
+                if (
+                    label_source == "semantic_entropy_threshold"
+                    or accuracy_uses_singular_feature is True
+                )
+                else "accuracy_probe_hidden_state"
+            ),
+            "threshold_selection": (
+                "eq5_best_split_training_records_only"
+                if threshold_was_derived
+                else (
+                    "caller_supplied"
+                    if label_source == "semantic_entropy_threshold"
+                    else "not_applicable"
+                )
+            ),
+            "probe_fit_scope": artifact_metadata.get(
+                "probe_fit_scope", "unspecified"
+            ),
+            "threshold_fit_scope": (
+                artifact_metadata.get("threshold_fit_scope", "unspecified")
+                if label_source == "semantic_entropy_threshold"
+                else "not_applicable"
+            ),
+            "feature_aggregate": aggregate,
+            "inverse_l2_regularization": float(C),
+            "training_seed": int(seed),
+        }
+    )
+    if (
+        label_source == "semantic_entropy_threshold"
+        or accuracy_uses_singular_feature is True
+    ):
+        if sep_feature_identity is None:  # defensive: records is non-empty
+            raise ValueError("could not infer SEP feature identity")
+        artifact_metadata["feature_identity"] = sep_feature_identity
+        serialized_cell_identity = artifact_metadata.get("cell_identity")
+        if serialized_cell_identity is not None:
+            expected_cell_identity = validate_sep_cell_identity(
+                serialized_cell_identity,
+                role="training metadata.cell_identity",
+            )
+            actual_cell_identity = canonical_sep_cell_identity(
+                records, role="training"
+            )
+            if actual_cell_identity != expected_cell_identity:
+                raise ValueError(
+                    "training records do not match serialized SEP cell_identity"
+                )
+            artifact_metadata["cell_identity"] = expected_cell_identity
+
     return SEPProbe(
         coef=coef,
         intercept=intercept,
         hidden_dim=hidden_dim,
         label_source=label_source,
+        probe_kind=(
+            "semantic_entropy_probe"
+            if label_source == "semantic_entropy_threshold"
+            else "accuracy_probe"
+        ),
         label_threshold=label_threshold,
         source_score_field=source_score_field,
         train_size=int(x_train.shape[0]),
         positive_rate=float(y_train.mean()),
+        metadata=artifact_metadata,
         pooling=pooling,
         mean_last_k=mean_last_k,
+        artifact_schema=CANONICAL_SEP_ARTIFACT_SCHEMA,
     )
 
 
@@ -424,13 +1557,13 @@ def score_probe_for_record(
 ) -> float:
     """Score a full scored-JSONL record using a trained probe.
 
-    Convenience wrapper that mirrors the aggregation choice made during
-    training: it picks either the first sample's hidden state or the
-    mean across samples, then forwards to :func:`score_probe`.
+    A genuine SEP consumes only ``sep_hidden_state`` from the separate greedy
+    response. An accuracy probe may consume that same response feature or a
+    legacy per-sample ``hidden_states`` matrix.
 
     Args:
-        record: A scored record carrying ``hidden_states`` shaped
-            ``(num_samples, hidden_dim)``.
+        record: A scored record carrying a singular SEP feature or legacy
+            per-sample hidden-state matrix.
         probe: A trained probe.
         aggregate: How to reduce per-sample hidden states into a single
             feature vector.  Should match the value passed to
@@ -446,9 +1579,62 @@ def score_probe_for_record(
             "SEP scoring requires numpy. Install with: pip install -e '.[sep]'"
         ) from exc
 
+    probe_kind = probe.effective_probe_kind
+    if probe_kind == "semantic_entropy_probe":
+        validate_canonical_sep_probe(probe)
+        hidden_state = record.get("sep_hidden_state")
+        if hidden_state is None:
+            raise ValueError(
+                "genuine SEP scoring requires 'sep_hidden_state' from a "
+                "separate greedy response"
+            )
+        feature_metadata = record.get("sep_feature_metadata")
+        if not isinstance(feature_metadata, Mapping):
+            raise ValueError(
+                "SEP scoring requires sep_feature_metadata"
+            )
+        actual_identity = _sep_feature_identity(
+            feature_metadata, role="scoring record"
+        )
+        if actual_identity != probe.metadata["feature_identity"]:
+            raise ValueError(
+                "scoring record SEP feature identity does not match the trained probe"
+            )
+        feature = np.asarray(hidden_state, dtype=float)
+        if feature.ndim != 1:
+            raise ValueError(
+                f"sep_hidden_state must be 1D; got shape {feature.shape}"
+            )
+        return score_probe(feature.tolist(), probe)
+
+    hidden_state = record.get("sep_hidden_state")
+    if hidden_state is not None:
+        if "feature_identity" in probe.metadata:
+            validate_canonical_accuracy_probe(probe)
+            feature_metadata = record.get("sep_feature_metadata")
+            if not isinstance(feature_metadata, Mapping):
+                raise ValueError(
+                    "canonical accuracy-probe scoring requires "
+                    "sep_feature_metadata"
+                )
+            actual_identity = _sep_feature_identity(
+                feature_metadata, role="accuracy-probe scoring record"
+            )
+            if actual_identity != probe.metadata["feature_identity"]:
+                raise ValueError(
+                    "accuracy-probe scoring record feature identity does not "
+                    "match the trained probe"
+                )
+        feature = np.asarray(hidden_state, dtype=float)
+        if feature.ndim != 1:
+            raise ValueError(
+                f"sep_hidden_state must be 1D; got shape {feature.shape}"
+            )
+        return score_probe(feature.tolist(), probe)
+
     hidden = record.get("hidden_states")
     if hidden is None:
-        raise ValueError("record is missing 'hidden_states' field")
+        raise ValueError("record is missing a hidden-state feature")
 
     arr = np.asarray(hidden, dtype=float)
     if arr.ndim != 2:

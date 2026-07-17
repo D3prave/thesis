@@ -36,8 +36,15 @@ All factories read configuration from environment variables so that Slurm
 scripts can override them without editing Python code:
 
 * ``SE_MODEL_NAME`` — HuggingFace model ID (fallback: factory default).
-* ``SE_TEMPERATURE`` — sampling temperature (fallback: ``0.7``).
-* ``SE_TOP_P`` — nucleus sampling threshold (fallback: ``0.95``).
+* ``SE_MODEL_REVISION`` — full model commit SHA (required for SEP collection).
+* ``SE_TOKENIZER_REVISION`` — full tokenizer commit SHA (SEP; defaults to the
+  model revision when both come from the same repository).
+* ``SE_TEMPERATURE`` — sampling temperature (phase-1 fallback: ``0.7``;
+  SEP fallback: paper-faithful ``1.0``).
+* ``SE_TOP_P`` — nucleus sampling threshold (phase-1 fallback: ``0.95``;
+  SEP fallback: paper-faithful ``0.9``).
+* ``SE_TOP_K`` — sampling cap (SEP fallback: paper-faithful ``50``).
+* ``SE_SEED`` — model sampling seed (fallback: ``0``).
 * ``SE_MAX_NEW_TOKENS`` — max new tokens per sample (fallback: ``64``).
 * ``SE_SYSTEM_PROMPT`` — overrides the model system message. Unset keeps the
   terse QA default ("answer in a word or short phrase"); set it to a
@@ -71,6 +78,7 @@ scripts can override them without editing Python code:
 from __future__ import annotations
 
 import os
+import re
 
 from semantic_entropy.models import (
     ModelFn,
@@ -123,6 +131,27 @@ def _env_bool(key: str, default: bool) -> bool:
         f"Environment variable {key}={raw!r} is not a recognized boolean. "
         f"Use one of {sorted(truthy | falsy)}."
     )
+
+
+def _sep_revisions() -> tuple[str, str]:
+    """Read fail-closed, full Hugging Face revisions for SEP collection."""
+
+    model_revision = os.environ.get("SE_MODEL_REVISION")
+    tokenizer_revision = os.environ.get(
+        "SE_TOKENIZER_REVISION", model_revision or ""
+    )
+    for key, value in (
+        ("SE_MODEL_REVISION", model_revision),
+        ("SE_TOKENIZER_REVISION", tokenizer_revision),
+    ):
+        if not isinstance(value, str) or not re.fullmatch(
+            r"[0-9a-fA-F]{40}", value
+        ):
+            raise ValueError(
+                f"{key} must be a full 40-character Hugging Face commit SHA "
+                "for SEP collection"
+            )
+    return model_revision.lower(), tokenizer_revision.lower()
 
 
 #: Recommended system prompt for the long-form biography task. The default
@@ -237,8 +266,8 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
 
     * ``SE_SEP_HIDDEN_LAYER`` — transformer layer to extract (default
       ``-1``: the last layer's output).
-    * ``SE_SEP_HIDDEN_TOKEN`` — index over the generated continuation
-      (default ``-1``: the last generated token).
+    * ``SE_SEP_HIDDEN_TOKEN`` — fixed to ``-1``, meaning the final response
+      content token immediately before EOS.
 
     Use this adapter via ``--model-with-states-module`` on the run-pipeline
     CLI when you need to collect hidden states for SEP probe training or
@@ -248,16 +277,20 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
     model_name = os.environ.get(
         "SE_MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.3"
     )
+    model_revision, tokenizer_revision = _sep_revisions()
     return make_hf_model_with_states(
         model_name,
-        temperature=_env_float("SE_TEMPERATURE", 0.7),
-        top_p=_env_float("SE_TOP_P", 0.95),
-        top_k=_env_int("SE_TOP_K", -1),
+        model_revision=model_revision,
+        tokenizer_revision=tokenizer_revision,
+        temperature=_env_float("SE_TEMPERATURE", 1.0),
+        top_p=_env_float("SE_TOP_P", 0.9),
+        top_k=_env_int("SE_TOP_K", 50),
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
         hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),
         hidden_token=_env_int("SE_SEP_HIDDEN_TOKEN", -1),
+        seed=_env_int("SE_SEED", 0),
         **_system_prompt_kwargs(),
     )
 

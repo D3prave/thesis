@@ -41,8 +41,13 @@ the thesis and provides two concrete implementations:
 
 from __future__ import annotations
 
+import copy
+import hashlib
 import random
+import re
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from typing import Any
 
 # Re-export the canonical type alias so callers can import from one place.
 from semantic_entropy.clustering import NLI_ENTAILMENT, NLI_NEUTRAL, NliFn
@@ -65,6 +70,81 @@ ModelFn = Callable[[str, int], list[str]]
 #: last-token activation at a chosen transformer layer, and is used by
 #: :mod:`semantic_entropy.probes` (Semantic Entropy Probes).
 ModelFnWithStates = Callable[[str, int], tuple[list[str], list[list[float]]]]
+
+
+@dataclass(frozen=True)
+class SEPGeneration:
+    """Output of a paper-faithful Semantic Entropy Probe collection call.
+
+    ``sampled_answers`` are the high-temperature responses used only to
+    calculate semantic entropy. ``greedy_answer`` and ``hidden_state`` come
+    from a separate greedy response and supply the single SEP feature.
+    Keeping these objects distinct prevents a stochastic DSE sample (or an
+    average over samples) from being mislabeled as the SEP feature.
+    """
+
+    sampled_answers: list[str]
+    greedy_answer: str
+    hidden_state: list[float]
+    metadata: dict[str, Any]
+
+
+def _stable_prompt_seed(seed: int, prompt: str) -> int:
+    """Derive a stable sampling seed independent of Python hash randomization."""
+    return int.from_bytes(
+        hashlib.sha256(f"{seed}\0{prompt}".encode("utf-8")).digest()[:8],
+        byteorder="big",
+    ) % (2**63 - 1)
+
+
+def _final_content_token_offset(
+    generated_token_ids: Sequence[int], special_token_ids: set[int]
+) -> int:
+    """Return the final non-special generated-token offset before EOS/padding."""
+    content_length = len(generated_token_ids)
+    while (
+        content_length > 0
+        and int(generated_token_ids[content_length - 1]) in special_token_ids
+    ):
+        content_length -= 1
+    if content_length == 0:
+        raise RuntimeError("greedy SEP response contains no content token before EOS")
+    return content_length - 1
+
+
+def _require_full_hf_revision(value: str | None, *, field: str) -> str:
+    """Return a full Hugging Face commit SHA or fail before model loading."""
+
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", value):
+        raise ValueError(
+            f"{field} must be a full 40-character Hugging Face commit SHA"
+        )
+    return value.lower()
+
+
+def _require_eos_or_eot_termination(
+    generated_token_ids: Sequence[int],
+    *,
+    termination_token_ids: set[int],
+    pad_token_ids: set[int],
+) -> int:
+    """Return the terminating EOS/EOT ID or reject a max-token truncation."""
+
+    if not generated_token_ids:
+        raise RuntimeError("greedy SEP response generated no tokens")
+    index = len(generated_token_ids) - 1
+    while (
+        index >= 0
+        and int(generated_token_ids[index]) in pad_token_ids
+        and int(generated_token_ids[index]) not in termination_token_ids
+    ):
+        index -= 1
+    if index < 0 or int(generated_token_ids[index]) not in termination_token_ids:
+        raise RuntimeError(
+            "greedy SEP response did not terminate with EOS/EOT; refusing to "
+            "label a max_new_tokens truncation as a final-content-token feature"
+        )
+    return int(generated_token_ids[index])
 
 
 # ---------------------------------------------------------------------------
@@ -220,34 +300,41 @@ def make_hf_model(
 def make_hf_model_with_states(
     model_name: str,
     *,
-    temperature: float = 0.7,
-    top_p: float = 0.95,
-    top_k: int = -1,
+    model_revision: str,
+    tokenizer_revision: str,
+    temperature: float = 1.0,
+    top_p: float = 0.9,
+    top_k: int = 50,
     max_new_tokens: int = 64,
     device_map: str = "auto",
     torch_dtype: str = "auto",
     hidden_layer: int = -1,
     hidden_token: int = -1,
+    seed: int = 0,
     system_prompt: str | None = (
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
     ),
-) -> ModelFnWithStates:
-    """Return a :data:`ModelFnWithStates` backed by HuggingFace.
+) -> Callable[[str, int], SEPGeneration]:
+    """Return a Kossen-style SEP collection function backed by HuggingFace.
 
-    Wraps ``transformers.AutoModelForCausalLM.generate`` with
-    ``output_hidden_states=True`` and returns, alongside each generated
-    answer, the hidden state of the chosen token at the chosen
-    transformer layer.  This is the data source used by Semantic Entropy
-    Probes (see :mod:`semantic_entropy.probes`).
+    Each call performs two deliberately separate operations:
+
+    * draw ``n`` responses with the semantic-entropy sampling configuration
+      (Kossen et al.: temperature 1.0, top-p 0.9, top-k 50); and
+    * generate one greedy response, then run a full forward pass over that
+      response to extract the final content token's hidden state.
+
+    The separate greedy response is the only probe feature. The stochastic
+    responses are returned only for semantic-entropy calculation.
 
     Hidden-state semantics:
 
     * ``hidden_layer = -1`` selects the *final* transformer block's
       output (the layer immediately before the LM head).
-    * ``hidden_token = -1`` selects the *last* generated token; ``-2``
-      selects the second-to-last (the "second-to-last token" probe of
-      Slobodkin et al., 2023).  Indices are negative-from-end.
+    * ``hidden_token`` is fixed to ``-1`` and means the final non-special
+      response token immediately before EOS/EOT. Other values are rejected so a
+      run cannot silently change the preregistered feature position.
 
     The factory generates the ``n`` independent samples in a single
     ``generate`` call with ``num_return_sequences=n`` so the per-prompt
@@ -255,6 +342,8 @@ def make_hf_model_with_states(
 
     Args:
         model_name: HuggingFace Hub model ID.
+        model_revision: Full Hugging Face commit SHA for the model weights.
+        tokenizer_revision: Full Hugging Face commit SHA for the tokenizer.
         temperature: Sampling temperature.
         top_p: Nucleus-sampling probability threshold.
         max_new_tokens: Maximum number of tokens to generate per answer.
@@ -263,25 +352,27 @@ def make_hf_model_with_states(
             supported hardware).
         hidden_layer: Transformer block index to extract; negative
             indices count from the end (``-1`` = last block).
-        hidden_token: Position of the generated token whose hidden state
-            is returned; negative indices count from the end of the
-            generated continuation.
+        hidden_token: Must be ``-1`` (final content token before EOS/EOT).
+        seed: Base sampling seed. A stable prompt-specific seed is derived
+            from this value so results do not depend on prompt iteration order.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
 
     Returns:
-        A :data:`ModelFnWithStates`.
+        A callable returning :class:`SEPGeneration`.
 
     Raises:
         ImportError: If ``torch`` or ``transformers`` are not installed.
     """
+    _model_revision = _require_full_hf_revision(
+        model_revision, field="model_revision"
+    )
+    _tokenizer_revision = _require_full_hf_revision(
+        tokenizer_revision, field="tokenizer_revision"
+    )
     try:
         import torch  # noqa: F401
-        from transformers import (  # noqa: F401
-            AutoModelForCausalLM,
-            AutoTokenizer,
-            GenerationConfig,
-        )
+        from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: F401
     except ImportError as exc:
         raise ImportError(
             "HuggingFace model adapter with hidden states requires torch "
@@ -290,40 +381,80 @@ def make_hf_model_with_states(
         ) from exc
 
     import torch as _torch
-    from transformers import (
-        AutoModelForCausalLM,
-        AutoTokenizer,
-        GenerationConfig,
-    )
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     _dtype = getattr(_torch, torch_dtype) if torch_dtype != "auto" else "auto"
-    _tokenizer = AutoTokenizer.from_pretrained(model_name)
-    if _tokenizer.pad_token_id is None:
-        _tokenizer.pad_token_id = _tokenizer.eos_token_id
+    _tokenizer = AutoTokenizer.from_pretrained(
+        model_name, revision=_tokenizer_revision
+    )
 
     _model = AutoModelForCausalLM.from_pretrained(
         model_name,
+        revision=_model_revision,
         device_map=device_map,
         dtype=_dtype,
     )
     _model.eval()
 
+    if _tokenizer.pad_token_id is None:
+        fallback_eos = _tokenizer.eos_token_id
+        if fallback_eos is None:
+            model_eos = _model.generation_config.eos_token_id
+            fallback_eos = (
+                model_eos[0]
+                if isinstance(model_eos, (list, tuple)) and model_eos
+                else model_eos
+            )
+        if fallback_eos is None:
+            raise ValueError(
+                "canonical SEP collection requires a tokenizer pad token or "
+                "a pinned model/tokenizer EOS/EOT token"
+            )
+        _tokenizer.pad_token_id = int(fallback_eos)
+
+    if hidden_token != -1:
+        raise ValueError(
+            "Kossen-style SEP fixes hidden_token=-1, meaning the final "
+            "content token immediately before EOS/EOT"
+        )
+
     # vLLM convention: top_k <= 0 disables the cap; HuggingFace uses top_k=0 to
     # disable. Translate so a value of 50 matches the vLLM grid exactly and -1
     # means "no cap" (rather than silently falling back to HF's default of 50).
     _hf_top_k = top_k if top_k and top_k > 0 else 0
-    _gen_config = GenerationConfig(
-        do_sample=True,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=_hf_top_k,
-        max_new_tokens=max_new_tokens,
-        return_dict_in_generate=True,
-        output_hidden_states=True,
-        pad_token_id=_tokenizer.pad_token_id,
-    )
+    # Preserve model-specific EOS/EOT and chat-generation behavior. Building a
+    # fresh GenerationConfig would silently discard model-repository defaults.
+    _sample_config = copy.deepcopy(_model.generation_config)
+    _sample_config.do_sample = True
+    _sample_config.temperature = temperature
+    _sample_config.top_p = top_p
+    _sample_config.top_k = _hf_top_k
+    _sample_config.max_new_tokens = max_new_tokens
+    _sample_config.pad_token_id = _tokenizer.pad_token_id
 
-    def _model_fn(prompt: str, n: int) -> tuple[list[str], list[list[float]]]:
+    _greedy_config = copy.deepcopy(_model.generation_config)
+    _greedy_config.do_sample = False
+    _greedy_config.max_new_tokens = max_new_tokens
+    _greedy_config.pad_token_id = _tokenizer.pad_token_id
+    _greedy_config.return_dict_in_generate = True
+
+    def _token_id_set(value: Any) -> set[int]:
+        if value is None:
+            return set()
+        if isinstance(value, int):
+            return {value}
+        return {int(item) for item in value}
+
+    _termination_ids = _token_id_set(_greedy_config.eos_token_id)
+    _termination_ids.update(_token_id_set(_tokenizer.eos_token_id))
+    if not _termination_ids:
+        raise ValueError(
+            "canonical SEP collection requires an EOS/EOT token in the pinned "
+            "model or tokenizer generation configuration"
+        )
+    _pad_ids = _token_id_set(_greedy_config.pad_token_id)
+
+    def _model_fn(prompt: str, n: int) -> SEPGeneration:
         messages: list[dict[str, str]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
@@ -332,47 +463,113 @@ def make_hf_model_with_states(
         formatted = _tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True,
         )
-        inputs = _tokenizer(formatted, return_tensors="pt").to(_model.device)
+        inputs = _tokenizer(
+            formatted,
+            return_tensors="pt",
+            add_special_tokens=False,
+        ).to(_model.device)
         prompt_len = inputs["input_ids"].shape[1]
 
+        prompt_seed = _stable_prompt_seed(seed, prompt)
+        _torch.manual_seed(prompt_seed)
+        if _torch.cuda.is_available():
+            _torch.cuda.manual_seed_all(prompt_seed)
+
         with _torch.no_grad():
-            out = _model.generate(
+            sampled_out = _model.generate(
                 **inputs,
                 num_return_sequences=n,
-                generation_config=_gen_config,
+                generation_config=_sample_config,
+            )
+            greedy_out = _model.generate(
+                **inputs,
+                num_return_sequences=1,
+                generation_config=_greedy_config,
             )
 
-        # `out.sequences` shape: (n, prompt_len + new_len).
-        # `out.hidden_states` is a tuple of length new_len; element t is a
-        # tuple of (num_layers + 1) tensors, each shaped
-        # (n, seq_len_at_step_t, hidden_dim). For the *first* step
-        # seq_len_at_step_t = prompt_len; for subsequent steps it is 1.
-        new_len = len(out.hidden_states)
-        if new_len == 0:
-            raise RuntimeError(
-                "generate produced zero new tokens; cannot extract hidden states"
-            )
-
-        # Resolve hidden_token to a forward index over the generated continuation.
-        token_idx = hidden_token if hidden_token >= 0 else new_len + hidden_token
-        token_idx = max(0, min(token_idx, new_len - 1))
-        layer_hidden_states = out.hidden_states[token_idx]
-        layer_idx = hidden_layer if hidden_layer >= 0 else len(layer_hidden_states) + hidden_layer
-        chosen_layer = layer_hidden_states[layer_idx]
-        # For step > 0 the tensor is (n, 1, hidden_dim); for step 0 it's
-        # (n, prompt_len, hidden_dim) — we always take the *last* position
-        # within that step's tensor, which is the just-emitted token.
-        per_sample_states = chosen_layer[:, -1, :]
-
-        # Decode just the newly-generated tokens.
-        generated_ids = out.sequences[:, prompt_len:]
-        decoded = _tokenizer.batch_decode(
-            generated_ids, skip_special_tokens=True,
+        sampled_sequences = getattr(sampled_out, "sequences", sampled_out)
+        sampled_ids = sampled_sequences[:, prompt_len:]
+        sampled_answers = _tokenizer.batch_decode(
+            sampled_ids, skip_special_tokens=True,
         )
+        sampled_eos_or_eot_count = 0
+        for token_row in sampled_ids.tolist():
+            try:
+                _require_eos_or_eot_termination(
+                    token_row,
+                    termination_token_ids=_termination_ids,
+                    pad_token_ids=_pad_ids,
+                )
+            except RuntimeError:
+                continue
+            sampled_eos_or_eot_count += 1
 
-        return (
-            [d.strip() for d in decoded],
-            per_sample_states.detach().to(_torch.float32).cpu().tolist(),
+        greedy_sequence = greedy_out.sequences[0]
+        generated_ids = greedy_sequence[prompt_len:]
+        terminating_token_id = _require_eos_or_eot_termination(
+            generated_ids.tolist(),
+            termination_token_ids=_termination_ids,
+            pad_token_ids=_pad_ids,
+        )
+        special_ids = set(_tokenizer.all_special_ids) | _termination_ids | _pad_ids
+        final_content_offset = _final_content_token_offset(
+            generated_ids.tolist(), special_ids
+        )
+        content_length = final_content_offset + 1
+
+        # A generation-step hidden state predicts the next token and is easy
+        # to shift by one. Re-run the complete greedy sequence through the
+        # model and index the actual final content token explicitly.
+        feature_position = prompt_len + content_length - 1
+        feature_input = greedy_sequence[: feature_position + 1].unsqueeze(0)
+        with _torch.no_grad():
+            forward_out = _model(
+                input_ids=feature_input,
+                attention_mask=_torch.ones_like(feature_input),
+                output_hidden_states=True,
+                use_cache=False,
+                return_dict=True,
+            )
+        layer_count = len(forward_out.hidden_states)
+        layer_idx = hidden_layer if hidden_layer >= 0 else layer_count + hidden_layer
+        if layer_idx < 0 or layer_idx >= layer_count:
+            raise ValueError(
+                f"hidden_layer {hidden_layer} is outside {layer_count} returned states"
+            )
+        feature = forward_out.hidden_states[layer_idx][0, feature_position, :]
+        content_ids = generated_ids[:content_length]
+        greedy_answer = _tokenizer.decode(content_ids, skip_special_tokens=True)
+
+        return SEPGeneration(
+            sampled_answers=[answer.strip() for answer in sampled_answers],
+            greedy_answer=greedy_answer.strip(),
+            hidden_state=feature.detach().to(_torch.float32).cpu().tolist(),
+            metadata={
+                "protocol": "kossen_sep_2024",
+                "feature_response_decoding": "greedy",
+                "token_selection": "final_content_token_before_eos_or_eot",
+                "layer_selection": "preregistered_final_layer",
+                "generation_termination": "eos_or_eot",
+                "termination_token_ids": sorted(_termination_ids),
+                "terminating_special_token_id": terminating_token_id,
+                "generation_config_source": "model_generation_config_clone",
+                "hidden_layer": hidden_layer,
+                "hidden_dimension": int(feature.shape[-1]),
+                "model_id": model_name,
+                "model_revision": _model_revision,
+                "tokenizer_id": model_name,
+                "tokenizer_revision": _tokenizer_revision,
+                "generated_content_token_index": final_content_offset,
+                "full_sequence_token_index": feature_position,
+                "sampling_temperature": float(temperature),
+                "sampling_top_p": float(top_p),
+                "sampling_top_k": int(top_k),
+                "sampling_num_responses": int(n),
+                "sampled_eos_or_eot_count": sampled_eos_or_eot_count,
+                "sampled_max_new_tokens_count": int(n) - sampled_eos_or_eot_count,
+                "base_seed": int(seed),
+                "prompt_seed": int(prompt_seed),
+            },
         )
 
     return _model_fn
@@ -537,19 +734,19 @@ def make_vllm_model(
         formatted = _llm.get_tokenizer().apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True,
         )
-        best_params = SamplingParams(n=1, temperature=0.1, top_p=1.0, max_tokens=max_tokens, stop=_STOP)
+        best_params = SamplingParams(
+            n=1,
+            temperature=0.1,
+            top_p=1.0,
+            max_tokens=max_tokens,
+            stop=_STOP,
+        )
         out = _llm.generate([formatted], best_params)
         return out[0].outputs[0].text.strip()
 
-    def _batch(prompts: list[str], n: int) -> list[list[str]]:
-        """Generate ``n`` samples for many prompts in a single vLLM call.
+    def _batch_outputs(prompts: list[str], n: int) -> tuple[list[list[str]], list[list[str]]]:
+        """Generate texts and termination reasons for one prompt batch."""
 
-        vLLM batches the whole list with continuous batching, so this is
-        dramatically faster than calling the per-prompt ``_model_fn`` in a loop
-        (essential for large stages such as FactualBio answer regeneration with
-        tens of thousands of prompts). Returns one answer list per input prompt,
-        in input order. Texts only — logprobs are not returned by this path.
-        """
         tokenizer = _llm.get_tokenizer()
         formatted = [
             tokenizer.apply_chat_template(
@@ -563,10 +760,35 @@ def make_vllm_model(
         params = _sampling_params.clone()
         params.n = n
         outputs = _llm.generate(formatted, params)
-        return [[seq.text.strip() for seq in out.outputs] for out in outputs]
+        answers = [[seq.text.strip() for seq in out.outputs] for out in outputs]
+        finish_reasons = [
+            [str(seq.finish_reason or "") for seq in out.outputs]
+            for out in outputs
+        ]
+        return answers, finish_reasons
+
+    def _batch(prompts: list[str], n: int) -> list[list[str]]:
+        """Generate ``n`` samples for many prompts in a single vLLM call.
+
+        vLLM batches the whole list with continuous batching, so this is
+        dramatically faster than calling the per-prompt ``_model_fn`` in a loop
+        (essential for large stages such as FactualBio answer regeneration with
+        tens of thousands of prompts). Returns one answer list per input prompt,
+        in input order. Texts only — logprobs are not returned by this path.
+        """
+        answers, _ = _batch_outputs(prompts, n)
+        return answers
+
+    def _batch_with_metadata(
+        prompts: list[str], n: int
+    ) -> tuple[list[list[str]], list[list[str]]]:
+        """Return responses plus vLLM finish reasons without a second pass."""
+
+        return _batch_outputs(prompts, n)
 
     _model_fn.best_answer = _best_answer  # type: ignore[attr-defined]
     _model_fn.batch = _batch  # type: ignore[attr-defined]
+    _model_fn.batch_with_metadata = _batch_with_metadata  # type: ignore[attr-defined]
     return _model_fn
 
 
@@ -667,6 +889,7 @@ def make_embedding_fn(
 def make_nli_fn(
     model_name: str = "cross-encoder/nli-deberta-v3-base",
     *,
+    revision: str | None = None,
     device: str = "cuda",
     batch_size: int = 32,
 ) -> NliFn:
@@ -685,6 +908,7 @@ def make_nli_fn(
         model_name: HuggingFace Hub model ID for the cross-encoder NLI model.
             The default (``cross-encoder/nli-deberta-v3-base``) is the model
             used in Farquhar et al. (2024).
+        revision: Exact Hugging Face model revision when provenance is locked.
         device: Device string passed to the HF pipeline (``"cuda"`` or
             ``"cpu"``).
         batch_size: Batch size for the HF pipeline.
@@ -706,12 +930,14 @@ def make_nli_fn(
 
     from transformers import pipeline as hf_pipeline
 
-    _pipe = hf_pipeline(
-        "text-classification",
-        model=model_name,
-        device=device,
-        batch_size=batch_size,
-    )
+    pipeline_kwargs: dict[str, Any] = {
+        "model": model_name,
+        "device": device,
+        "batch_size": batch_size,
+    }
+    if revision is not None:
+        pipeline_kwargs["revision"] = revision
+    _pipe = hf_pipeline("text-classification", **pipeline_kwargs)
 
     def _nli_fn(premise: str, hypothesis: str) -> str:
         raw = _pipe({"text": premise, "text_pair": hypothesis})
@@ -725,6 +951,8 @@ def make_nli_fn(
         if "contradict" in label:
             from semantic_entropy.clustering import NLI_CONTRADICTION
             return NLI_CONTRADICTION
-        return NLI_NEUTRAL
+        if "neutral" in label:
+            return NLI_NEUTRAL
+        raise ValueError(f"unexpected NLI label from pinned model: {result['label']!r}")
 
     return _nli_fn

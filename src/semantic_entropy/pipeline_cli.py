@@ -32,16 +32,16 @@ from __future__ import annotations
 import argparse
 import importlib
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 from semantic_entropy.clustering import NliFn
 from semantic_entropy.datasets import (
-    DatasetError,
-    PromptItem,
     SVAMP_STUB_PATH,
     TRIVIAQA_STUB_PATH,
+    DatasetError,
+    PromptItem,
     load_nqopen_records,
     load_svamp_records,
     load_triviaqa_records,
@@ -327,11 +327,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="MODULE:CALLABLE",
         help=(
             "Import a ModelFnWithStates factory. When set, the pipeline "
-            "uses this adapter instead of --model-module to sample answers "
-            "AND collect per-sample hidden states for Semantic Entropy "
-            "Probes (SEP). Hidden states are written into each scored "
-            "record under the 'hidden_states' key. Mutually exclusive "
-            "with --model-module."
+            "uses this adapter instead of --model-module to draw the DSE "
+            "samples and collect a separate greedy final-content-token "
+            "feature for SEP. The singular feature is written under "
+            "'sep_hidden_state'. Mutually exclusive with --model-module."
         ),
     )
     parser.add_argument(
@@ -342,7 +341,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         help=(
             "Path to a trained SEP probe JSON artifact (see "
             "scripts/train_sep_probe.py). When set alongside "
-            "--model-with-states-module, the probe is applied at "
+            "--model-with-states-module, only a semantic-entropy-target "
+            "artifact is accepted and applied at "
             "inference time and a 'probe_uncertainty' score in [0, 1] "
             "is written into each record's scores dict."
         ),

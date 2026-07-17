@@ -9,9 +9,11 @@ Optional extension scores such as ``kle`` are preserved when already present.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +75,57 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="strict",
         help="Bidirectional-entailment rule. 'strict' requires entailment in "
         "both directions (default); 'nondefeating' matches Farquhar et al.'s "
-        "strict_entailment=False (no contradiction either way, >=1 entailment).",
+            "strict_entailment=False (no contradiction either way, >=1 entailment).",
+    )
+    parser.add_argument(
+        "--question-conditioned",
+        action="store_true",
+        help=("Prefix both answers in every NLI pair with the record question. "
+              "This is required for the v2 primary analysis."),
+    )
+    parser.add_argument(
+        "--source-split-role",
+        choices=["train", "eval"],
+        default=None,
+        help=(
+            "Explicit role of the source artifact. Required for v2 "
+            "question-conditioned runs so train and held-out evaluation "
+            "artifacts remain distinguishable downstream."
+        ),
+    )
+    parser.add_argument(
+        "--nli-revision",
+        default=None,
+        help="Exact Hugging Face NLI model revision; required for v2 NLI runs.",
+    )
+    parser.add_argument(
+        "--nli-tokenizer-revision",
+        default=None,
+        help=(
+            "Exact Hugging Face NLI tokenizer revision; required for v2 NLI "
+            "runs and loaded explicitly instead of being inferred by pipeline."
+        ),
+    )
+    parser.add_argument(
+        "--code-commit",
+        default=None,
+        help="Clean repository commit used for the run; required for v2 runs.",
+    )
+    parser.add_argument(
+        "--job-meta-output",
+        type=Path,
+        default=None,
+        help="Optional normalized v2 job-metadata sidecar written after success.",
+    )
+    parser.add_argument(
+        "--protocol-manifest",
+        default=None,
+        help="Path of the locked SEP v2 protocol manifest, when applicable.",
+    )
+    parser.add_argument(
+        "--protocol-manifest-sha256",
+        default=None,
+        help="Verified SHA-256 of the locked SEP v2 protocol manifest.",
     )
     return parser.parse_args(argv)
 
@@ -83,9 +135,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     _ensure_distinct_paths(args.input_jsonl, args.output_jsonl)
     if args.nli_batch_size <= 0:
         raise ValueError("--nli-batch-size must be positive")
+    if args.question_conditioned:
+        _validate_v2_args(args)
 
     records = _load_records(args.input_jsonl)
+    locked_source_run_id: str | None = None
+    if args.question_conditioned:
+        source_run_ids = {str(record.get("run_id", "")).strip() for record in records}
+        if "" in source_run_ids or len(source_run_ids) != 1:
+            raise ValueError(
+                "question-conditioned input must contain one non-empty source run_id"
+            )
+        locked_source_run_id = next(iter(source_run_ids))
     backend = args.entailment_backend or _default_backend(args)
+    source_sha256 = _sha256_file(args.input_jsonl)
     args.output_jsonl.parent.mkdir(parents=True, exist_ok=True)
 
     if args.exact_match:
@@ -95,7 +158,38 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     with args.output_jsonl.open("w", encoding="utf-8") as target:
         for count, record in enumerate(clustered, start=1):
+            source_run_id = str(record.get("run_id", ""))
             record["entailment_backend"] = backend
+            record["question_conditioned_entailment"] = args.question_conditioned
+            record["entailment_input_format"] = (
+                "question_answer_v1" if args.question_conditioned else "answer_only"
+            )
+            record["source_run_id"] = source_run_id
+            record["source_artifact_sha256"] = source_sha256
+            record["analysis_code_commit"] = args.code_commit or "unrecorded"
+            record["code_commit"] = args.code_commit or "unrecorded"
+            record["question_conditioned"] = args.question_conditioned
+            if args.question_conditioned:
+                record["split_role"] = args.source_split_role
+                if args.protocol_manifest_sha256 is not None:
+                    record["protocol_manifest_sha256"] = (
+                        args.protocol_manifest_sha256
+                    )
+            record["clustering_rule"] = (
+                "bidirectional" if args.clustering == "strict" else "nondefeating"
+            )
+            if not args.exact_match:
+                nli_model = _nli_model_name(args)
+                nli_revision = _nli_revision(args) or "unrecorded"
+                nli_tokenizer_revision = (
+                    _nli_tokenizer_revision(args) or "unrecorded"
+                )
+                record["entailment_model_id"] = nli_model
+                record["entailment_model_revision"] = nli_revision
+                record["nli_model_id"] = nli_model
+                record["nli_model_revision"] = nli_revision
+                record["nli_tokenizer_id"] = nli_model
+                record["nli_tokenizer_revision"] = nli_tokenizer_revision
             if args.run_id is not None:
                 record["run_id"] = args.run_id
 
@@ -104,6 +198,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             target.write(json.dumps(record, sort_keys=True) + "\n")
             if count == 1 or count % 25 == 0:
                 print(f"  wrote {count} reclustered records", flush=True)
+
+    if args.job_meta_output is not None:
+        _write_v2_job_metadata(
+            args.job_meta_output,
+            records=records,
+            run_id=args.run_id,
+            source_run_id=locked_source_run_id,
+            source_sha256=source_sha256,
+            args=args,
+        )
 
     print(f"wrote {len(clustered)} reclustered records to {args.output_jsonl}")
     return 0
@@ -136,7 +240,9 @@ def _cluster_exact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _cluster_batched(
     records: list[dict[str, Any]], args: argparse.Namespace
 ) -> list[dict[str, Any]]:
-    pair_maps, pending_pairs, labels = _collect_pair_tasks(records)
+    pair_maps, pending_pairs, labels = _collect_pair_tasks(
+        records, question_conditioned=args.question_conditioned
+    )
     print(
         f"prepared {len(pending_pairs)} unique ordered NLI pairs "
         f"after exact duplicate caching",
@@ -146,6 +252,8 @@ def _cluster_batched(
     if pending_pairs:
         entailer = _BatchedNli(
             model_name=_nli_model_name(args),
+            model_revision=_nli_revision(args),
+            tokenizer_revision=_nli_tokenizer_revision(args),
             device=_nli_device(args),
             batch_size=args.nli_batch_size,
         )
@@ -168,6 +276,8 @@ def _cluster_batched(
 
 def _collect_pair_tasks(
     records: list[dict[str, Any]],
+    *,
+    question_conditioned: bool = False,
 ) -> tuple[list[PairMap], list[OrderedPair], dict[OrderedPair, str]]:
     labels: dict[OrderedPair, str] = {}
     pending_seen: set[OrderedPair] = set()
@@ -176,11 +286,16 @@ def _collect_pair_tasks(
 
     for record in records:
         answers = record["normalized_answers"]
+        entailment_inputs = (
+            [_question_answer_input(record["prompt"], answer) for answer in answers]
+            if question_conditioned
+            else answers
+        )
         pair_map: PairMap = {}
         for i in range(len(answers)):
             for j in range(i + 1, len(answers)):
-                forward = (answers[i], answers[j])
-                backward = (answers[j], answers[i])
+                forward = (entailment_inputs[i], entailment_inputs[j])
+                backward = (entailment_inputs[j], entailment_inputs[i])
                 pair_map[(i, j)] = (forward, backward)
                 if answers[i] == answers[j]:
                     labels[forward] = NLI_ENTAILMENT
@@ -196,8 +311,17 @@ def _collect_pair_tasks(
 
 
 class _BatchedNli:
-    def __init__(self, *, model_name: str, device: str, batch_size: int) -> None:
+    def __init__(
+        self,
+        *,
+        model_name: str,
+        model_revision: str | None,
+        tokenizer_revision: str | None,
+        device: str,
+        batch_size: int,
+    ) -> None:
         try:
+            from transformers import AutoTokenizer
             from transformers import pipeline as hf_pipeline
         except ImportError as exc:
             raise ImportError(
@@ -206,12 +330,19 @@ class _BatchedNli:
             ) from exc
 
         self.batch_size = batch_size
-        self.pipe = hf_pipeline(
-            "text-classification",
-            model=model_name,
-            device=_pipeline_device(device),
-            batch_size=batch_size,
-        )
+        tokenizer_kwargs: dict[str, Any] = {}
+        if tokenizer_revision is not None:
+            tokenizer_kwargs["revision"] = tokenizer_revision
+        tokenizer = AutoTokenizer.from_pretrained(model_name, **tokenizer_kwargs)
+        pipeline_kwargs: dict[str, Any] = {
+            "model": model_name,
+            "tokenizer": tokenizer,
+            "device": _pipeline_device(device),
+            "batch_size": batch_size,
+        }
+        if model_revision is not None:
+            pipeline_kwargs["revision"] = model_revision
+        self.pipe = hf_pipeline("text-classification", **pipeline_kwargs)
         print(
             f"loaded NLI model {model_name} on {device}; batch_size={batch_size}",
             flush=True,
@@ -345,9 +476,26 @@ def _pipeline_device(device: str) -> str | int:
     return -1 if device == "cpu" else device
 
 
+def _question_answer_input(question: str, answer: str) -> str:
+    question_text = str(question).strip()
+    if not question_text:
+        raise ValueError("question-conditioned entailment requires a non-empty prompt")
+    return f"Question: {question_text}\nAnswer: {answer}"
+
+
 def _nli_model_name(args: argparse.Namespace) -> str:
     return args.nli_model or os.environ.get(
         "SE_NLI_MODEL", "cross-encoder/nli-deberta-v3-base"
+    )
+
+
+def _nli_revision(args: argparse.Namespace) -> str | None:
+    return args.nli_revision or os.environ.get("SE_NLI_REVISION")
+
+
+def _nli_tokenizer_revision(args: argparse.Namespace) -> str | None:
+    return args.nli_tokenizer_revision or os.environ.get(
+        "SE_NLI_TOKENIZER_REVISION"
     )
 
 
@@ -357,8 +505,133 @@ def _nli_device(args: argparse.Namespace) -> str:
 
 def _default_backend(args: argparse.Namespace) -> str:
     if args.exact_match:
-        return "exact-match"
-    return _nli_model_name(args).rsplit("/", maxsplit=1)[-1]
+        backend = "exact-match"
+    else:
+        backend = _nli_model_name(args).rsplit("/", maxsplit=1)[-1]
+    return f"{backend}-qcond" if args.question_conditioned else backend
+
+
+def _validate_v2_args(args: argparse.Namespace) -> None:
+    if args.run_id is None or not args.run_id.strip():
+        raise ValueError("--run-id is required with --question-conditioned")
+    if args.source_split_role not in {"train", "eval"}:
+        raise ValueError(
+            "--source-split-role=train|eval is required with "
+            "--question-conditioned"
+        )
+    if not _is_full_revision(args.code_commit):
+        raise ValueError(
+            "--code-commit must be a full 40-character hexadecimal commit"
+        )
+    if not args.exact_match and not _is_full_revision(_nli_revision(args)):
+        raise ValueError(
+            "--nli-revision must be a full 40-character hexadecimal revision"
+        )
+    if not args.exact_match and not _is_full_revision(
+        _nli_tokenizer_revision(args)
+    ):
+        raise ValueError(
+            "--nli-tokenizer-revision must be a full 40-character "
+            "hexadecimal revision"
+        )
+    if (args.protocol_manifest is None) != (
+        args.protocol_manifest_sha256 is None
+    ):
+        raise ValueError(
+            "--protocol-manifest and --protocol-manifest-sha256 must be provided together"
+        )
+    if args.protocol_manifest_sha256 is not None and not _is_sha256(
+        args.protocol_manifest_sha256
+    ):
+        raise ValueError(
+            "--protocol-manifest-sha256 must contain 64 lowercase hexadecimal characters"
+        )
+
+
+def _is_full_revision(value: str | None) -> bool:
+    return (
+        value is not None
+        and len(value) == 40
+        and all(character in "0123456789abcdefABCDEF" for character in value)
+    )
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(
+        character in "0123456789abcdef" for character in value
+    )
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _common_value(records: Sequence[Mapping[str, Any]], field: str) -> Any:
+    values = [record.get(field) for record in records]
+    canonical = {json.dumps(value, sort_keys=True) for value in values}
+    if len(canonical) != 1 or values[0] in (None, ""):
+        raise ValueError(f"v2 input must contain one non-empty common {field}")
+    return values[0]
+
+
+def _write_v2_job_metadata(
+    path: Path,
+    *,
+    records: Sequence[Mapping[str, Any]],
+    run_id: str | None,
+    source_run_id: str | None,
+    source_sha256: str,
+    args: argparse.Namespace,
+) -> None:
+    if not args.question_conditioned or args.exact_match:
+        raise ValueError(
+            "--job-meta-output is reserved for question-conditioned NLI v2 runs"
+        )
+    decoding = _common_value(records, "decoding")
+    if not isinstance(decoding, dict):
+        raise ValueError("v2 input decoding must be an object")
+    seed = decoding.get("seed")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError("v2 input decoding.seed must be an integer")
+    nli_model = _nli_model_name(args)
+    nli_revision = _nli_revision(args)
+    nli_tokenizer_revision = _nli_tokenizer_revision(args)
+    payload = {
+        "run_id": run_id,
+        "source_jsonl": str(args.input_jsonl),
+        "source_run_id": source_run_id,
+        "source_artifact_sha256": source_sha256,
+        "dataset": _common_value(records, "dataset"),
+        "model": _common_value(records, "model"),
+        "seed": seed,
+        "split": _common_value(records, "split"),
+        "split_role": args.source_split_role,
+        "code_commit": args.code_commit,
+        "nli_model_id": nli_model,
+        "nli_model_revision": nli_revision,
+        "nli_tokenizer_id": nli_model,
+        "nli_tokenizer_revision": nli_tokenizer_revision,
+        "question_conditioned": True,
+        "entailment_input_format": "question_answer_v1",
+        "clustering_rule": (
+            "bidirectional" if args.clustering == "strict" else "nondefeating"
+        ),
+        "decoding": decoding,
+        "slurm_job_id": os.environ.get("SLURM_JOB_ID", ""),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if args.protocol_manifest_sha256 is not None:
+        payload["protocol_manifest"] = args.protocol_manifest
+        payload["protocol_manifest_sha256"] = args.protocol_manifest_sha256
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _load_record(line: str, line_number: int) -> dict[str, Any]:

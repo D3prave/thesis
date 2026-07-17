@@ -72,17 +72,16 @@ from semantic_entropy.clustering import (
     nli_cluster,
 )
 from semantic_entropy.datasets import (
-    DatasetError,
-    PromptItem,
     SVAMP_STUB_PATH,
     TRIVIAQA_STUB_PATH,
+    DatasetError,
+    PromptItem,
     load_svamp_records,
     load_triviaqa_records,
 )
 from semantic_entropy.eval_normalize import normalize_answers_for_dataset
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import score_record
-
 
 # ---------------------------------------------------------------------------
 # RunConfig
@@ -134,7 +133,7 @@ class RunConfig:
     # When True (QA only), set correctness_label from the single most-likely
     # answer using the paper's rule (SQuAD-F1 > 0.5 for free-text, exact for
     # SVAMP), matching Farquhar et al. (2024). Default False preserves the
-    # repo's "any sample matches a reference" labelling.
+    # repo's "any sample matches a reference" labeling.
     paper_accuracy: bool = False
 
 
@@ -428,22 +427,28 @@ def evaluate_correctness(record: dict[str, Any]) -> dict[str, Any]:
 def evaluate_correctness_paper(
     record: dict[str, Any], model_fn: "ModelFn | None" = None
 ) -> dict[str, Any]:
-    """Set ``correctness_label`` from the single most-likely answer (paper rule).
+    """Set ``correctness_label`` from one recorded point-estimate answer.
 
-    Reproduces Farquhar et al. (2024): accuracy is assessed on one low-temperature
-    "most likely" answer, counted correct when the SQuAD token-F1 against any
-    reference exceeds 0.5 (exact match for SVAMP). The most-likely answer is a
-    dedicated low-temperature generation when the model exposes one (``model_fn``
-    with a ``best_answer`` method, e.g. the vLLM adapter), otherwise the modal
-    sampled answer is used as the point estimate.
+    Accuracy is assessed on one high-likelihood answer and counted correct when
+    the SQuAD token-F1 against any reference exceeds 0.5 (exact match for
+    SVAMP). The selected answer is, in priority order, the canonical SEP greedy
+    response, a dedicated low-temperature generation exposed by the vLLM
+    adapter, or the modal sampled answer. These alternatives are not claimed to
+    be interchangeable or an exact reproduction of one external protocol.
 
     The chosen answer is stored under ``most_likely_answer`` for provenance.
     """
     from semantic_entropy.accuracy import best_answer_correct, modal_answer
 
     dataset: str = record.get("dataset", "")
+    sep_greedy_answer = record.get("sep_greedy_answer")
     best_fn = getattr(model_fn, "best_answer", None)
-    if best_fn is not None:
+    if isinstance(sep_greedy_answer, str):
+        # Genuine SEP already generated the paper's high-likelihood response;
+        # reuse that exact response for accuracy instead of falling back to a
+        # modal high-temperature sample through the CLI's stub placeholder.
+        best = sep_greedy_answer
+    elif best_fn is not None:
         best = str(best_fn(record["prompt"]))
     else:
         best = modal_answer(record["sampled_answers"])
@@ -462,7 +467,7 @@ EmbeddingFn = Callable[[Sequence[str]], Any]
 #: states.  See :data:`semantic_entropy.models.ModelFnWithStates` for the
 #: full description.  Re-exported here so callers of :func:`run_pipeline`
 #: have a single place to import the pipeline contract.
-ModelFnWithStates = Callable[[str, int], tuple[list[str], list[list[float]]]]
+ModelFnWithStates = Callable[[str, int], Any]
 
 
 def run_pipeline(
@@ -510,15 +515,14 @@ def run_pipeline(
         kle_kernel: Kernel name forwarded to
             :func:`semantic_entropy.kle.compute_kle`. Ignored when
             *embedding_fn* is ``None``.
-        model_fn_with_states: Alternative sampler that returns both
-            answers and per-sample hidden states (see
-            :data:`ModelFnWithStates`).  When provided, this replaces
-            *model_fn* for the sampling step and the resulting hidden
-            states are written into each record under ``hidden_states``.
+        model_fn_with_states: Alternative sampler that returns both entropy
+            samples and a separate greedy SEP feature, or the legacy tuple of
+            answers and per-sample hidden states. When provided, this replaces
+            *model_fn* for the sampling step.
         sep_probe: Optional trained :class:`semantic_entropy.probes.SEPProbe`.
-            When provided alongside *model_fn_with_states*, the probe is
-            applied to each record's first sampled hidden state and the
-            score is written into ``scores["probe_uncertainty"]``.
+            Only a semantic-entropy-target artifact is accepted. It is
+            applied to the separate greedy ``sep_hidden_state`` and written
+            into ``scores["probe_uncertainty"]``.
 
     Returns:
         The number of records successfully written.
@@ -538,22 +542,49 @@ def run_pipeline(
         compute_kle = _compute_kle
 
     score_probe_for_record = None
+    probe_provenance: dict[str, Any] | None = None
+    presampling_records: list[dict[str, Any]] | None = None
     if sep_probe is not None:
+        from semantic_entropy.probes import (
+            canonical_sep_provenance,
+            validate_canonical_sep_scoring_prompt_content,
+        )
         from semantic_entropy.probes import (
             score_probe_for_record as _score_probe_for_record,
         )
+        if sep_probe.effective_probe_kind != "semantic_entropy_probe":
+            raise ValueError(
+                "--sep-probe requires a semantic-entropy-target artifact; "
+                "a correctness-target artifact is an accuracy probe"
+            )
+        if model_fn_with_states is None:
+            raise ValueError(
+                "SEP scoring requires model_fn_with_states to collect the "
+                "audited greedy feature"
+            )
         score_probe_for_record = _score_probe_for_record
+        probe_provenance = canonical_sep_provenance(sep_probe)
+        # The probe artifact names one exact held-out split. Audit the complete
+        # prompt content before any inference or output is written.
+        presampling_records = [
+            make_presampling_record(item, config) for item in list(items)
+        ]
+        validate_canonical_sep_scoring_prompt_content(
+            presampling_records, sep_probe
+        )
 
     records_written = 0
+    record_source: Iterable[dict[str, Any]]
+    if presampling_records is not None:
+        record_source = presampling_records
+    else:
+        record_source = (make_presampling_record(item, config) for item in items)
     with output_path.open("w", encoding="utf-8") as fh:
-        for item in items:
-            record: dict[str, Any] = make_presampling_record(item, config)
+        for record in record_source:
 
             if model_fn_with_states is not None:
-                # SEP path: sample answers and hidden states in one call,
-                # then run normalization + clustering on the answers as
-                # usual.  We thread the hidden states into the record
-                # before scoring so they can also feed SEP inference.
+                # Keep stochastic entropy samples separate from the single
+                # greedy-response probe feature.
                 hidden_record = _sample_with_states(
                     record, model_fn_with_states, entailment_fn,
                 )
@@ -583,10 +614,11 @@ def run_pipeline(
                     embedding_fn,
                     kernel=kle_kernel,
                 )
-            if score_probe_for_record is not None and "hidden_states" in record:
+            if score_probe_for_record is not None:
                 record["scores"]["probe_uncertainty"] = score_probe_for_record(
                     record, sep_probe,
                 )
+                record["probe_provenance"] = dict(probe_provenance or {})
             try:
                 validate_record(record)
                 check_cluster_consistency(record)
@@ -613,33 +645,80 @@ def _sample_with_states(
     prompt: str = record["prompt"]
     num_samples: int = record["decoding"]["num_samples"]
 
-    sampled, hidden_states = model_fn_with_states(prompt, num_samples)
+    result = model_fn_with_states(prompt, num_samples)
+    from semantic_entropy.models import SEPGeneration
+
+    if isinstance(result, SEPGeneration):
+        sampled = result.sampled_answers
+        hidden_states = None
+    else:
+        sampled, hidden_states = result
     if len(sampled) != num_samples:
         raise ValueError(
             f"model_fn_with_states returned {len(sampled)} answers; "
             f"expected {num_samples}"
         )
-    if len(hidden_states) != num_samples:
+    if hidden_states is not None and len(hidden_states) != num_samples:
         raise ValueError(
             f"model_fn_with_states returned {len(hidden_states)} hidden "
             f"state rows; expected {num_samples}"
         )
 
     dataset: str = record.get("dataset", "")
+    sampled = [_extract_answer(a, single_line=(dataset != "bio")) for a in sampled]
     normalized = normalize_answers_for_dataset(sampled, dataset)
     ent_fn = (
         entailment_fn if entailment_fn is not None else exact_match_entailment_fn
     )
     cluster_ids, representatives = nli_cluster(normalized, ent_fn)
 
-    return {
+    out = {
         **record,
         "sampled_answers": list(sampled),
         "normalized_answers": normalized,
         "semantic_clusters": cluster_ids,
         "cluster_representatives": representatives,
-        "hidden_states": [list(row) for row in hidden_states],
     }
+    if isinstance(result, SEPGeneration):
+        metadata = dict(result.metadata)
+        decoding = record["decoding"]
+        expected = {
+            "sampling_temperature": float(decoding["temperature"]),
+            "sampling_top_p": float(decoding["top_p"]),
+            "sampling_top_k": int(decoding.get("top_k", -1)),
+            "sampling_num_responses": int(num_samples),
+            "base_seed": int(decoding["seed"]),
+        }
+        for field, expected_value in expected.items():
+            if metadata.get(field) != expected_value:
+                raise ValueError(
+                    f"SEP adapter metadata {field}={metadata.get(field)!r} "
+                    f"does not match RunConfig value {expected_value!r}"
+                )
+        canonical = {
+            "sampling_temperature": 1.0,
+            "sampling_top_p": 0.9,
+            "sampling_top_k": 50,
+            "sampling_num_responses": 10,
+        }
+        for field, expected_value in canonical.items():
+            if metadata.get(field) != expected_value:
+                raise ValueError(
+                    f"Kossen-style SEP requires {field}={expected_value!r}; "
+                    f"got {metadata.get(field)!r}"
+                )
+        out.update(
+            {
+                "sep_greedy_answer": _extract_answer(
+                    result.greedy_answer, single_line=(dataset != "bio")
+                ),
+                "sep_hidden_state": list(result.hidden_state),
+                "sep_feature_metadata": metadata,
+            }
+        )
+    else:
+        out["hidden_states"] = [list(row) for row in hidden_states]
+    return out
 
 
 # ---------------------------------------------------------------------------

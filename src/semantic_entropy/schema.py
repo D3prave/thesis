@@ -30,6 +30,7 @@ line of input.
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -75,10 +76,13 @@ OPTIONAL_SCORE_FIELDS = {
     "semantic_entropy_full",
     # Kernel Language Entropy (kle.py) — Nikitin et al. (2024).
     "kle",
-    # Semantic Entropy Probe (probes.py) score — Slobodkin et al. (2023).
+    # Semantic Entropy Probe (probes.py) score — Kossen et al. (2024).
     # Stored as a probability of "uncertain" in [0, 1]; finite and
     # non-negative, so the same validation rule applies.
     "probe_uncertainty",
+    # Separately named correctness-trained accuracy probe. Never aggregate or
+    # report this field as a Semantic Entropy Probe.
+    "accuracy_probe_uncertainty",
     # Long-form correctness confidence from the LLM judge (§5 of the bio
     # study plan).  Optional float in [0, 1]; the binary correctness_label
     # remains the AUROC label.
@@ -150,6 +154,8 @@ def validate_record(record: Mapping[str, Any]) -> None:
     num_samples = _require_positive_int(decoding, "num_samples", "decoding")
     _require_finite_number(decoding, "temperature", "decoding")
     _require_finite_number(decoding, "top_p", "decoding")
+    if "top_k" in decoding:
+        _require_int(decoding, "top_k", "decoding")
     _require_positive_int(decoding, "max_new_tokens", "decoding")
     _require_int(decoding, "seed", "decoding")
 
@@ -177,11 +183,16 @@ def validate_record(record: Mapping[str, Any]) -> None:
     if not isinstance(record["correctness_label"], bool):
         raise SchemaError("correctness_label must be a boolean")
 
-    # Optional Phase 2 extension: per-sample hidden states for SEP probes.
+    # Legacy Phase 2 extension: per-sample states used by accuracy probes.
     # When present, must be a 2D list of floats with one row per sampled
     # answer and a consistent embedding dimension. Absence is the default.
     if "hidden_states" in record:
         _validate_hidden_states(record["hidden_states"], num_samples)
+
+    # Genuine SEP feature: one greedy-response hidden state, kept separate
+    # from the high-temperature response samples used to calculate DSE.
+    if "sep_hidden_state" in record:
+        _validate_sep_feature(record, decoding)
 
     # Optional: per-sequence length-normalized log-probabilities, captured at
     # generation time. Consumed by the probability-weighted estimators
@@ -238,6 +249,123 @@ def _validate_hidden_states(value: Any, num_samples: int) -> None:
                 raise SchemaError(
                     f"hidden_states[{row_index}][{col_index}] must be finite"
                 )
+
+
+def _validate_sep_feature(
+    record: Mapping[str, Any], decoding: Mapping[str, Any]
+) -> None:
+    value = record["sep_hidden_state"]
+    if not isinstance(value, list) or not value:
+        raise SchemaError("sep_hidden_state must be a non-empty list of floats")
+    for index, entry in enumerate(value):
+        if not isinstance(entry, (int, float)) or isinstance(entry, bool):
+            raise SchemaError(f"sep_hidden_state[{index}] must be a number")
+        if not math.isfinite(entry):
+            raise SchemaError(f"sep_hidden_state[{index}] must be finite")
+
+    if not isinstance(record.get("sep_greedy_answer"), str):
+        raise SchemaError("sep_greedy_answer must be a string")
+    metadata = record.get("sep_feature_metadata")
+    if not isinstance(metadata, Mapping):
+        raise SchemaError("sep_feature_metadata must be a mapping")
+    required_metadata = {
+        "protocol": "kossen_sep_2024",
+        "feature_response_decoding": "greedy",
+        "token_selection": "final_content_token_before_eos_or_eot",
+        "layer_selection": "preregistered_final_layer",
+        "generation_termination": "eos_or_eot",
+        "generation_config_source": "model_generation_config_clone",
+        "sampling_temperature": 1.0,
+        "sampling_top_p": 0.9,
+        "sampling_top_k": 50,
+        "sampling_num_responses": 10,
+    }
+    for field, expected in required_metadata.items():
+        if metadata.get(field) != expected:
+            raise SchemaError(
+                f"sep_feature_metadata.{field} must equal {expected!r}"
+            )
+    termination_token_ids = metadata.get("termination_token_ids")
+    if (
+        not isinstance(termination_token_ids, list)
+        or not termination_token_ids
+        or any(
+            not isinstance(token_id, int) or isinstance(token_id, bool)
+            for token_id in termination_token_ids
+        )
+        or termination_token_ids != sorted(set(termination_token_ids))
+    ):
+        raise SchemaError(
+            "sep_feature_metadata.termination_token_ids must be a non-empty "
+            "sorted list of unique integers"
+        )
+    for field in ("model_id", "tokenizer_id"):
+        value = metadata.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise SchemaError(f"sep_feature_metadata.{field} must be non-empty")
+    for field in ("model_revision", "tokenizer_revision"):
+        value = metadata.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", value):
+            raise SchemaError(
+                f"sep_feature_metadata.{field} must be a full 40-character "
+                "Hugging Face commit SHA"
+            )
+    if not isinstance(metadata.get("hidden_layer"), int) or isinstance(
+        metadata.get("hidden_layer"), bool
+    ):
+        raise SchemaError("sep_feature_metadata.hidden_layer must be an integer")
+    hidden_dimension = metadata.get("hidden_dimension")
+    if (
+        not isinstance(hidden_dimension, int)
+        or isinstance(hidden_dimension, bool)
+        or hidden_dimension != len(record["sep_hidden_state"])
+    ):
+        raise SchemaError(
+            "sep_feature_metadata.hidden_dimension must equal the length of "
+            "sep_hidden_state"
+        )
+    for field in (
+        "generated_content_token_index",
+        "full_sequence_token_index",
+        "terminating_special_token_id",
+        "sampled_eos_or_eot_count",
+        "sampled_max_new_tokens_count",
+        "base_seed",
+        "prompt_seed",
+    ):
+        if not isinstance(metadata.get(field), int) or isinstance(
+            metadata.get(field), bool
+        ):
+            raise SchemaError(f"sep_feature_metadata.{field} must be an integer")
+    if metadata["terminating_special_token_id"] not in termination_token_ids:
+        raise SchemaError(
+            "sep_feature_metadata.terminating_special_token_id must be in "
+            "termination_token_ids"
+        )
+    if (
+        metadata["sampled_eos_or_eot_count"] < 0
+        or metadata["sampled_max_new_tokens_count"] < 0
+        or metadata["sampled_eos_or_eot_count"]
+        + metadata["sampled_max_new_tokens_count"]
+        != metadata["sampling_num_responses"]
+    ):
+        raise SchemaError(
+            "SEP sampled termination counts must be non-negative and sum to "
+            "sampling_num_responses"
+        )
+
+    expected_decoding = {
+        "temperature": 1.0,
+        "top_p": 0.9,
+        "top_k": 50,
+        "num_samples": 10,
+        "seed": metadata["base_seed"],
+    }
+    for field, expected in expected_decoding.items():
+        if decoding.get(field) != expected:
+            raise SchemaError(
+                f"decoding.{field} must equal SEP metadata value {expected!r}"
+            )
 
 
 def _require_mapping(record: Mapping[str, Any], field: str) -> Mapping[str, Any]:
