@@ -1273,6 +1273,15 @@ def train_probe(
     sep_feature_identity: dict[str, Any] | None = None
     accuracy_uses_singular_feature: bool | None = None
     for index, record in enumerate(records):
+        _excluded_meta = record.get("sep_feature_metadata")
+        if (
+            isinstance(_excluded_meta, Mapping)
+            and _excluded_meta.get("greedy_degenerate_excluded") is True
+        ):
+            # Greedy feature excluded (degeneration / looping): this prompt has
+            # no probe feature and cannot be a training example. It still
+            # contributes its stochastic samples to the entropy analysis.
+            continue
         if label_source == "semantic_entropy_threshold":
             hidden = record.get("sep_hidden_state")
             if hidden is None:
@@ -1561,7 +1570,7 @@ def score_probe_for_record(
     probe: SEPProbe,
     *,
     aggregate: Literal["first", "mean"] = "first",
-) -> float:
+) -> float | None:
     """Score a full scored-JSONL record using a trained probe.
 
     A genuine SEP consumes only ``sep_hidden_state`` from the separate greedy
@@ -1585,6 +1594,16 @@ def score_probe_for_record(
         raise ImportError(
             "SEP scoring requires numpy. Install with: pip install -e '.[sep]'"
         ) from exc
+
+    excluded_metadata = record.get("sep_feature_metadata")
+    if (
+        isinstance(excluded_metadata, Mapping)
+        and excluded_metadata.get("greedy_degenerate_excluded") is True
+    ):
+        # Greedy feature excluded (degeneration): no feature to score. The
+        # record drops out of the probe evaluation (reported by the completion
+        # seal) while remaining in the entropy analysis.
+        return None
 
     probe_kind = probe.effective_probe_kind
     if probe_kind == "semantic_entropy_probe":

@@ -253,9 +253,139 @@ def _validate_hidden_states(value: Any, num_samples: int) -> None:
                 )
 
 
+def _validate_sep_feature_excluded(
+    record: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+    decoding: Mapping[str, Any],
+) -> None:
+    """Validate a record whose greedy feature was excluded (degeneration).
+
+    The fail-closed guard refused to fabricate an SLT feature because greedy
+    decoding never terminated within the feature-response budget. Such a record
+    keeps its ten stochastic samples for the entropy analysis but carries no
+    probe feature: ``sep_hidden_state`` is null and the feature-position fields
+    are null. Everything else must still be canonical and consistent.
+    """
+    if record["sep_hidden_state"] is not None:
+        raise SchemaError(
+            "sep_hidden_state must be null when greedy_degenerate_excluded is true"
+        )
+    required_metadata = {
+        "protocol": "kossen_sep_2024",
+        "feature_response_decoding": "greedy",
+        "token_selection": "final_content_token_before_eos_or_eot",
+        "layer_selection": "preregistered_final_layer",
+        "generation_termination": "eos_or_eot",
+        "generation_config_source": "model_generation_config_clone",
+        "sampling_temperature": 1.0,
+        "sampling_top_p": 0.9,
+        "sampling_top_k": 50,
+        "sampling_num_responses": 10,
+        "feature_response_max_new_tokens": (
+            CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+        ),
+    }
+    for field, expected in required_metadata.items():
+        if metadata.get(field) != expected:
+            raise SchemaError(
+                f"sep_feature_metadata.{field} must equal {expected!r}"
+            )
+    for field in ("model_id", "tokenizer_id"):
+        value = metadata.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise SchemaError(f"sep_feature_metadata.{field} must be non-empty")
+    for field in ("model_revision", "tokenizer_revision"):
+        value = metadata.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", value):
+            raise SchemaError(
+                f"sep_feature_metadata.{field} must be a full 40-character "
+                "Hugging Face commit SHA"
+            )
+    if not isinstance(metadata.get("hidden_layer"), int) or isinstance(
+        metadata.get("hidden_layer"), bool
+    ):
+        raise SchemaError("sep_feature_metadata.hidden_layer must be an integer")
+    for field in (
+        "terminating_special_token_id",
+        "generated_content_token_index",
+        "full_sequence_token_index",
+        "hidden_dimension",
+    ):
+        if metadata.get(field) is not None:
+            raise SchemaError(
+                f"sep_feature_metadata.{field} must be null when "
+                "greedy_degenerate_excluded is true"
+            )
+    for field in (
+        "sampled_eos_or_eot_count",
+        "sampled_max_new_tokens_count",
+        "sampling_max_new_tokens",
+        "feature_response_max_new_tokens",
+        "base_seed",
+        "prompt_seed",
+    ):
+        if not isinstance(metadata.get(field), int) or isinstance(
+            metadata.get(field), bool
+        ):
+            raise SchemaError(f"sep_feature_metadata.{field} must be an integer")
+    if (
+        metadata["sampled_eos_or_eot_count"] < 0
+        or metadata["sampled_max_new_tokens_count"] < 0
+        or metadata["sampled_eos_or_eot_count"]
+        + metadata["sampled_max_new_tokens_count"]
+        != metadata["sampling_num_responses"]
+    ):
+        raise SchemaError(
+            "SEP sampled termination counts must be non-negative and sum to "
+            "sampling_num_responses"
+        )
+    termination_token_ids = metadata.get("termination_token_ids")
+    if (
+        not isinstance(termination_token_ids, list)
+        or not termination_token_ids
+        or any(
+            not isinstance(token_id, int) or isinstance(token_id, bool)
+            for token_id in termination_token_ids
+        )
+        or termination_token_ids != sorted(set(termination_token_ids))
+    ):
+        raise SchemaError(
+            "sep_feature_metadata.termination_token_ids must be a non-empty "
+            "sorted list of unique integers"
+        )
+    expected_decoding = {
+        "temperature": 1.0,
+        "top_p": 0.9,
+        "top_k": 50,
+        "num_samples": 10,
+        "max_new_tokens": metadata["sampling_max_new_tokens"],
+        "seed": metadata["base_seed"],
+    }
+    for field, expected in expected_decoding.items():
+        if decoding.get(field) != expected:
+            raise SchemaError(
+                f"decoding.{field} must equal SEP metadata value {expected!r}"
+            )
+
+
 def _validate_sep_feature(
     record: Mapping[str, Any], decoding: Mapping[str, Any]
 ) -> None:
+    metadata = record.get("sep_feature_metadata")
+    if not isinstance(metadata, Mapping):
+        raise SchemaError("sep_feature_metadata must be a mapping")
+    if not isinstance(record.get("sep_greedy_answer"), str):
+        raise SchemaError("sep_greedy_answer must be a string")
+
+    excluded = metadata.get("greedy_degenerate_excluded")
+    if excluded is True:
+        _validate_sep_feature_excluded(record, metadata, decoding)
+        return
+    if excluded not in (False, None):
+        raise SchemaError(
+            "sep_feature_metadata.greedy_degenerate_excluded must be a boolean"
+        )
+
     value = record["sep_hidden_state"]
     if not isinstance(value, list) or not value:
         raise SchemaError("sep_hidden_state must be a non-empty list of floats")
@@ -264,12 +394,6 @@ def _validate_sep_feature(
             raise SchemaError(f"sep_hidden_state[{index}] must be a number")
         if not math.isfinite(entry):
             raise SchemaError(f"sep_hidden_state[{index}] must be finite")
-
-    if not isinstance(record.get("sep_greedy_answer"), str):
-        raise SchemaError("sep_greedy_answer must be a string")
-    metadata = record.get("sep_feature_metadata")
-    if not isinstance(metadata, Mapping):
-        raise SchemaError("sep_feature_metadata must be a mapping")
     required_metadata = {
         "protocol": "kossen_sep_2024",
         "feature_response_decoding": "greedy",

@@ -615,10 +615,10 @@ def run_pipeline(
                     kernel=kle_kernel,
                 )
             if score_probe_for_record is not None:
-                record["scores"]["probe_uncertainty"] = score_probe_for_record(
-                    record, sep_probe,
-                )
-                record["probe_provenance"] = dict(probe_provenance or {})
+                probe_uncertainty = score_probe_for_record(record, sep_probe)
+                if probe_uncertainty is not None:
+                    record["scores"]["probe_uncertainty"] = probe_uncertainty
+                    record["probe_provenance"] = dict(probe_provenance or {})
             try:
                 validate_record(record)
                 check_cluster_consistency(record)
@@ -719,7 +719,11 @@ def _sample_with_states(
                 "sep_greedy_answer": _extract_answer(
                     result.greedy_answer, single_line=(dataset != "bio")
                 ),
-                "sep_hidden_state": list(result.hidden_state),
+                "sep_hidden_state": (
+                    None
+                    if result.hidden_state is None
+                    else list(result.hidden_state)
+                ),
                 "sep_feature_metadata": metadata,
             }
         )

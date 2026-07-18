@@ -87,7 +87,7 @@ class SEPGeneration:
 
     sampled_answers: list[str]
     greedy_answer: str
-    hidden_state: list[float]
+    hidden_state: list[float] | None
     metadata: dict[str, Any]
 
 
@@ -524,44 +524,70 @@ def make_hf_model_with_states(
 
         greedy_sequence = greedy_out.sequences[0]
         generated_ids = greedy_sequence[prompt_len:]
-        terminating_token_id = _require_eos_or_eot_termination(
-            generated_ids.tolist(),
-            termination_token_ids=_termination_ids,
-            pad_token_ids=_pad_ids,
-        )
-        special_ids = set(_tokenizer.all_special_ids) | _termination_ids | _pad_ids
-        final_content_offset = _final_content_token_offset(
-            generated_ids.tolist(), special_ids
-        )
-        content_length = final_content_offset + 1
+        greedy_degenerate = False
+        terminating_token_id = None
+        final_content_offset = None
+        feature_position = None
+        feature = None
+        try:
+            terminating_token_id = _require_eos_or_eot_termination(
+                generated_ids.tolist(),
+                termination_token_ids=_termination_ids,
+                pad_token_ids=_pad_ids,
+            )
+        except RuntimeError:
+            # Greedy decoding never emitted EOS/EOT within the feature-response
+            # budget (degeneration / repetition looping). The fail-closed guard
+            # correctly refuses to fabricate an SLT feature from a truncation;
+            # rather than abort the whole shard, mark this one prompt's probe
+            # feature as excluded and keep the record (and its stochastic
+            # samples) so the entropy analysis is unaffected.
+            greedy_degenerate = True
 
-        # A generation-step hidden state predicts the next token and is easy
-        # to shift by one. Re-run the complete greedy sequence through the
-        # model and index the actual final content token explicitly.
-        feature_position = prompt_len + content_length - 1
-        feature_input = greedy_sequence[: feature_position + 1].unsqueeze(0)
-        with _torch.no_grad():
-            forward_out = _model(
-                input_ids=feature_input,
-                attention_mask=_torch.ones_like(feature_input),
-                output_hidden_states=True,
-                use_cache=False,
-                return_dict=True,
+        if greedy_degenerate:
+            greedy_answer = _tokenizer.decode(
+                generated_ids.tolist(), skip_special_tokens=True
             )
-        layer_count = len(forward_out.hidden_states)
-        layer_idx = hidden_layer if hidden_layer >= 0 else layer_count + hidden_layer
-        if layer_idx < 0 or layer_idx >= layer_count:
-            raise ValueError(
-                f"hidden_layer {hidden_layer} is outside {layer_count} returned states"
+        else:
+            special_ids = set(_tokenizer.all_special_ids) | _termination_ids | _pad_ids
+            final_content_offset = _final_content_token_offset(
+                generated_ids.tolist(), special_ids
             )
-        feature = forward_out.hidden_states[layer_idx][0, feature_position, :]
-        content_ids = generated_ids[:content_length]
-        greedy_answer = _tokenizer.decode(content_ids, skip_special_tokens=True)
+            content_length = final_content_offset + 1
+
+            # A generation-step hidden state predicts the next token and is easy
+            # to shift by one. Re-run the complete greedy sequence through the
+            # model and index the actual final content token explicitly.
+            feature_position = prompt_len + content_length - 1
+            feature_input = greedy_sequence[: feature_position + 1].unsqueeze(0)
+            with _torch.no_grad():
+                forward_out = _model(
+                    input_ids=feature_input,
+                    attention_mask=_torch.ones_like(feature_input),
+                    output_hidden_states=True,
+                    use_cache=False,
+                    return_dict=True,
+                )
+            layer_count = len(forward_out.hidden_states)
+            layer_idx = (
+                hidden_layer if hidden_layer >= 0 else layer_count + hidden_layer
+            )
+            if layer_idx < 0 or layer_idx >= layer_count:
+                raise ValueError(
+                    f"hidden_layer {hidden_layer} is outside {layer_count} returned states"
+                )
+            feature = forward_out.hidden_states[layer_idx][0, feature_position, :]
+            content_ids = generated_ids[:content_length]
+            greedy_answer = _tokenizer.decode(content_ids, skip_special_tokens=True)
 
         return SEPGeneration(
             sampled_answers=[answer.strip() for answer in sampled_answers],
             greedy_answer=greedy_answer.strip(),
-            hidden_state=feature.detach().to(_torch.float32).cpu().tolist(),
+            hidden_state=(
+                None
+                if greedy_degenerate
+                else feature.detach().to(_torch.float32).cpu().tolist()
+            ),
             metadata={
                 "protocol": "kossen_sep_2024",
                 "feature_response_decoding": "greedy",
@@ -569,16 +595,25 @@ def make_hf_model_with_states(
                 "layer_selection": "preregistered_final_layer",
                 "generation_termination": "eos_or_eot",
                 "termination_token_ids": sorted(_termination_ids),
-                "terminating_special_token_id": terminating_token_id,
+                "terminating_special_token_id": (
+                    None if greedy_degenerate else int(terminating_token_id)
+                ),
                 "generation_config_source": "model_generation_config_clone",
+                "greedy_degenerate_excluded": bool(greedy_degenerate),
                 "hidden_layer": hidden_layer,
-                "hidden_dimension": int(feature.shape[-1]),
+                "hidden_dimension": (
+                    None if greedy_degenerate else int(feature.shape[-1])
+                ),
                 "model_id": model_name,
                 "model_revision": _model_revision,
                 "tokenizer_id": model_name,
                 "tokenizer_revision": _tokenizer_revision,
-                "generated_content_token_index": final_content_offset,
-                "full_sequence_token_index": feature_position,
+                "generated_content_token_index": (
+                    None if greedy_degenerate else int(final_content_offset)
+                ),
+                "full_sequence_token_index": (
+                    None if greedy_degenerate else int(feature_position)
+                ),
                 "sampling_temperature": float(temperature),
                 "sampling_top_p": float(top_p),
                 "sampling_top_k": int(top_k),
