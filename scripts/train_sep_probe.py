@@ -371,11 +371,29 @@ def main() -> None:
 
     if eval_records is None:  # defensive: required above
         sys.exit("ERROR: held-out evaluation records were not loaded")
+    # Drop held-out prompts whose greedy feature was excluded (degeneration):
+    # they carry no probe feature and are validated/scored out of the probe
+    # evaluation. They remain in the collection file and the entropy analysis.
+    eval_records_present = [
+        record
+        for record in eval_records
+        if (record.get("sep_feature_metadata") or {}).get(
+            "greedy_degenerate_excluded"
+        )
+        is not True
+    ]
+    n_excluded_eval = len(eval_records) - len(eval_records_present)
+    if n_excluded_eval:
+        print(
+            f"Excluding {n_excluded_eval} held-out record(s) with degenerate "
+            f"greedy feature from probe validation",
+            flush=True,
+        )
     try:
         if internal_label_source == "semantic_entropy_threshold":
-            validate_canonical_sep_scoring_records(eval_records, probe)
+            validate_canonical_sep_scoring_records(eval_records_present, probe)
         else:
-            validate_canonical_accuracy_scoring_records(eval_records, probe)
+            validate_canonical_accuracy_scoring_records(eval_records_present, probe)
     except ValueError as exc:
         sys.exit(f"ERROR: canonical probe artifact validation failed: {exc}")
 
