@@ -82,8 +82,17 @@ PYTHONPATH=src python3 scripts/sep_v2_manifest.py create \
   --nli-tokenizer-revision "$NLI_TOKENIZER_REVISION" \
   --triviaqa-max-new-tokens "${TRIVIAQA_SEP_MAX_NEW_TOKENS:-64}" \
   --nqopen-max-new-tokens "${NQOPEN_SEP_MAX_NEW_TOKENS:-64}" \
-  --svamp-max-new-tokens "${SVAMP_SEP_MAX_NEW_TOKENS:-32}"
+  --svamp-max-new-tokens "${SVAMP_SEP_MAX_NEW_TOKENS:-32}" \
+  --feature-response-max-new-tokens 256
 ```
+
+The 64/64/32 values are ceilings for the ten stochastic responses used to
+calculate semantic entropy. The separately generated greedy SEP feature
+response has a fixed 256-token ceiling and must still terminate with EOS/EOT;
+reaching 256 fails the collection cell. The July 18 pilot established that a
+shared 64-token ceiling was insufficient for this response, so manifests from
+the earlier commit and partial pilot roots are diagnostic artifacts only and
+must not be reused.
 
 The command refuses to overwrite an existing manifest. Set
 `SEP_V2_MANIFEST=results_sep_v2_protocol/sep_v2_protocol_manifest.json` for any

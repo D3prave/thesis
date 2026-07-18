@@ -46,6 +46,8 @@ scripts can override them without editing Python code:
 * ``SE_TOP_K`` — sampling cap (SEP fallback: paper-faithful ``50``).
 * ``SE_SEED`` — model sampling seed (fallback: ``0``).
 * ``SE_MAX_NEW_TOKENS`` — max new tokens per sample (fallback: ``64``).
+* ``SE_SEP_FEATURE_MAX_NEW_TOKENS`` — max new tokens for the separate greedy
+  SEP feature response (fixed canonical fallback: ``256``).
 * ``SE_SYSTEM_PROMPT`` — overrides the model system message. Unset keeps the
   terse QA default ("answer in a word or short phrase"); set it to a
   long-form instruction for the biography task (see
@@ -81,6 +83,7 @@ import os
 import re
 
 from semantic_entropy.models import (
+    CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
     ModelFn,
     ModelFnWithStates,
     make_hf_model,
@@ -268,6 +271,9 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
       ``-1``: the last layer's output).
     * ``SE_SEP_HIDDEN_TOKEN`` — fixed to ``-1``, meaning the final response
       content token immediately before EOS.
+    * ``SE_SEP_FEATURE_MAX_NEW_TOKENS`` — fixed to ``256`` for the separate
+      greedy response; the stochastic sample cap remains
+      ``SE_MAX_NEW_TOKENS``.
 
     Use this adapter via ``--model-with-states-module`` on the run-pipeline
     CLI when you need to collect hidden states for SEP probe training or
@@ -286,6 +292,10 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
         top_p=_env_float("SE_TOP_P", 0.9),
         top_k=_env_int("SE_TOP_K", 50),
         max_new_tokens=_env_int("SE_MAX_NEW_TOKENS", 64),
+        feature_response_max_new_tokens=_env_int(
+            "SE_SEP_FEATURE_MAX_NEW_TOKENS",
+            CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
+        ),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
         hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),

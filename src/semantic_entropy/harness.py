@@ -646,7 +646,10 @@ def _sample_with_states(
     num_samples: int = record["decoding"]["num_samples"]
 
     result = model_fn_with_states(prompt, num_samples)
-    from semantic_entropy.models import SEPGeneration
+    from semantic_entropy.models import (
+        CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
+        SEPGeneration,
+    )
 
     if isinstance(result, SEPGeneration):
         sampled = result.sampled_answers
@@ -687,6 +690,7 @@ def _sample_with_states(
             "sampling_top_p": float(decoding["top_p"]),
             "sampling_top_k": int(decoding.get("top_k", -1)),
             "sampling_num_responses": int(num_samples),
+            "sampling_max_new_tokens": int(decoding["max_new_tokens"]),
             "base_seed": int(decoding["seed"]),
         }
         for field, expected_value in expected.items():
@@ -700,6 +704,9 @@ def _sample_with_states(
             "sampling_top_p": 0.9,
             "sampling_top_k": 50,
             "sampling_num_responses": 10,
+            "feature_response_max_new_tokens": (
+                CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+            ),
         }
         for field, expected_value in canonical.items():
             if metadata.get(field) != expected_value:

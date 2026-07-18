@@ -34,6 +34,8 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from semantic_entropy.models import CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+
 
 class SchemaError(ValueError):
     """Raised when a prompt record violates the experimental JSONL schema."""
@@ -279,6 +281,9 @@ def _validate_sep_feature(
         "sampling_top_p": 0.9,
         "sampling_top_k": 50,
         "sampling_num_responses": 10,
+        "feature_response_max_new_tokens": (
+            CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+        ),
     }
     for field, expected in required_metadata.items():
         if metadata.get(field) != expected:
@@ -330,6 +335,8 @@ def _validate_sep_feature(
         "terminating_special_token_id",
         "sampled_eos_or_eot_count",
         "sampled_max_new_tokens_count",
+        "sampling_max_new_tokens",
+        "feature_response_max_new_tokens",
         "base_seed",
         "prompt_seed",
     ):
@@ -341,6 +348,19 @@ def _validate_sep_feature(
         raise SchemaError(
             "sep_feature_metadata.terminating_special_token_id must be in "
             "termination_token_ids"
+        )
+    if metadata["sampling_max_new_tokens"] <= 0:
+        raise SchemaError(
+            "sep_feature_metadata.sampling_max_new_tokens must be positive"
+        )
+    if (
+        metadata["generated_content_token_index"] < 0
+        or metadata["generated_content_token_index"]
+        >= metadata["feature_response_max_new_tokens"]
+    ):
+        raise SchemaError(
+            "sep_feature_metadata.generated_content_token_index must fall "
+            "within the feature-response token budget"
         )
     if (
         metadata["sampled_eos_or_eot_count"] < 0
@@ -359,6 +379,7 @@ def _validate_sep_feature(
         "top_p": 0.9,
         "top_k": 50,
         "num_samples": 10,
+        "max_new_tokens": metadata["sampling_max_new_tokens"],
         "seed": metadata["base_seed"],
     }
     for field, expected in expected_decoding.items():

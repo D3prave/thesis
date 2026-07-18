@@ -52,6 +52,8 @@ from typing import Any
 # Re-export the canonical type alias so callers can import from one place.
 from semantic_entropy.clustering import NLI_ENTAILMENT, NLI_NEUTRAL, NliFn
 
+CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS = 256
+
 #: Type alias for the sampling model function.
 #:
 #: A ``ModelFn`` takes a prompt string and an integer sample count ``n`` and
@@ -306,6 +308,7 @@ def make_hf_model_with_states(
     top_p: float = 0.9,
     top_k: int = 50,
     max_new_tokens: int = 64,
+    feature_response_max_new_tokens: int = CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
     device_map: str = "auto",
     torch_dtype: str = "auto",
     hidden_layer: int = -1,
@@ -346,7 +349,10 @@ def make_hf_model_with_states(
         tokenizer_revision: Full Hugging Face commit SHA for the tokenizer.
         temperature: Sampling temperature.
         top_p: Nucleus-sampling probability threshold.
-        max_new_tokens: Maximum number of tokens to generate per answer.
+        max_new_tokens: Maximum number of tokens for each stochastic response.
+        feature_response_max_new_tokens: Maximum number of tokens for the
+            separate greedy feature response. The response must still end in
+            EOS/EOT; reaching this ceiling fails closed.
         device_map: Passed to ``AutoModelForCausalLM.from_pretrained``.
         torch_dtype: Torch dtype string (``"auto"`` selects bfloat16 on
             supported hardware).
@@ -370,6 +376,18 @@ def make_hf_model_with_states(
     _tokenizer_revision = _require_full_hf_revision(
         tokenizer_revision, field="tokenizer_revision"
     )
+    if (
+        isinstance(max_new_tokens, bool)
+        or not isinstance(max_new_tokens, int)
+        or max_new_tokens <= 0
+    ):
+        raise ValueError("max_new_tokens must be a positive integer")
+    if (
+        isinstance(feature_response_max_new_tokens, bool)
+        or not isinstance(feature_response_max_new_tokens, int)
+        or feature_response_max_new_tokens <= 0
+    ):
+        raise ValueError("feature_response_max_new_tokens must be a positive integer")
     try:
         import torch  # noqa: F401
         from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: F401
@@ -434,7 +452,7 @@ def make_hf_model_with_states(
 
     _greedy_config = copy.deepcopy(_model.generation_config)
     _greedy_config.do_sample = False
-    _greedy_config.max_new_tokens = max_new_tokens
+    _greedy_config.max_new_tokens = feature_response_max_new_tokens
     _greedy_config.pad_token_id = _tokenizer.pad_token_id
     _greedy_config.return_dict_in_generate = True
 
@@ -565,6 +583,10 @@ def make_hf_model_with_states(
                 "sampling_top_p": float(top_p),
                 "sampling_top_k": int(top_k),
                 "sampling_num_responses": int(n),
+                "sampling_max_new_tokens": int(max_new_tokens),
+                "feature_response_max_new_tokens": int(
+                    feature_response_max_new_tokens
+                ),
                 "sampled_eos_or_eot_count": sampled_eos_or_eot_count,
                 "sampled_max_new_tokens_count": int(n) - sampled_eos_or_eot_count,
                 "base_seed": int(seed),

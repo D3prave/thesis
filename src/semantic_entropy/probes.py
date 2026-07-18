@@ -50,11 +50,13 @@ from dataclasses import field as dataclass_field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+from semantic_entropy.models import CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+
 if TYPE_CHECKING:
     import numpy as np
 
 
-CANONICAL_SEP_ARTIFACT_SCHEMA = "semantic_entropy_probe_v2"
+CANONICAL_SEP_ARTIFACT_SCHEMA = "semantic_entropy_probe_v3"
 CANONICAL_SEP_TOKEN_SELECTION = "final_content_token_before_eos_or_eot"
 CANONICAL_SEP_LAYER_SELECTION = "preregistered_final_layer"
 CANONICAL_SEP_FEATURE_DEFINITION = (
@@ -80,6 +82,7 @@ _SEP_FEATURE_IDENTITY_FIELDS = (
     "generation_termination",
     "termination_token_ids",
     "generation_config_source",
+    "feature_response_max_new_tokens",
 )
 
 _ENTROPY_TARGET_SHARED_FIELDS = (
@@ -562,6 +565,7 @@ def _record_sep_cell_identity(
         "sampling_temperature": ("temperature", float),
         "sampling_top_p": ("top_p", float),
         "sampling_top_k": ("top_k", int),
+        "sampling_max_new_tokens": ("max_new_tokens", int),
         "base_seed": ("seed", int),
     }
     decoding = identity["decoding"]
@@ -650,6 +654,9 @@ def _sep_feature_identity(metadata: Mapping[str, Any], *, role: str) -> dict[str
         "layer_selection": CANONICAL_SEP_LAYER_SELECTION,
         "generation_termination": "eos_or_eot",
         "generation_config_source": "model_generation_config_clone",
+        "feature_response_max_new_tokens": (
+            CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS
+        ),
     }
     for field_name, expected in required_values.items():
         if identity[field_name] != expected:
