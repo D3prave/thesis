@@ -346,6 +346,33 @@ def main() -> None:
         eval_records = _load_jsonl(args.eval_jsonl)
         if not eval_records:
             raise ValueError(f"no records found in {args.eval_jsonl}")
+
+        # Restrict both splits to prompts whose greedy feature is present.
+        # Degenerate-greedy prompts carry no probe feature: they are not probe
+        # training examples and are not probe-scored, so the audited prompt
+        # counts must match the probe's fitted train_size and the scored eval
+        # count. They remain in the collection file and the entropy analysis.
+        def _feature_present(record):
+            metadata = record.get("sep_feature_metadata") or {}
+            return metadata.get("greedy_degenerate_excluded") is not True
+
+        n_train_total = len(records)
+        n_eval_total = len(eval_records)
+        records = [record for record in records if _feature_present(record)]
+        eval_records = [
+            record for record in eval_records if _feature_present(record)
+        ]
+        if not records:
+            raise ValueError("all training records had excluded greedy features")
+        if not eval_records:
+            raise ValueError("all evaluation records had excluded greedy features")
+        if n_train_total != len(records) or n_eval_total != len(eval_records):
+            print(
+                "Excluded degenerate-greedy prompts: "
+                f"train {n_train_total - len(records)}, "
+                f"eval {n_eval_total - len(eval_records)}",
+                flush=True,
+            )
         split_metadata = split_audit_metadata(records, eval_records)
     except (OSError, ValueError) as exc:
         sys.exit(f"ERROR: split audit failed: {exc}")
