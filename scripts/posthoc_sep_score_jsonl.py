@@ -98,20 +98,21 @@ def main() -> None:
                     ) from exc
         if not records:
             raise ValueError(f"no records found in {input_path}")
-        # Drop prompts whose greedy feature was excluded (degeneration): they
-        # carry no probe feature. They stay in the collection file and in the
-        # entropy analysis, but cannot be probe-scored.
-        present_records = [
-            record
+        # Prompts whose greedy feature was excluded (degeneration) carry no
+        # probe feature and cannot be probe-scored. They are NOT dropped here:
+        # the scoring validation binds the record set to the probe's audited
+        # evaluation split, so it must continue to see the full locked split.
+        # `score_probe_for_record` returns None for the excluded prompts, which
+        # leaves them scoreless rather than absent.
+        n_excluded = sum(
+            1
             for record in records
             if (record.get("sep_feature_metadata") or {}).get(
                 "greedy_degenerate_excluded"
             )
-            is not True
-        ]
-        n_excluded = len(records) - len(present_records)
-        records = present_records
-        if not records:
+            is True
+        )
+        if n_excluded >= len(records):
             raise ValueError(
                 f"all records in {input_path} had excluded greedy features"
             )

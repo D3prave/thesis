@@ -841,9 +841,20 @@ def _validate_canonical_probe_structure_and_split(
                 raise ValueError(
                     f"canonical SEP metadata.{role}_{suffix} must be a SHA-256"
                 )
-    if metadata["train_prompt_count"] != probe.train_size:
+    # train_prompt_count describes the locked training split; the probe is fitted
+    # only on the prompts whose greedy feature is present, so compare against the
+    # fitted count when the artifact records one (older artifacts predate the
+    # field and had no exclusions, so the two counts coincide).
+    fitted_count = metadata.get("train_prompt_fitted_count")
+    if fitted_count is None:
+        fitted_count = metadata["train_prompt_count"]
+    if isinstance(fitted_count, bool) or not isinstance(fitted_count, int):
         raise ValueError(
-            "canonical SEP train_prompt_count must equal probe.train_size"
+            "canonical SEP metadata.train_prompt_fitted_count must be an integer"
+        )
+    if fitted_count != probe.train_size:
+        raise ValueError(
+            "canonical SEP fitted train prompt count must equal probe.train_size"
         )
     feature_identity = metadata.get("feature_identity")
     if not isinstance(feature_identity, Mapping):

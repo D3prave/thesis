@@ -265,6 +265,13 @@ def split_audit_metadata(
         ).encode("utf-8")
         return hashlib.sha256(payload).hexdigest()
 
+    def _present(record) -> bool:
+        metadata = record.get("sep_feature_metadata") or {}
+        return metadata.get("greedy_degenerate_excluded") is not True
+
+    train_fitted = sum(1 for record in train_records if _present(record))
+    eval_fitted = sum(1 for record in eval_records if _present(record))
+
     entropy_target_provenance = canonical_entropy_target_provenance(
         train_records, eval_records
     )
@@ -279,6 +286,11 @@ def split_audit_metadata(
         "split_content_overlap_count": 0,
         "train_prompt_count": len(train_ids),
         "eval_prompt_count": len(eval_ids),
+        # Locked-split counts above; what was actually fitted/scored below.
+        "train_prompt_fitted_count": train_fitted,
+        "eval_prompt_fitted_count": eval_fitted,
+        "train_prompt_excluded_count": len(train_ids) - train_fitted,
+        "eval_prompt_excluded_count": len(eval_ids) - eval_fitted,
         "train_prompt_ids_sha256": digest(train_ids),
         "eval_prompt_ids_sha256": digest(eval_ids),
         "train_prompt_content_sha256": prompt_content_sha256(train_records),
@@ -347,30 +359,30 @@ def main() -> None:
         if not eval_records:
             raise ValueError(f"no records found in {args.eval_jsonl}")
 
-        # Restrict both splits to prompts whose greedy feature is present.
         # Degenerate-greedy prompts carry no probe feature: they are not probe
-        # training examples and are not probe-scored, so the audited prompt
-        # counts must match the probe's fitted train_size and the scored eval
-        # count. They remain in the collection file and the entropy analysis.
+        # training examples and are not probe-scored. They are deliberately NOT
+        # removed from the record lists here. The audited prompt counts and
+        # hashes must keep describing the *locked source splits*, otherwise the
+        # provenance binding (and the completion seal that checks it) would
+        # compare a filtered subset against the locked manifest and fail.
+        # `train_probe` skips these records when fitting, and
+        # `score_probe_for_record` returns None for them at scoring time, so the
+        # exclusion happens where it belongs and is reported as an explicit
+        # count in the split audit metadata.
         def _feature_present(record):
             metadata = record.get("sep_feature_metadata") or {}
             return metadata.get("greedy_degenerate_excluded") is not True
 
-        n_train_total = len(records)
-        n_eval_total = len(eval_records)
-        records = [record for record in records if _feature_present(record)]
-        eval_records = [
-            record for record in eval_records if _feature_present(record)
-        ]
-        if not records:
+        n_train_excluded = sum(1 for r in records if not _feature_present(r))
+        n_eval_excluded = sum(1 for r in eval_records if not _feature_present(r))
+        if n_train_excluded >= len(records):
             raise ValueError("all training records had excluded greedy features")
-        if not eval_records:
+        if n_eval_excluded >= len(eval_records):
             raise ValueError("all evaluation records had excluded greedy features")
-        if n_train_total != len(records) or n_eval_total != len(eval_records):
+        if n_train_excluded or n_eval_excluded:
             print(
                 "Excluded degenerate-greedy prompts: "
-                f"train {n_train_total - len(records)}, "
-                f"eval {n_eval_total - len(eval_records)}",
+                f"train {n_train_excluded}, eval {n_eval_excluded}",
                 flush=True,
             )
         split_metadata = split_audit_metadata(records, eval_records)
