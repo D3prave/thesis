@@ -363,24 +363,24 @@ SVAMP respectively.
 \end{table}
 
 Three things stand out on short answers. First, all of the
-sampling-based detectors work: AUROC sits in the $0.67$--$0.88$ band,
-and the normalized surface baseline and the two semantic scores all
-fall between $0.74$ and $0.88$, which is consistent with the original
-semantic entropy paper under the matched protocol. Second, the
-\emph{surface/exact-match baseline is the strongest single score in most
-cells}: for example on TriviaQA it reaches $0.819$ (Mistral),
-$0.838$ (Llama-3.1-8B) and $0.802$ (Llama-3.1-70B), slightly ahead of
-the meaning-aware $0.799$, $0.814$ and $0.794$. It is the single
-strongest score in six of the nine short-answer cells (all of TriviaQA
-and NQ-Open); only on SVAMP does the probability-weighted full estimator
-edge ahead. Third, discrete semantic
-entropy and the full probability-weighted estimator track each other
-closely, confirming that on these tasks the cheap count-based version
-loses almost nothing relative to the version that uses the model's own
-probabilities. The reason, made concrete in
-Example~\ref{sec:audit-merge}, is that on short answers most of the
-useful grouping is already done by \emph{normalizing} the strings;
-meaning-based entailment then has little left to add.
+sampling-based detectors work: AUROC sits between roughly $0.70$ and
+$0.90$ across the three datasets and both smaller and larger models,
+consistent with the original semantic entropy paper under the matched
+protocol. Second, the normalized \emph{surface} baseline is the
+strongest of the three scores in eight of the nine cells---every
+NQ-Open and SVAMP cell and both larger TriviaQA models---and discrete
+semantic entropy matches it closely but never exceeds it. On NQ-Open,
+for instance, surface reaches $0.799$, $0.827$ and $0.755$ against the
+meaning-aware $0.794$, $0.799$ and $0.725$; only with Mistral-7B on
+TriviaQA does any score edge past surface, and there it is the
+raw-string naive estimator ($0.784$ versus $0.781$), not the
+meaning-aware one. Third, discrete semantic entropy tracks the surface
+baseline throughout: normalizing the answer strings already performs
+almost all of the useful grouping, so adding an NLI-based
+meaning-clustering step changes the ranking little. The reason, made
+concrete in Example~\ref{sec:audit-merge}, is that on short answers most
+equivalent answers are already identical once normalized; meaning-based
+entailment then has little left to add.
 
 \section{Significance: does meaning-based clustering beat the surface
 baseline?}
@@ -395,46 +395,46 @@ beats the surface baseline by more than sampling noise would explain.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Paired-bootstrap comparison against the surface baseline,
-  in the canonical setup (temperature $1.0$, $M=10$; DeBERTa-v3-large
-  clustering for the entropy methods).
-  Each cell shows the mean AUROC difference across the three seeds
-  (positive $=$ the method is ahead of the baseline), and $(k/3)$ counts
-  the seeds in which the 95\,\% bootstrap confidence interval of that
-  difference excludes zero (the procedure is described in
-  Section~\ref{sec:evaluation-metrics}). A confidence interval that
-  contains zero means ``not significantly different from the cheap
-  baseline.'' Embedding regression has a single paired run per cell,
-  hence $(k/1)$.}
+\caption{Confirmatory paired comparison of question-conditioned discrete
+  semantic entropy against the surface baseline, in the canonical setup
+  (temperature $1.0$, $M=10$; DeBERTa-v3-large clustering). Each row
+  reports the per-seed AUROC difference $\Delta = \text{AUROC(DSE)} -
+  \text{AUROC(surface)}$ for seeds 42/43/44 (positive $=$ DSE ahead),
+  the mean $\Delta$, its $95\,\%$ prompt-cluster bootstrap interval, and
+  the Holm-adjusted $p$-value across the complete nine-cell family; the
+  interval and test condition on the three fixed seeds and resample
+  prompts (Section~\ref{sec:evaluation-metrics}). A negative mean with an
+  interval excluding zero means the surface baseline is significantly
+  ahead.}
 \label{tab:significance-vs-surface}
 \input{includes/generated_significance.tex}
 \end{table}
 
-On the short-answer tasks, no method beats the surface baseline by a
-margin that matters: in almost every cell where the difference is
-significant, it is the surface baseline that comes out ahead. The single
-exception runs the other way but is practically negligible:
-on SVAMP with the 70B model, discrete semantic entropy is ahead by
-$+0.003$ AUROC (significant in two of three seeds), a difference far too
-small to justify the cost of an NLI clustering step. In other
-words, once the answer strings are normalized, adding an NLI
-clustering step does not meaningfully improve short-answer
-hallucination detection.
-This is a negative result, and an important one: it says the
-meaning-clustering step provides measurable value only in the long-form
-setting, which the next sections examine.
+On the short-answer tasks the result is unambiguous: in none of the nine
+cells does question-conditioned discrete semantic entropy beat the
+surface baseline. Every mean difference is negative or within noise of
+zero, and the only Holm-significant cell runs \emph{against} the
+meaning-aware score---on NQ-Open with Llama-3.1-8B the surface baseline
+leads by $0.028$ AUROC (mean over seeds, $95\%$ CI $[-0.047, -0.009]$,
+Holm $p = 0.026$), with the 70B model on the same dataset a near-miss in
+the same direction ($-0.030$, $p = 0.058$). The largest movement in
+DSE's favour is $+0.001$ on individual SVAMP/70B seeds, which averages to
+$-0.002$ over the three seeds and is nowhere near significant. Once the
+answer strings are normalized, adding an NLI clustering step therefore
+does not improve short-answer hallucination detection, and on the dataset
+where the two differ most it makes detection slightly worse. This is a
+negative result, and a clean one: on short answers the meaning-clustering
+step earns nothing over a normalized-string baseline. Whether it earns
+its keep at all is a question for the long-form setting, which the
+following sections examine.
 
-The biography block of Table~\ref{tab:significance-vs-surface} shows
-that long-form setting in the same statistical terms. There the entropy
-estimators that group or weight by more than string identity
-(probability-weighted naive entropy, discrete semantic entropy, and the
-full estimator) beat the chance-level surface baseline by $+0.11$ to
-$+0.28$ AUROC, significantly in all three seeds for every generator, as
-do the SEP probe and (on the two larger models) \mbox{P(True)}. The two
-exceptions are instructive: naive \emph{sample} entropy cannot escape
-string identity at all, and KLE, although meaning-aware in a soft
-embedding-based sense, fails on paragraph-length text
-(Section~\ref{sec:bio-results}).
+The picture changes on long-form text. There the same normalized-string
+baseline collapses toward chance, so meaning-aware scoring is what
+remains useful rather than redundant. The claim-level long-form results
+are reported in Section~\ref{sec:factualbio-results}, and
+Section~\ref{sec:clustering-sensitivity} shows how sharply that long-form
+outcome depends on the model used to judge equivalence---the opposite of
+the short-answer setting, where the backend barely matters.
 
 \section{Clustering backend sensitivity}
 \label{sec:clustering-sensitivity}
