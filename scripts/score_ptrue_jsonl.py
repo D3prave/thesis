@@ -91,7 +91,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("input_jsonl", type=Path)
     parser.add_argument("output_jsonl", type=Path)
-    parser.add_argument("--judge-model", default="meta-llama/Llama-3.1-8B-Instruct")
+    parser.add_argument("--judge-model", default=None,
+                        help="Judge model. P(True) is a SELF-evaluation: this "
+                             "must equal the model that generated the records "
+                             "(sep_v3 protocol, single greedy self-eval). "
+                             "Defaults to the records' own model.")
+    parser.add_argument("--judge-revision", default=None,
+                        help="Exact Hugging Face revision for the judge model.")
+    parser.add_argument("--allow-external-judge", action="store_true",
+                        help="Escape hatch for legacy/archived runs only: "
+                             "permit a judge that differs from the generating "
+                             "model. NEVER valid for sep_v3 in-family scoring.")
     parser.add_argument("--few-shot-data", type=Path, default=None)
     parser.add_argument("--n-few-shot", type=int, default=20)
     parser.add_argument("--stub-judge", action="store_true",
@@ -104,12 +114,38 @@ def main(argv: list[str] | None = None) -> int:
         print("No records to score.", file=sys.stderr)
         return 1
 
+    # Self-eval enforcement (fail-closed, BEFORE any judge is constructed).
+    # Kadavath-style P(True) reads the generating model's own probability
+    # that its answer is true; scoring one model's answers with another
+    # model's judge is a different (external-judge) baseline and must never
+    # be presented as P(True).
+    record_models = {str(record.get("model", "")).strip() for record in records}
+    if len(record_models) != 1 or "" in record_models:
+        print(
+            "FAIL-CLOSED: input records must carry exactly one non-empty "
+            f"'model'; found {sorted(record_models)!r}",
+            file=sys.stderr,
+        )
+        return 2
+    (cell_model,) = record_models
+    if args.judge_model is None:
+        args.judge_model = cell_model
+    if args.judge_model != cell_model and not args.allow_external_judge:
+        print(
+            "FAIL-CLOSED: P(True) is a self-evaluation; judge model "
+            f"{args.judge_model!r} does not match the records' generating "
+            f"model {cell_model!r}. Pass --allow-external-judge only for "
+            "legacy runs that must not be labeled ptrue in-family.",
+            file=sys.stderr,
+        )
+        return 2
+
     few_shot = _few_shot_prefix(args.few_shot_data, args.n_few_shot)
 
     if args.stub_judge:
         judge = _stub_judge()
     else:  # pragma: no cover - requires GPU/vLLM
-        judge = _make_vllm_true_false_judge(args.judge_model)
+        judge = _make_vllm_true_false_judge(args.judge_model, args.judge_revision)
 
     args.output_jsonl.parent.mkdir(parents=True, exist_ok=True)
     with args.output_jsonl.open("w", encoding="utf-8") as fh:
@@ -119,6 +155,14 @@ def main(argv: list[str] | None = None) -> int:
             out_scores = dict(out.get("scores", {}))
             out_scores["ptrue_uncertainty"] = score
             out["scores"] = out_scores
+            out["ptrue_provenance"] = {
+                "protocol": "kadavath_2022_single_greedy_self_eval",
+                "judge_model": args.judge_model,
+                "judge_revision": args.judge_revision,
+                "self_eval": args.judge_model == cell_model,
+                "n_few_shot": args.n_few_shot if args.few_shot_data else 0,
+                "stub_judge": bool(args.stub_judge),
+            }
             if args.run_id:
                 out["run_id"] = args.run_id
             fh.write(json.dumps(out, sort_keys=True) + "\n")
@@ -126,7 +170,9 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _make_vllm_true_false_judge(judge_model: str) -> JudgeFn:  # pragma: no cover
+def _make_vllm_true_false_judge(
+    judge_model: str, judge_revision: str | None = None
+) -> JudgeFn:  # pragma: no cover
     """vLLM judge: P("True") from the renormalized True/False next-token mass.
 
     Generates a single token with logprobs and reads the probability mass on
@@ -139,6 +185,7 @@ def _make_vllm_true_false_judge(judge_model: str) -> JudgeFn:  # pragma: no cove
 
     llm = LLM(
         model=judge_model,
+        revision=judge_revision,
         tensor_parallel_size=int(os.environ.get("SE_TENSOR_PARALLEL_SIZE", "1")),
         gpu_memory_utilization=float(os.environ.get("SE_GPU_MEMORY_UTILIZATION", "0.90")),
         dtype=os.environ.get("SE_VLLM_DTYPE", "auto"),

@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import math
 import random
 import re
 from collections.abc import Callable, Sequence
@@ -89,6 +90,12 @@ class SEPGeneration:
     greedy_answer: str
     hidden_state: list[float] | None
     metadata: dict[str, Any]
+    #: Optional per-sample length-normalized log-probabilities (arithmetic
+    #: mean raw-model token log-prob over the generated tokens up to and
+    #: including the terminating EOS/EOT). Populated by the v3 collection
+    #: protocol (``SE_RETURN_LOGPROBS=1``); ``None`` reproduces the sealed
+    #: v2 record shape exactly.
+    sequence_logprobs: list[float] | None = None
 
 
 def _stable_prompt_seed(seed: int, prompt: str) -> int:
@@ -318,6 +325,8 @@ def make_hf_model_with_states(
         "Answer the following question as briefly as possible. "
         "Give only the answer — a word or short phrase — with no explanation."
     ),
+    return_logprobs: bool = False,
+    collect_features: bool = True,
 ) -> Callable[[str, int], SEPGeneration]:
     """Return a Kossen-style SEP collection function backed by HuggingFace.
 
@@ -363,6 +372,23 @@ def make_hf_model_with_states(
             from this value so results do not depend on prompt iteration order.
         system_prompt: Optional system message; same semantics as in
             :func:`make_hf_model`.
+        return_logprobs: When true, additionally return per-sample
+            length-normalized sequence log-probabilities computed from the
+            RAW (untempered) model distribution — ``log_softmax`` of the
+            generation logits, gathered at the sampled tokens, arithmetic
+            mean over the generated tokens up to and including the
+            terminating EOS/EOT. This is the jlko/semantic_uncertainty
+            convention and is deliberately temperature-independent so that
+            values are comparable across the v3 temperature family. Default
+            false, which reproduces the sealed v2 record shape exactly.
+        collect_features: When false, skip SEP feature extraction entirely:
+            the greedy response is still generated (it supplies the
+            most-likely answer for the paper accuracy rule and the P(True)
+            prompt) but no forward pass is run and no hidden state or SEP
+            feature metadata is produced. Used by v3 non-canonical
+            temperature collections (the probe feature is greedy and hence
+            temperature-independent; it is captured only at the canonical
+            temperature).
 
     Returns:
         A callable returning :class:`SEPGeneration`.
@@ -449,6 +475,13 @@ def make_hf_model_with_states(
     _sample_config.top_k = _hf_top_k
     _sample_config.max_new_tokens = max_new_tokens
     _sample_config.pad_token_id = _tokenizer.pad_token_id
+    if return_logprobs:
+        # Raw-logit capture for sequence_logprobs. output_logits (not
+        # output_scores) returns the UNPROCESSED logits, before the
+        # temperature/top-p/top-k warpers — the paper-canonical re-scoring
+        # distribution, comparable across sampling temperatures.
+        _sample_config.return_dict_in_generate = True
+        _sample_config.output_logits = True
 
     _greedy_config = copy.deepcopy(_model.generation_config)
     _greedy_config.do_sample = False
@@ -510,6 +543,44 @@ def make_hf_model_with_states(
         sampled_answers = _tokenizer.batch_decode(
             sampled_ids, skip_special_tokens=True,
         )
+
+        sequence_logprobs: list[float] | None = None
+        if return_logprobs:
+            # Per-step raw log-probabilities of the sampled tokens. Processed
+            # step by step to avoid materializing (steps, n, vocab) at once.
+            step_logprob_rows = []
+            for step_index, step_logits in enumerate(sampled_out.logits):
+                step_token_ids = sampled_ids[:, step_index]
+                log_probs = _torch.log_softmax(
+                    step_logits.to(_torch.float32), dim=-1
+                )
+                step_logprob_rows.append(
+                    log_probs.gather(
+                        1, step_token_ids.unsqueeze(1).to(log_probs.device)
+                    ).squeeze(1).cpu()
+                )
+            token_logprobs = _torch.stack(step_logprob_rows, dim=1).tolist()
+            sequence_logprobs = []
+            for row_ids, row_logprobs in zip(sampled_ids.tolist(), token_logprobs):
+                # Content length: tokens up to and including the first
+                # EOS/EOT; padding after termination is excluded. A row with
+                # no terminator ran to the cap and counts in full.
+                length = len(row_ids)
+                for index, token_id in enumerate(row_ids):
+                    if int(token_id) in _termination_ids:
+                        length = index + 1
+                        break
+                if length == 0:
+                    raise RuntimeError(
+                        "sampled sequence contains no generated tokens"
+                    )
+                value = math.fsum(row_logprobs[:length]) / length
+                if not math.isfinite(value):
+                    raise RuntimeError(
+                        "non-finite sequence log-probability; refusing to "
+                        "write an invalid record (fail-closed)"
+                    )
+                sequence_logprobs.append(float(value))
         sampled_eos_or_eot_count = 0
         for token_row in sampled_ids.tolist():
             try:
@@ -524,6 +595,41 @@ def make_hf_model_with_states(
 
         greedy_sequence = greedy_out.sequences[0]
         generated_ids = greedy_sequence[prompt_len:]
+
+        if not collect_features:
+            # v3 non-canonical temperature collection: the greedy answer is
+            # kept (most-likely answer for paper accuracy / P(True)) but no
+            # SEP feature is extracted and no feature metadata is fabricated.
+            # The record therefore carries no sep_* fields and remains valid
+            # at any sampling temperature.
+            greedy_answer = _tokenizer.decode(
+                generated_ids.tolist(), skip_special_tokens=True
+            )
+            return SEPGeneration(
+                sampled_answers=[answer.strip() for answer in sampled_answers],
+                greedy_answer=greedy_answer.strip(),
+                hidden_state=None,
+                metadata={
+                    "feature_capture": "disabled",
+                    "sampling_temperature": float(temperature),
+                    "sampling_top_p": float(top_p),
+                    "sampling_top_k": int(top_k),
+                    "sampling_num_responses": int(n),
+                    "sampling_max_new_tokens": int(max_new_tokens),
+                    "sampled_eos_or_eot_count": int(sampled_eos_or_eot_count),
+                    "sampled_max_new_tokens_count": int(
+                        n - sampled_eos_or_eot_count
+                    ),
+                    "base_seed": int(seed),
+                    "prompt_seed": int(prompt_seed),
+                    "model_id": model_name,
+                    "model_revision": _model_revision,
+                    "tokenizer_id": model_name,
+                    "tokenizer_revision": _tokenizer_revision,
+                },
+                sequence_logprobs=sequence_logprobs,
+            )
+
         greedy_degenerate = False
         terminating_token_id = None
         final_content_offset = None
@@ -588,6 +694,7 @@ def make_hf_model_with_states(
                 if greedy_degenerate
                 else feature.detach().to(_torch.float32).cpu().tolist()
             ),
+            sequence_logprobs=sequence_logprobs,
             metadata={
                 "protocol": "kossen_sep_2024",
                 "feature_response_decoding": "greedy",

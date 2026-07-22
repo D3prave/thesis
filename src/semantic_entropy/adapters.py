@@ -301,6 +301,12 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
         hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),
         hidden_token=_env_int("SE_SEP_HIDDEN_TOKEN", -1),
         seed=_env_int("SE_SEED", 0),
+        # v3 additions. Defaults preserve the sealed v2 record shape exactly:
+        # logprob capture must be requested explicitly (SE_RETURN_LOGPROBS=1)
+        # and feature capture stays on unless disabled for non-canonical
+        # temperature collections (SE_SEP_COLLECT_FEATURES=0).
+        return_logprobs=_env_bool("SE_RETURN_LOGPROBS", False),
+        collect_features=_env_bool("SE_SEP_COLLECT_FEATURES", True),
         **_system_prompt_kwargs(),
     )
 

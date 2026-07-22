@@ -682,6 +682,13 @@ def _sample_with_states(
         "semantic_clusters": cluster_ids,
         "cluster_representatives": representatives,
     }
+    if (
+        isinstance(result, SEPGeneration)
+        and getattr(result, "sequence_logprobs", None) is not None
+    ):
+        out["sequence_logprobs"] = [
+            float(logprob) for logprob in result.sequence_logprobs
+        ]
     if isinstance(result, SEPGeneration):
         metadata = dict(result.metadata)
         decoding = record["decoding"]
@@ -699,6 +706,25 @@ def _sample_with_states(
                     f"SEP adapter metadata {field}={metadata.get(field)!r} "
                     f"does not match RunConfig value {expected_value!r}"
                 )
+        if metadata.get("feature_capture") == "disabled":
+            # v3 non-canonical temperature collection: sampling consistency
+            # was verified above, but no SEP feature exists and none of the
+            # canonical-feature pins apply. The greedy answer is preserved
+            # as the most-likely answer (paper accuracy rule / P(True));
+            # no sep_* fields are written, so the record stays valid at any
+            # sampling temperature.
+            if result.hidden_state is not None:
+                raise ValueError(
+                    "feature_capture=disabled result must not carry a "
+                    "hidden state"
+                )
+            out.setdefault(
+                "most_likely_answer",
+                _extract_answer(
+                    result.greedy_answer, single_line=(dataset != "bio")
+                ),
+            )
+            return out
         canonical = {
             "sampling_temperature": 1.0,
             "sampling_top_p": 0.9,
