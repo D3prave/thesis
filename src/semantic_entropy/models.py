@@ -982,6 +982,7 @@ def make_embedding_fn(
     device: str = "cpu",
     batch_size: int = 32,
     normalize_embeddings: bool = False,
+    revision: str | None = None,
 ):
     """Return a function mapping a list of strings to a 2D embedding matrix.
 
@@ -1029,7 +1030,9 @@ def make_embedding_fn(
             "pip install -e '.[kle]'"
         ) from exc
 
-    _model = SentenceTransformer(model_name, device=device)
+    # revision pins the exact snapshot (v3 protocol requirement: the vault
+    # cache can hold multiple snapshots of the same model id).
+    _model = SentenceTransformer(model_name, device=device, revision=revision)
 
     def _embed_fn(texts: Sequence[str]):
         arr = _model.encode(

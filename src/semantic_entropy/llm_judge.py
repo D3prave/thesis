@@ -131,6 +131,7 @@ class BatchedLlmJudge:
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
         user_template: str = DEFAULT_USER_TEMPLATE,
         max_tokens: int = 4,
+        revision: str | None = None,
     ) -> None:
         try:
             from vllm import LLM, SamplingParams
@@ -142,6 +143,7 @@ class BatchedLlmJudge:
 
         self._llm = LLM(
             model=model_name,
+            revision=revision,
             tensor_parallel_size=tensor_parallel_size,
             gpu_memory_utilization=gpu_memory_utilization,
             dtype=dtype,

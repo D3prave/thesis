@@ -101,6 +101,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--judge-revision",
+        default=None,
+        help=(
+            "Exact Hugging Face revision for the judge model. Defaults to "
+            "SE_JUDGE_REVISION. Required by the v3 protocol (the cache can "
+            "hold multiple snapshots of the same model id)."
+        ),
+    )
+    parser.add_argument(
         "--run-id",
         default=None,
         help="Optional run_id to write into each output record.",
@@ -178,6 +187,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if pending_triples:
         judge = BatchedLlmJudge(
             model_name=judge_model,
+            revision=args.judge_revision or os.environ.get("SE_JUDGE_REVISION"),
             tensor_parallel_size=_resolve_int(
                 args.tensor_parallel_size, "SE_TENSOR_PARALLEL_SIZE", 4
             ),
