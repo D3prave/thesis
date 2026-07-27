@@ -79,8 +79,11 @@ with the probe-equivalence observation that correctness-trained and
 SE-trained probes are interchangeable in practice
 (Sections~\ref{sec:related-estimators}, \ref{sec:probes-results});
 (4)~the two-granularity long-form evaluation, whole-paragraph and
-claim-level, which yields the scale trend and the clustering-artifact
-result (Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
+claim-level, which yields the scale trend, the clustering-artifact result,
+and a transferable negative design result: a consistency-based detector must
+be applied at a granularity at which independent samples can agree, a
+condition that is checkable from the samples alone before any AUROC is
+computed (Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
 (5)~the record-level worked audits that give mechanistic rather than
 purely metric-level evidence for the main conclusions
 (Section~\ref{sec:hand-audits}); and (6)~the sampling-temperature sweep

@@ -339,10 +339,10 @@ SVAMP respectively.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{TriviaQA AUROC by detector and model (mean $\pm$ std over
-  seeds). Canonical setup: sampling temperature $1.0$, $M=10$ samples
-  per question, post-hoc DeBERTa-v3-large clustering for the entropy
-  methods. Best value per model column in bold (higher is better).}
+\caption{TriviaQA AUROC by detector and model (mean $\pm$ std over seeds
+  42/43/44), sealed primary. Canonical setup: sampling temperature $1.0$,
+  $M=10$ samples per question, post-hoc DeBERTa-v3-large clustering for the
+  entropy methods. Best value per model column in bold (higher is better).}
 \label{tab:auroc-triviaqa}
 \input{includes/generated_auroc_triviaqa.tex}
 \end{table}
@@ -350,10 +350,11 @@ SVAMP respectively.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{NQ-Open AUROC by detector and model (mean $\pm$ std over seeds).
-  Canonical setup as in Table~\ref{tab:auroc-triviaqa} (temperature
-  $1.0$, $M=10$, DeBERTa-v3-large clustering). Best value per model
-  column in bold (higher is better).}
+\caption{NQ-Open AUROC by detector and model (mean $\pm$ std over seeds
+  42/43/44), sealed primary. Canonical setup as in
+  Table~\ref{tab:auroc-triviaqa} (temperature $1.0$, $M=10$,
+  DeBERTa-v3-large clustering). Best value per model column in bold (higher
+  is better).}
 \label{tab:auroc-nqopen}
 \input{includes/generated_auroc_nqopen.tex}
 \end{table}
@@ -361,10 +362,11 @@ SVAMP respectively.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{SVAMP AUROC by detector and model (mean $\pm$ std over seeds).
-  Canonical setup as in Table~\ref{tab:auroc-triviaqa} (temperature
-  $1.0$, $M=10$, DeBERTa-v3-large clustering). Best value per model
-  column in bold (higher is better).}
+\caption{SVAMP AUROC by detector and model (mean $\pm$ std over seeds
+  42/43/44), sealed primary. Canonical setup as in
+  Table~\ref{tab:auroc-triviaqa} (temperature $1.0$, $M=10$,
+  DeBERTa-v3-large clustering). Best value per model column in bold (higher
+  is better).}
 \label{tab:auroc-svamp}
 \input{includes/generated_auroc_svamp.tex}
 \end{table}
@@ -403,7 +405,8 @@ beats the surface baseline by more than sampling noise would explain.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Confirmatory paired comparison of question-conditioned discrete
-  semantic entropy against the surface baseline, in the canonical setup
+  semantic entropy against the surface baseline, sealed primary, in the
+  canonical setup
   (temperature $1.0$, $M=10$; DeBERTa-v3-large clustering). Each row
   reports the per-seed AUROC difference $\Delta = \text{AUROC(DSE)} -
   \text{AUROC(surface)}$ for seeds 42/43/44 (positive $=$ DSE ahead),
@@ -458,7 +461,8 @@ evaluated twice, and the null result is what that predicts.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{How similarly the two short-answer scores rank prompts, on the
-  locked confirmatory family (mean over seeds 42/43/44). Spearman $\rho$ is
+  locked confirmatory family of the sealed primary (mean over seeds
+  42/43/44). Spearman $\rho$ is
   computed with average ranks for ties. ``Identical scores'' is the share of
   prompts on which discrete semantic entropy and surface entropy return
   exactly the same value.}
@@ -545,12 +549,17 @@ sample-and-cluster pipeline, but the model now writes a paragraph rather
 than a phrase. Table~\ref{tab:auroc-bio} lists every detector for all
 three generators.
 
-This section is written as a \emph{diagnostic} rather than as a detector
-benchmark. Its purpose is to establish why scoring a whole paragraph is the
-wrong granularity for this method, which is what motivates the claim-level
-evaluation in Section~\ref{sec:factualbio-results}; the long-form headline
-claim rests on that sealed claim-level result, not on the archived numbers
-here.
+These numbers are best read as a result about \emph{where the method
+applies} rather than as a ranking of detectors. Semantic entropy asks whether
+repeated samples agree with one another. Two independently generated
+biographies of the same person rarely agree in the sense the method can
+measure --- they differ in wording, in which facts they include, and in what
+order --- so the score tends towards its maximum and has little room left to
+discriminate. Two measurements below show how far that goes here. The
+constructive counterpart is Section~\ref{sec:factualbio-results}: asking one
+question per claim and re-sampling short answers restores a setting in which
+agreement is measurable, and the long-form conclusion of this thesis rests on
+that claim-level result rather than on the numbers in this section.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
@@ -638,14 +647,24 @@ long text the model's \emph{own probability signal} carries much of the
 confabulation information, while the hard-clustering step recovers it only
 partially and only when the equivalence judge is strong enough.
 
-Taken together, the two diagnostics say that whole-response entropy is the
-wrong granularity for paragraph-length text rather than that meaning-based
-detection fails on long-form generation. A score that is maximal for a large
-share of records, computed over samples that are partly truncated, is not a
-sound basis for a headline claim, which is why the long-form conclusion of
-this thesis rests on the claim-level evaluation of
-Section~\ref{sec:factualbio-results} --- where each regenerated answer is
-short, the ceiling is far away, and the labels are human.
+\paragraph{What this suggests in general.} Taken together, the two
+measurements point to the granularity of the scored unit, rather than to
+meaning-based detection as such, as the limiting factor on long-form text.
+The suggestion they support is that a consistency-based detector works best
+at a granularity at which independent samples can plausibly agree, and that
+this is worth checking from the samples themselves before interpreting an
+AUROC. Two quantities suffice: how often the score sits at its ceiling, and
+how many distinct clusters the samples form. On short answers those are
+$0.1$--$4.9\,\%$ and $1.6$--$5.1$ clusters; on whole paragraphs,
+$7$--$74\,\%$ and $5.4$--$9.6$. Read only through AUROC, the second case
+looks like a weak detector and invites a stronger entailment model or more
+samples; read through these two quantities, it looks instead like a unit that
+is too large for the test being applied. The claim-level evaluation of
+Section~\ref{sec:factualbio-results}, where each regenerated answer is short
+and the ceiling is far away, is the version of the experiment that avoids the
+problem. This is one long-form task and three generators, so the point is
+offered as an interpretation of these results rather than as an established
+general law.
 
 \section{Supervised baselines and hidden-state probes}
 \label{sec:probes-results}
@@ -720,7 +739,14 @@ decoding temperature.
 
 Every result so far used the model's default sampling temperature. Since
 sampling-based detectors depend on getting \emph{diverse} samples, the
-decoding temperature ought to matter, and it does.
+decoding temperature ought to matter, and it does. This is one of the more
+practically useful findings in the thesis, because it says which detector to
+reach for under which decoding settings. The sweep was run as its own
+experiment within the archived protocol family
+(Section~\ref{sec:protocol-provenance}), so all five temperatures were
+produced the same way and the comparison across them is internally
+consistent; its $T{=}1.0$ column is the archived measurement of that cell
+rather than the sealed one.
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
 deterministic) to $1.0$; the table reports the sweep for the largest
@@ -730,9 +756,11 @@ all three.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{AUROC versus sampling temperature (seed-mean), Llama-3.1-70B.
-  Sampling-based entropy rises with temperature; the single-pass probe
-  falls.}
+\caption{AUROC versus sampling temperature (seed-mean over 42/43/44),
+  Llama-3.1-70B, archived protocol family. Sampling-based entropy rises with
+  temperature; the single-pass probe falls. All five temperatures come from
+  the same run set, so the trend across the row is a like-for-like
+  comparison.}
 \label{tab:temp-sweep}
 \resizebox{\linewidth}{!}{%
 \input{includes/generated_temp_sweep_auroc.tex}}
@@ -742,7 +770,8 @@ all three.
 \centering
 \includegraphics[width=\linewidth]{auroc_vs_temperature.png}
 \caption{AUROC as a function of sampling temperature, per task and
-  model. The sampling-based scores (semantic entropy, surface entropy)
+  model, archived protocol family. The sampling-based scores (semantic
+  entropy, surface entropy)
   climb as temperature increases, because more diverse samples reveal
   more disagreement to measure. The hidden-state probe moves the
   opposite way. The two families therefore \emph{cross over} between
@@ -761,6 +790,20 @@ so the two families \emph{cross over}. The practical lesson is that there
 is no single best detector: at low decoding temperature, use the probe;
 at high temperature, use sampling-based entropy. On biography the curves
 are flat, so this trade-off is specific to the short-answer regime.
+
+This is a claim about decoding temperature, not about which random draws
+happened to be taken, and the sweep is designed so that the two can be told
+apart. Every point in Table~\ref{tab:temp-sweep} and
+Figure~\ref{fig:temp-sweep} is a mean over the same three seeds, and the
+seed spread is small beside the effect: across the ninety short-answer cells
+covered by the two detector families, the standard deviation over seeds
+averages $0.010$ and never exceeds $0.047$. Against that, semantic entropy
+gains between $0.163$ and $0.305$ AUROC as temperature rises from $0.1$ to
+$1.0$ (mean $+0.246$), and the probe declines in all nine model--dataset
+cells, by $0.051$ on average. The rise is therefore roughly twenty times the
+typical seed-to-seed variation, and the direction of each family is
+consistent across every cell rather than resting on a single favourable
+draw.
 
 \section{Claim-level long-form detection: FactualBio}
 \label{sec:factualbio-results}
