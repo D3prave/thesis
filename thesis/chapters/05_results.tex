@@ -168,7 +168,11 @@ quantitatively and explains why it happens.
   as good as meaning-aware clustering. On the long-form biography task
   the surface bar drops to the chance line (it stops working
   entirely) while the meaning-aware bar stays well above it. This
-  short-versus-long contrast is the central finding.}
+  short-versus-long contrast is the central finding. The short-answer
+  groups are sealed-primary numbers; the shaded biography group comes from
+  the archived family (Section~\ref{sec:protocol-provenance}). Each pair of
+  bars is a comparison within one cell of one family, and no bar is compared
+  across the divider.}
 \label{fig:regime-split}
 \end{figure*}
 
@@ -316,11 +320,13 @@ accuracy-independent, is used as the primary metric throughout.
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=\linewidth]{multiseed_auroc.png}
-\caption{Per-task AUROC for the main detectors, averaged over three
-  seeds (error bars are the seed spread). The detectors cluster
-  together on every short-answer task: no single method dominates, and
-  the cheap surface baseline sits inside the same band as the
-  meaning-aware scores.}
+\caption{Per-task AUROC for the three full-grid sampling detectors on the
+  short-answer tasks, averaged over seeds 42/43/44 (error bars are the seed
+  spread), sealed primary. The detectors cluster together on every task: no
+  single method dominates, and the cheap surface baseline sits inside the
+  same band as the meaning-aware score. The probes are evaluated on held-out
+  splits and are therefore shown separately
+  (Table~\ref{tab:embedding-regression}) rather than alongside these bars.}
 \label{fig:multiseed-auroc}
 \end{figure*}
 
@@ -467,10 +473,11 @@ against the sealed short-answer tables above.
 \centering
 \includegraphics[width=0.85\textwidth]{bio_clustering_sensitivity.png}
 \caption{Biography AUROC for discrete semantic entropy under different
-  clustering backends. On long-form inputs the backend is
-  result-determining: the same samples yield anything from chance-level
-  to clearly useful detection depending only on how equivalence is
-  judged.}
+  clustering backends, archived protocol family (error bars are the seed
+  spread). On long-form inputs the backend is result-determining: the same
+  saved samples yield anything from below chance to clearly useful detection
+  depending only on how equivalence is judged. Exact-match grouping is the
+  surface baseline here, since no two paragraphs are the same string.}
 \label{fig:bio-clustering-sensitivity}
 \end{figure}
 

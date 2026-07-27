@@ -404,11 +404,16 @@ carry no interpretation.
 \input{includes/generated_protocol_drift.tex}
 \end{table}
 
-Three rules follow, and are applied throughout Chapter~\ref{ch:results}. No
-table or figure mixes the two families. Absolute head-to-head method
-comparisons are drawn only from the sealed primary. Archived results are read
-for direction and rough magnitude, never for a decimal-level comparison
-against a sealed number.
+Three rules follow, and are applied throughout Chapter~\ref{ch:results}.
+First, no table places numbers from the two families in a single comparison,
+and every caption names the family it draws on. One figure
+(Figure~\ref{fig:regime-split}) deliberately shows both, because the
+short-versus-long contrast is the thesis's central claim; there the
+biography group is shaded and separated by a divider, and every comparison
+made from it is between two bars on the same side of that line. Second,
+absolute head-to-head method comparisons are drawn only from the sealed
+primary. Third, archived results are read for direction and rough magnitude,
+never for a decimal-level comparison against a sealed number.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
@@ -446,15 +451,40 @@ Two kinds of uncertainty are reported for these metrics, and they are
 kept strictly separate. The \emph{cross-seed spread} (the $\pm$ values
 in the result tables) is the standard deviation of a metric over the
 three decoding seeds; with only three seeds it indicates stability
-rather than statistical significance. Significance claims instead use a
-\emph{record-level paired bootstrap}: within one (task, model, seed)
-cell, two detectors are compared on exactly the same records, the
-records are resampled with replacement 2\,000 times, and the AUROC
-difference is recomputed on each resample. A method is reported as
-significantly different from the baseline in that seed when the
-resulting 95\,\% confidence interval excludes zero. Because both scores
-come from identical records, this comparison is paired and much more
-sensitive than comparing two independent averages.
+rather than statistical significance.
+
+Significance claims instead use a \emph{prompt-cluster paired bootstrap}.
+Prompts are resampled with replacement $10\,000$ times; each resample is
+applied identically to all three seeds, and the per-seed AUROC difference
+between the two detectors is recomputed and averaged over seeds. Both
+detectors are always scored on exactly the same records within a seed, so
+the comparison is paired and far more sensitive than comparing two
+independent averages. A difference is reported as significant when the
+resulting $95\,\%$ interval excludes zero after Holm correction across the
+family of tests.
+
+\paragraph{What the interval is an interval over.} The resampling unit is
+the prompt, not the seed. The estimand is therefore the mean per-seed AUROC
+difference \emph{conditional on seeds 42, 43 and 44}, not a statement about
+the population of decoding seeds. This is a measured design decision rather
+than a convenience: the between-seed standard deviation of the primary
+comparison is roughly an order of magnitude smaller than the bootstrap
+interval half-width in every cell, so prompt sampling, not seed sampling, is
+what limits precision at $N=500$ (or $300$ for SVAMP). Additional seeds
+would shrink the smaller component only, and a seed-variance component
+estimated from three seeds would in any case be badly underpowered. The
+per-seed differences are reported alongside every interval so the seed
+spread stays visible.
+
+\paragraph{Confirmatory versus exploratory.} Exactly one comparison is
+preregistered and confirmatory: question-conditioned discrete semantic
+entropy against the normalized surface baseline, across the nine
+short-answer task--model cells, with Holm correction over that nine-member
+family. Every other comparison reported in this thesis --- clustering
+backends, probes, \mbox{P(True)}, KLE, temperature, and both long-form
+analyses --- is exploratory and is described as such. This distinction is
+what keeps a negative headline result from being a search over many
+comparisons for the one that speaks loudest.
 
 \section{Implementation and HPC execution}
 \label{sec:hpc-execution}
