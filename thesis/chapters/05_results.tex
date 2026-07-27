@@ -470,6 +470,48 @@ evaluated twice, and the null result is what that predicts.
 \input{includes/generated_rank_agreement.tex}
 \end{table}
 
+\paragraph{How small a difference could have been detected?} A null result
+carries weight only in proportion to the precision behind it, so it is worth
+saying what this design could and could not have seen.
+Table~\ref{tab:equivalence-bound} reports two quantities per cell, both from
+the same bootstrap that produced Table~\ref{tab:significance-vs-surface}. The
+first is the central $90\,\%$ interval, whose upper limit is the largest
+advantage for the semantic score that the data remain consistent with. The
+second is the minimum detectable effect: the smallest true difference the
+cell would detect at $80\,\%$ power.
+
+Read one-sided, the bound is reasonably tight. An advantage for
+meaning-based clustering larger than $+0.026$ AUROC is excluded in every
+cell, and larger than $+0.011$ in eight of the nine; in three cells the
+entire interval lies below zero. So the claim supported here is not merely
+that no advantage was observed, but that an advantage large enough to justify
+the cost of pairwise entailment would very likely have been seen if it were
+there.
+
+The precision is not uniform, and one cell is genuinely weak. Minimum
+detectable effects run from $0.012$ (SVAMP with the 70B model) to $0.062$
+(TriviaQA with the 70B model); seven of the nine are at or below $0.03$. The
+TriviaQA/70B cell is the exception and should not be read as evidence of
+absence --- its interval spans $\pm 0.04$, wide enough to accommodate a
+difference that would matter. Note also that this is a post-hoc precision
+analysis: no equivalence margin was preregistered, so these are reported as
+bounds rather than as a test declaring equivalence against a threshold chosen
+after the fact.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Precision of the confirmatory short-answer comparison, sealed
+  primary. $\Delta$ is the seed-mean AUROC difference (positive $=$ semantic
+  score ahead); the interval is the central $90\,\%$ prompt-cluster bootstrap
+  range, equivalent to two one-sided tests at $\alpha = 0.05$. ``Bound'' is
+  the tightest symmetric margin the cell would pass, and ``MDE'' the smallest
+  true difference detectable at $80\,\%$ power. Post-hoc; no margin was
+  preregistered.}
+\label{tab:equivalence-bound}
+\input{includes/generated_equivalence_bound.tex}
+\end{table}
+
 The picture changes on long-form text. There the same normalized-string
 baseline collapses toward chance, so meaning-aware scoring is what
 remains useful rather than redundant. The claim-level long-form results

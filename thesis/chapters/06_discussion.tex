@@ -346,12 +346,14 @@ result.
 42/43/44, with prompts as the resampling unit
 (Section~\ref{sec:evaluation-metrics}). One preregistered family of nine
 cells carries Holm correction; everything else is exploratory and is
-labelled as such. The negative short-answer result is a failure to reject,
-not a demonstration of equivalence: with $N=500$ per cell ($300$ for SVAMP),
-differences smaller than roughly the width of the reported intervals would
-not be detected, so the honest claim is that any advantage of meaning-based
-clustering on these datasets is smaller than that, not that it is exactly
-zero.
+labelled as such. The negative short-answer result is a failure to reject, not a demonstration
+of equivalence, but its precision is quantified rather than left vague
+(Table~\ref{tab:equivalence-bound}). An advantage for meaning-based
+clustering larger than $+0.026$ AUROC is excluded in every cell and larger
+than $+0.011$ in eight of the nine, while the minimum detectable effect runs
+from $0.012$ to $0.062$. The claim is therefore that any advantage on these
+datasets is small, not that it is exactly zero --- and in the TriviaQA/70B
+cell, where the interval is widest, not even that much can be said.
 
 \paragraph{External validity.} Three models from two families, three
 short-answer datasets, one long-form task, English only. Only the
