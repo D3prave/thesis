@@ -211,16 +211,21 @@ sampling ($M=10$, $T=1.0$, top-$p=0.9$, top-$k=50$, with a low-temperature
 most-likely answer for accuracy labeling via SQuAD token-F1), three
 shared datasets (TriviaQA, NQ-Open, SVAMP), and both probability-weighted
 estimators computed alongside the discrete approximation. The remaining
-differences are deliberate and disclosed: newer open generators in place
-of the LLaMA-2 family, local DeBERTa cross-encoders and an open Qwen judge
-in place of GPT-style judges, and 500-record evaluation sets.
+differences are deliberate and disclosed: a narrower set of generators,
+mostly newer, with Mistral 7B Instruct the one model family common to both;
+entailment judged throughout with local NLI cross-encoders, which is one of
+the two options the original uses, plus an open Qwen judge in place of its
+GPT-3.5 alternative; and 500-record evaluation sets.
 
 Under these settings the replication is quantitatively consistent with
 the original. Averaged over the nine short-answer cells evaluated here at
 the canonical backend (against the original work's thirty task--model
 combinations), the semantic estimators land in the same AUROC band as
-the paper's $0.790$ aggregate and reproduce its headline ordering of
-semantic entropy above naive entropy and P(True). This is a band-level
+the paper's $0.790$ aggregate. Its reported ordering of semantic entropy
+above naive entropy ($0.691$) and \mbox{P(True)} ($0.698$) is only partly
+reproduced here: semantic entropy is above the raw-string naive estimator in
+six of the nine cells, but the normalized surface baseline, which the
+original does not report separately, sits above both. This is a band-level
 agreement, not a cell-for-cell match. One claim of the original work
 does \emph{not} reproduce as stated: that semantic entropy beats the
 naive baselines. Count-based surface entropy, which the paper does not

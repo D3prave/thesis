@@ -129,16 +129,24 @@ sizes: Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
 Llama-3.1-8B-Instruct, and
 Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. Using three sizes
 lets the experiments ask how the detectors behave as the model gets
-bigger. The original semantic-entropy paper used a small and a large
-model from the older LLaMA-2 family; this study uses newer models that
-are stronger and closer to what people actually run today, while keeping
-the same small-versus-large contrast (and adding a middle size, the 8B
-model, so the size axis has three points rather than two). Every model--dataset
-cell is decoded under three seeds (42, 43, 44), and all headline
-results are reported as cross-seed means with seed standard
-deviations. The NLI judges in this study are local DeBERTa-v3
-cross-encoders (two sizes, base and large, introduced below) rather
-than the proprietary GPT-3.5 used by Farquhar et al.
+bigger. Farquhar et al.~\cite{semantic_entropy_nature_2024} evaluate
+LLaMA-2 Chat at 7B, 13B and 70B, Falcon Instruct at 7B and 40B, and
+Mistral Instruct at 7B, and report that semantic entropy is stable across
+those families. The grid here is narrower in families but spans the same
+range of scales, and it deliberately retains one point of overlap: Mistral
+7B Instruct appears in both, here at the later v0.3 revision. The two Llama
+models replace the LLaMA-2 pair with a current within-family contrast, which
+is the only pair in this grid for which a scale comparison is
+within-architecture. Every model--dataset cell is decoded under three seeds
+(42, 43, 44), and all headline results are reported as cross-seed means with
+seed standard deviations.
+
+The entailment judges are local DeBERTa-v3 cross-encoders (two sizes, base
+and large, introduced below). Farquhar et al.\ operationalize entailment
+either with an NLI model, DeBERTa-Large-MNLI, or with a general-purpose LLM
+such as GPT-3.5; this study takes the first of those two options throughout,
+so the choice is a narrowing of their protocol rather than a departure from
+it.
 Using a local model rather than a closed API matters for several
 reasons: the model version is fixed and publicly available, so results
 are fully reproducible without requiring access to any external service;
