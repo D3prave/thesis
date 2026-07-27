@@ -111,7 +111,8 @@ Naive entropy (prob.-weighted strings) & no meaning grouping either,
 \addlinespace[3pt]
 Discrete semantic entropy (NLI clusters) & groups answers that mutually
   entail each other and takes the entropy of the group sizes
-  (Section~\ref{sec:estimator-family}) \\
+  (Section~\ref{sec:estimator-family}); abbreviated \emph{DSE} where a
+  formula or a column heading needs the short form \\
 \addlinespace[3pt]
 Semantic entropy (full, prob.-weighted) & the same NLI groups, weighted
   by sequence probability; the original paper's primary estimator
@@ -424,7 +425,8 @@ meaning-aware score---on NQ-Open with Llama-3.1-8B the surface baseline
 leads by $0.028$ AUROC (mean over seeds, $95\%$ CI $[-0.047, -0.009]$,
 Holm $p = 0.026$), with the 70B model on the same dataset a near-miss in
 the same direction ($-0.030$, $p = 0.058$). The largest movement in
-DSE's favour is $+0.001$ on individual SVAMP/70B seeds, which averages to
+the semantic score's favour is $+0.001$ on individual SVAMP/70B seeds,
+which averages to
 $-0.002$ over the three seeds and is nowhere near significant. Once the
 answer strings are normalized, adding an NLI clustering step therefore
 does not improve short-answer hallucination detection, and on the dataset
