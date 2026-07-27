@@ -133,11 +133,6 @@ Embedding regression (in-dist.\ / OOD) & the same kind of hidden-state
 P(True) & the model grades its own most-likely answer; the probability
   it assigns to ``True'' is the score
   (Section~\ref{sec:other-estimators}) \\
-\addlinespace[3pt]
-Judge correctness score & biography only: the confidence the long-form
-  judge reports for its own verdict, recorded as a by-product of
-  grading and shown as a reference row
-  (Section~\ref{sec:bio-results}) \\
 \bottomrule
 \end{tabular}%
 }
@@ -272,43 +267,48 @@ figure.
 \label{sec:short-answer-results}
 
 This section begins with the three short-answer tasks (TriviaQA, NQ-Open, SVAMP).
-Table~\ref{tab:auroc-overview} gives the bird's-eye view: discrete
-semantic entropy, the full probability-weighted estimator, and the
-hidden-state probe, for all three models and four tasks.
+Table~\ref{tab:auroc-overview} gives the bird's-eye view: discrete semantic
+entropy, the method at the centre of the thesis, for all three models across
+the three short-answer tasks and the claim-level long-form task. The
+remaining detectors follow task by task below.
 
 \begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Selective-prediction AUROC overview (seed-mean over 42/43/44).
-  Short-answer tasks on the left, biography on the right. On short
-  answers all detectors land in a similar, useful band; on biography the
-  picture changes sharply (Section~\ref{sec:bio-results}).}
+\caption{Selective-prediction AUROC for discrete semantic entropy
+  (seed-mean over 42/43/44), sealed primary. The three short-answer tasks
+  are on the left. The \emph{Biography} column is the claim-level FactualBio
+  evaluation with human labels (Section~\ref{sec:factualbio-results}), not
+  the whole-paragraph biography experiment of
+  Section~\ref{sec:bio-results}; the two score different objects and are
+  never compared directly.}
 \label{tab:auroc-overview}
 \input{includes/generated_overview.tex}
 \end{table*}
 
 The companion AURAC view is given in Table~\ref{tab:aurac-overview}. AURAC
 measures how fast accuracy rises as the most-uncertain answers are
-discarded, so unlike AUROC it depends on how accurate the model was to
-begin with: a high-accuracy cell (e.g.\ TriviaQA on the 70B model, 82.5\%
-correct) starts near the top and so has a high AURAC regardless of the
-detector, while a low-accuracy cell (e.g.\ NQ-Open on Mistral, 23\%
-correct) is bounded low. AURAC values are therefore comparable
-\emph{within} a task--model cell, where a better detector gives a
-higher AURAC, but not across cells. AURAC broadly follows AUROC within a cell, but
-because it is bounded by the cell's accuracy it does not always rank
-detectors the same way: on TriviaQA with the 70B model, for instance,
-the hidden-state probe has a slightly higher AURAC than semantic entropy
-($0.954$ vs $0.933$) despite a lower AUROC ($0.723$ vs $0.794$). This
-accuracy confound is exactly why AUROC, which is accuracy-independent, is
-used as the primary metric throughout.
+discarded, so unlike AUROC it depends on how accurate the model was to begin
+with: a high-accuracy cell starts near the top and reports a high AURAC
+almost regardless of the detector, while a low-accuracy cell is bounded low.
+The two extremes in the table make the point. TriviaQA with the 70B model,
+the most accurate cell in the grid, gives AURAC $0.956$; NQ-Open with
+Mistral-7B, the least accurate, gives $0.389$ --- and the AUROC values for
+those same two cells, $0.748$ and $0.794$, run the other way. The ordering of
+the two metrics can therefore disagree entirely across cells, because they
+are answering different questions. AURAC values are comparable \emph{within}
+a task--model cell, where a better detector does give a higher AURAC, but not
+across cells. This accuracy confound is exactly why AUROC, which is
+accuracy-independent, is used as the primary metric throughout.
 
 \begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Selective-prediction AURAC overview (seed-mean over 42/43/44),
-  the companion to Table~\ref{tab:auroc-overview}. AURAC tracks base
-  accuracy, so values are comparable within a cell but not across cells.}
+\caption{Selective-prediction AURAC (seed-mean over 42/43/44), the companion
+  to Table~\ref{tab:auroc-overview} and with the same column meanings: the
+  \emph{Biography} column is the claim-level FactualBio evaluation. AURAC
+  tracks base accuracy, so values are comparable within a cell but not
+  across cells.}
 \label{tab:aurac-overview}
 \input{includes/generated_overview_aurac.tex}
 \end{table*}
@@ -443,19 +443,24 @@ The meaning-based step needs a model to decide whether two answers are
 equivalent. Does the choice of that model matter?
 Table~\ref{tab:clustering-sensitivity} compares four backends
 (exact-match, two sizes of DeBERTa NLI, and a large Qwen judge)
-holding everything else fixed.
+holding everything else fixed: the same saved samples are re-clustered by
+each backend, so any difference is attributable to the equivalence judge
+alone. This comparison and the biography analysis that follows come from the
+archived protocol family (Section~\ref{sec:protocol-provenance}); they are
+read here for direction and magnitude, not for decimal-level comparison
+against the sealed short-answer tables above.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Discrete semantic entropy AUROC by clustering backend
-  (mean $\pm$ std over seeds). Best backend per row in bold (higher is
-  better). The DeBERTa-v3-base backend is reported as a sensitivity
-  comparison against the large NLI model. On biography,
-  exact-match clustering reduces to the surface-entropy baseline (every
-  paragraph is a distinct string) and sits at chance.}
+  (mean $\pm$ std over seeds 42/43/44), archived protocol family. Best
+  backend per row in bold (higher is better). On biography, exact-match
+  clustering is not reported because it reduces exactly to the
+  surface-entropy baseline: every paragraph is a distinct string, so the two
+  scores coincide at chance (Table~\ref{tab:auroc-bio}).}
 \label{tab:clustering-sensitivity}
-\input{includes/generated_clustering_sensitivity.tex}
+\input{includes/generated_backend_sensitivity_archived.tex}
 \end{table}
 
 \begin{figure}[ht]
@@ -469,19 +474,29 @@ holding everything else fixed.
 \label{fig:bio-clustering-sensitivity}
 \end{figure}
 
-On short answers the backend barely matters: exact-match, base NLI,
-large NLI and the Qwen judge land within a few points of each other,
-which is unsurprising given that normalization already does the work. On
-biographies the choice is decisive (Figure~\ref{fig:bio-clustering-sensitivity}):
-exact-match clustering collapses to the chance line, while the
-DeBERTa-v3-large NLI backend and the Qwen judge both recover a clear
-signal, the Qwen judge being strongest. The smaller DeBERTa-v3-base
-backend underperforms the large model in every biography cell and falls
-toward chance for the two Llama generators, retaining only moderate signal
-for Mistral-7B; this reinforces that on long-form inputs the capacity of
-the entailment model, not merely its presence, is what recovers the signal. This is the long-form
-counterpart to the short-answer negative result: when clustering matters
-at all, \emph{which} clusterer is used matters a great deal.
+On short answers the backend barely matters. Across the nine short-answer
+cells the four backends span at most $0.04$ AUROC, and the plain exact-match
+grouping is the best of the four in five of the nine cells: once the answer
+strings are normalized there is very little for a stronger equivalence judge
+to add. This is the same finding as
+Section~\ref{sec:significance}, seen from the other side.
+
+On biographies the choice is decisive
+(Figure~\ref{fig:bio-clustering-sensitivity}). Exact-match clustering is not
+even applicable, since no two paragraphs are the same string. The
+DeBERTa-v3-base backend reaches only $0.610$ for Mistral-7B and falls
+\emph{below} chance for both Llama generators ($0.464$ and $0.435$); the
+larger DeBERTa-v3-large recovers a usable signal in every cell ($0.708 /
+0.618 / 0.612$); and the Qwen-72B judge is stronger again ($0.736 / 0.685 /
+0.666$). The same samples therefore yield anything from anti-predictive to
+moderately useful behaviour depending only on how equivalence is judged. On
+long-form inputs it is the capacity of the entailment model, not merely its
+presence, that determines whether a signal appears at all --- and a backend
+that mis-merges paragraph-length pairs does not simply add noise, it can
+invert the ranking. This is the long-form counterpart to the short-answer
+negative result: when clustering matters at all, \emph{which} clusterer is
+used matters a great deal, which is also why the following section treats the
+whole-paragraph numbers as a diagnostic rather than as a detector benchmark.
 
 \section{Long-form biography results}
 \label{sec:bio-results}
@@ -491,63 +506,107 @@ sample-and-cluster pipeline, but the model now writes a paragraph rather
 than a phrase. Table~\ref{tab:auroc-bio} lists every detector for all
 three generators.
 
+This section is written as a \emph{diagnostic} rather than as a detector
+benchmark. Its purpose is to establish why scoring a whole paragraph is the
+wrong granularity for this method, which is what motivates the claim-level
+evaluation in Section~\ref{sec:factualbio-results}; the long-form headline
+claim rests on that sealed claim-level result, not on the archived numbers
+here.
+
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Biography (whole-paragraph) AUROC by detector and model
-  (mean $\pm$ std over seeds), canonical DeBERTa-v3-large clustering.
-  The two count-based surface scores (naive \emph{sample} entropy and
-  surface entropy) collapse to chance ($\approx 0.50$) because long
-  paragraphs almost never repeat as identical strings; the
-  probability-weighted naive entropy, the NLI-clustered methods, and the
-  hidden-state probe recover a real signal, while KLE does not. Best
-  value per model column in bold (higher is better).}
+  (mean $\pm$ std over seeds 42/43/44), canonical DeBERTa-v3-large
+  clustering, archived protocol family
+  (Section~\ref{sec:protocol-provenance}). The two count-based surface
+  scores (naive \emph{sample} entropy and surface entropy) sit at chance
+  ($\approx 0.50$) because long paragraphs almost never repeat as identical
+  strings. Best value per model column in bold (higher is better).}
 \label{tab:auroc-bio}
-\input{includes/generated_auroc_bio.tex}
+\input{includes/generated_bio_wholepara_archived.tex}
 \end{table}
 
 The contrast with short answers is stark. The two count-based surface
 scores, naive \emph{sample} entropy and surface entropy, sit at
 $\approx 0.50$, pure chance, exactly as Example~\ref{sec:audit-bio}
 predicted: every long paragraph is a distinct string, so these scores
-are permanently pinned at their maximum and can rank nothing. Every
-detector that escapes raw string-counting recovers a real signal, with
-one exception: KLE, whose embedding-based score is at best marginally
-above chance ($0.545$, Mistral-7B with the RoBERTa-NLI encoder) and
-falls \emph{below} chance for both Llama generators
-($0.360$--$0.464$). Escaping string identity is therefore necessary but
-not sufficient: the meaning representation must also cope with
-paragraph-length inputs, which the sentence-embedding kernels used by
-KLE evidently do not.
-Meaning-aware discrete semantic entropy reaches $0.708$ (Mistral-7B),
-$0.618$ (Llama-3.1-8B) and $0.612$ (Llama-3.1-70B), and the Qwen-judge
-clustering variant is stronger still ($0.736 / 0.685 / 0.666$),
-consistent with the backend sensitivity above. So the value of moving
-from surface comparison to meaning comparison is not marginal here; it
-is the difference between a useless detector and a working one.
+are permanently pinned at their maximum and can rank nothing. Measured
+across the biography set the mean surface entropy is $2.303$ nats for
+Mistral-7B, which to three decimals \emph{is} the ceiling $\ln 10 =
+2.3026$. A score with no variance cannot rank anything, and this is the
+one unambiguous long-form result of the section.
 
-Two detectors that need no clustering at all are in fact the strongest on
-biography. Probability-weighted naive entropy, which keeps each
-distinct paragraph but weights it by the model's own sequence
-probability, is the single best score on the two smaller models
-($0.781$ Mistral, $0.769$ Llama-3.1-8B), and the self-evaluation
-baseline \mbox{P(True)} is the best on the largest ($0.777$). The lesson
-is that on long text the model's \emph{own probability signal} carries
-much of the confabulation information, and the hard-clustering step only
-partially recovers it.
+Escaping string identity is necessary but not sufficient. KLE, which
+compares meanings softly through sentence embeddings rather than hard
+clusters, is at best marginally above chance ($0.545$, Mistral-7B with the
+RoBERTa-NLI encoder) and falls \emph{below} chance for both Llama generators
+($0.360$--$0.464$): its kernels do not cope with paragraph-length inputs.
+Hard NLI clustering does better --- $0.708 / 0.618 / 0.612$ for
+DeBERTa-v3-large, $0.736 / 0.685 / 0.666$ with the Qwen judge --- but the
+next paragraph shows why those values should not be read as a working
+long-form detector.
 
-One row of Table~\ref{tab:auroc-bio} needs a word of explanation: the
-\emph{judge correctness score} is the confidence value the long-form
-judge reports for its own true/false verdict, recorded as a by-product
-of grading. It is shown only as a reference point: it comes from the
-same judge that produces the correctness labels and presupposes access
-to the reference, so it is not a deployable detector.
+\paragraph{Whole-paragraph entropy is partly saturated.}
+Table~\ref{tab:longform-saturation} measures how often the score is pinned at
+its ceiling. Under the canonical backend, discrete semantic entropy takes its
+maximum value on $32.1\,\%$ of Mistral-7B records, $17.5\,\%$ for
+Llama-3.1-8B and $7.4\,\%$ for Llama-3.1-70B, with $5.4$ to $7.2$ of the ten
+samples landing in distinct clusters. The same measurement on short answers
+gives $0.1$--$4.9\,\%$ at the ceiling and $1.6$--$5.1$ clusters. Under the
+weaker DeBERTa-v3-base backend the biography figures rise to
+$35.8$--$74.4\,\%$. So on long text a large minority of records carry an
+identical, maximal score and contribute nothing to the ranking; the detector
+is working only on the remainder. The relationship is not a simple one ---
+the Qwen judge saturates more than DeBERTa-v3-large on two of the three
+generators yet ranks better, so saturation limits headroom without by itself
+fixing the ordering --- but the weakest backend is both the most saturated
+and the worst-ranking, and the short-versus-long gap is an order of
+magnitude.
 
-One regularity is worth flagging. The semantic-entropy AUROC
-\emph{decreases} as the generator gets larger ($0.708 \to 0.618 \to
-0.612$ from 7B to 70B); Section~\ref{sec:scale-factualbio} traces this
-to larger models confabulating more \emph{consistently}, which leaves
-little spread for a consistency-based detector to find.
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{How often the whole-paragraph score is pinned at its ceiling.
+  ``At ceiling'' is the share of records whose discrete semantic entropy
+  equals $\ln 10$, i.e.\ where all ten samples fall in separate clusters and
+  the score cannot discriminate; ``clusters'' is the mean number of distinct
+  semantic clusters per record. Archived protocol family, seeds 42/43/44.
+  The short-answer rows give the same measurement under the canonical
+  backend, as a range over the three tasks.}
+\label{tab:longform-saturation}
+\input{includes/generated_longform_saturation.tex}
+\end{table}
+
+\paragraph{Mistral's paragraphs are frequently unfinished.} A second, independent
+defect affects the same table. Of the ten sampled paragraphs per prompt,
+$27.5\,\%$ of Mistral-7B samples end on a word character rather than on
+sentence-terminal punctuation, i.e.\ the generation ran into the decoding cap
+mid-sentence; the corresponding rates for Llama-3.1-8B and Llama-3.1-70B are
+$0.3\,\%$ and $0.7\,\%$. Truncated paragraphs are textually distinctive for
+reasons that have nothing to do with factual content, so they add
+cluster boundaries the meaning of the text does not warrant, and they do so
+for one generator far more than the others.
+
+\paragraph{What the table still supports.} Two detectors that need no
+clustering at all are the strongest here. Probability-weighted naive entropy,
+which keeps each distinct paragraph but weights it by the model's own
+sequence probability, is the best score on the two smaller models ($0.781$
+Mistral-7B, $0.769$ Llama-3.1-8B), and the self-evaluation baseline
+\mbox{P(True)} is the best on the largest ($0.777$). Neither is affected by
+the saturation above, because neither counts clusters. The lesson is that on
+long text the model's \emph{own probability signal} carries much of the
+confabulation information, while the hard-clustering step recovers it only
+partially and only when the equivalence judge is strong enough.
+
+Taken together, the two diagnostics say that whole-response entropy is the
+wrong granularity for paragraph-length text rather than that meaning-based
+detection fails on long-form generation. A score that is maximal for a large
+share of records, computed over samples that are partly truncated, is not a
+sound basis for a headline claim, which is why the long-form conclusion of
+this thesis rests on the claim-level evaluation of
+Section~\ref{sec:factualbio-results} --- where each regenerated answer is
+short, the ceiling is far away, and the labels are human.
 
 \section{Supervised baselines and hidden-state probes}
 \label{sec:probes-results}
@@ -555,49 +614,66 @@ little spread for a consistency-based detector to find.
 Semantic entropy needs several samples per question. Two cheaper-at-test
 alternatives read the model's internal state from a single pass: the
 hidden-state probe (SEP) and embedding regression.
-Table~\ref{tab:embedding-regression} reports them alongside
-\mbox{P(True)}.
+Table~\ref{tab:embedding-regression} reports the sealed short-answer
+probes, and Table~\ref{tab:probes-archived} adds \mbox{P(True)},
+embedding regression, and the biography cells from the archived family.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Probe and supervised-baseline AUROC (mean $\pm$ std over
-  seeds): hidden-state SEP probe, embedding regression
-  (in-distribution and out-of-distribution), and \mbox{P(True)}. Best
-  value per row in bold (higher is better).}
+\caption{Held-out probe AUROC on the short-answer tasks (mean $\pm$ std
+  over seeds 42/43/44), sealed primary. Both probes read the same greedy
+  response feature and are scored on the same held-out records within each
+  cell: SEP is trained on a binarized semantic-entropy target, the accuracy
+  probe on correctness. Because these are held-out splits, the values are
+  not ranked against the full-grid entropy tables earlier in this chapter.}
 \label{tab:embedding-regression}
 \input{includes/generated_embedding_regression.tex}
 \end{table}
 
-The probes are competitive, and on biography they are strong: the SEP
-probe reaches $0.728$ (8B) and $0.731$ (70B), \emph{above} every
-meaning-based clustering method on those models, and \mbox{P(True)} is
-the single best biography detector on the 70B model at $0.777$. (Only
-the probability-weighted naive entropy, noted above, beats the probe on
-the two smaller models.) The SEP probe is always scored on its own
-held-out evaluation split; Appendix
-Table~\ref{tab:sep-heldout-appendix} lists the per-split record counts
-together with same-split entropy baselines, which differ from the
-full-grid entropy tables in this chapter and are not directly
-comparable to them. This matters for
-deployment, because a single-pass probe is far cheaper than drawing ten
-samples and running pairwise entailment.
+On short answers the two probes land close together despite being trained on
+different targets: the largest gap is $0.040$ AUROC (TriviaQA with
+Mistral-7B, $0.774$ against $0.814$) and six of the nine cells differ by less
+than $0.03$. The correctness-trained probe is nonetheless ahead in eight of
+the nine cells, so the two targets are near-substitutes rather than
+equivalent: whatever uncertainty information is linearly readable from the
+last hidden state is largely a single shared signal, but training directly on
+correctness extracts slightly more of it than training on a binarized entropy
+target. Appendix Table~\ref{tab:sep-heldout-appendix} lists the per-split
+record counts.
 
-Embedding regression tells a consistent story across all four tasks,
-including biography. Trained and scored on the same task
-(in-distribution), it matches the SEP probe almost exactly in every cell
-of Table~\ref{tab:embedding-regression}. This is expected rather than
-coincidental: both are linear probes over the model's hidden states, and
-the probe converges to the same solution whether its training target is
-correctness (embedding regression) or the semantic-entropy threshold
-(SEP). Under distribution shift the picture changes. The pooled
-leave-one-out variant, trained on the other tasks and scored on the
-held-out one, degrades toward chance, and the fall is largest on
-biography ($0.549$, $0.635$, $0.582$ from 7B to 70B), where a probe
-fitted only on short answers transfers poorly to long-form paragraphs.
-The single-pass probes are therefore cheap and strong in-distribution
-but do not travel well across task types. The catch for the sampling
-comparison, shown next, is that the probe's advantage also depends on the
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Single-pass probe and self-evaluation AUROC across all four tasks
+  (mean $\pm$ std over seeds 42/43/44), archived protocol family
+  (Section~\ref{sec:protocol-provenance}). Best value per row in bold
+  (higher is better). The in-distribution embedding regression is trained
+  and scored on the same task; the out-of-distribution variant is trained on
+  the other tasks and scored on the held-out one.}
+\label{tab:probes-archived}
+\input{includes/generated_probes_archived.tex}
+\end{table}
+
+Two patterns run through Table~\ref{tab:probes-archived}. First, the probes
+are relatively strongest on biography: SEP reaches $0.728$ (8B) and $0.731$
+(70B), above every meaning-based clustering method on those generators
+(Table~\ref{tab:auroc-bio}), and \mbox{P(True)} is the best biography score
+on the 70B model at $0.777$. Unlike the clustered entropies, neither is
+affected by the ceiling saturation of
+Table~\ref{tab:longform-saturation}, which is part of why they look better
+there. Second, in-distribution embedding regression matches the SEP probe
+almost exactly in every cell, for the same reason as above: both are linear
+probes over the same hidden states and converge to the same solution whether
+the target is correctness or the semantic-entropy threshold.
+
+Under distribution shift that advantage disappears. The pooled leave-one-out
+variant, trained on the other tasks and scored on the held-out one, degrades
+in every cell, and the drop is largest on SVAMP ($0.567$--$0.710$) and
+biography ($0.549$, $0.635$, $0.582$ from 7B to 70B), where a probe fitted
+mostly on short factual answers transfers poorly. Single-pass probes are
+therefore cheap and strong in-distribution but do not travel well across task
+types --- and, as the next section shows, their advantage also depends on the
 decoding temperature.
 
 \section{Sampling-temperature sensitivity}
@@ -654,49 +730,51 @@ The whole-paragraph biography score asks ``is this paragraph reliable?''
 A finer question is ``which individual claims in the paragraph are
 reliable?'' The FactualBio extension answers the finer question by
 applying the same meaning-based idea one claim at a time, following the
-procedure shown in panel~(b) of Figure~\ref{fig:method-schematic}. For
-each generated biography it (i)~splits the paragraph into individual
-factual claims (e.g.\ ``born in 1911''), (ii)~turns each claim back into
-a question (``When was this person born?''), (iii)~samples several fresh
-answers to that question, and (iv)~groups those answers by meaning and
-computes the semantic entropy; a high value flags the claim as a
-likely confabulation. A separate LLM judge then labels each claim as
-true or false against the reference, so the same AUROC measure can be
-applied at the level of single claims. The claim-level clustering is
-run with both DeBERTa cross-encoder sizes (question-conditioned): the
-canonical v3-large and the lighter v3-base used in the generation runs.
-Because each regenerated answer is a short, question-conditioned
-string, the backend choice is expected to matter far less here than on
-whole paragraphs (Section~\ref{sec:clustering-sensitivity}); the
-results confirm this directly. Table~\ref{tab:factualbio} reports the
-result.
+procedure shown in panel~(b) of Figure~\ref{fig:method-schematic}. It starts
+from the $150$ published biography claims and their \emph{human} factuality
+labels, so no automatic judge stands between the method and the ground
+truth. For each claim it (i)~turns the claim into questions
+(``When was this person born?''), using one hash-locked question set shared
+across all three generators so the model comparison is paired,
+(ii)~re-samples fresh answers to each question from the generator under
+test, and (iii)~groups those answers by meaning and computes the semantic
+entropy; a high value flags the claim as a likely confabulation. Because
+each regenerated answer is a short, question-conditioned string, this is the
+short-answer regime applied to long-form content, and the ceiling effects of
+Section~\ref{sec:bio-results} do not arise. Table~\ref{tab:factualbio}
+reports the result.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Claim-level FactualBio AUROC and AURAC by generator, under the
-  canonical DeBERTa-v3-large NLI backend, the v3-base backend, and
-  exact-match clustering of the re-sampled claim answers (mean $\pm$
-  std over seeds 42/43/44; $\approx$5{,}200--6{,}800 judged claims per
-  run). Better clustering per metric in bold (higher is better).
-  Detection quality decreases as the generator gets larger.}
+\caption{Claim-level FactualBio AUROC and AURAC by generator (mean $\pm$
+  std over seeds 42/43/44), sealed primary. The $150$ published claims carry
+  human factuality labels; six frozen questions per claim and three
+  regenerated answers per question are grouped with the disclosed
+  question-conditioned DeBERTa-v3-large clustering adaptation. Detection
+  quality decreases as the generator gets larger.}
 \label{tab:factualbio}
 \input{includes/generated_factualbio_main.tex}
 \end{table}
 
-At the claim level the same scale effect from
-Section~\ref{sec:bio-results} appears even more cleanly: claim-level
-detection AUROC falls monotonically with model size, $0.707$ (Mistral-7B)
-$\to 0.652$ (Llama-3.1-8B) $\to 0.528$ (Llama-3.1-70B) under the
-canonical v3-large backend. The trend is robust to the entailment
-backend: moving from v3-base to v3-large lifts every cell by only
-$+0.007$ to $+0.019$ AUROC, in sharp contrast to the whole-paragraph
-setting, where the same swap is result-determining
-(Section~\ref{sec:clustering-sensitivity}), while exact-match grouping
-of the regenerated answers understates AUROC everywhere. By the 70B
-model, claim-level semantic entropy is barely above chance.
-Larger models repeat their confabulations too consistently for a
-consistency-based signal to separate true from false claims.
+Claim-level detection works for every generator, and it degrades with model
+size: AUROC falls monotonically from $0.748$ (Mistral-7B) through $0.724$
+(Llama-3.1-8B) to $0.701$ (Llama-3.1-70B), with seed standard deviations of
+$0.017$ or less. The decline is real and monotonic but modest --- $0.047$
+AUROC across a tenfold difference in parameter count --- and the largest
+model still detects well above chance. AURAC behaves the same way and is
+almost flat ($0.847 / 0.843 / 0.838$), which is what one expects when the
+underlying claim accuracy is similar across generators.
+
+The direction matches the whole-paragraph observation of
+Section~\ref{sec:bio-results}, and the mechanism is the same one discussed
+in Section~\ref{sec:scale-factualbio}: semantic entropy measures
+inconsistency, and a larger model that has confabulated a detail tends to
+regenerate the \emph{same} wrong detail rather than a different one each
+time, leaving less disagreement to detect. What the human labels change is
+the magnitude. These are the labels the method should be judged against, and
+against them the erosion with scale is a gentle slope rather than a collapse:
+at the largest size the signal is weaker, not absent.
 
 \section{Summary of findings}
 \label{sec:results-summary}
@@ -706,20 +784,25 @@ The experiments support a single, regime-dependent picture.
 \begin{enumerate}
   \item \textbf{Short answers: semantic clustering is close to
     redundant.} All sampling-based detectors work (AUROC
-    $\approx 0.67$--$0.88$), but the cheap surface/exact-match baseline
+    between $0.70$ and $0.90$), but the cheap surface baseline
     is the strongest single score in most cells and no method beats it
     by more than a practically negligible margin
     (Section~\ref{sec:significance}).
     Normalization, not entailment, does most of the grouping.
-  \item \textbf{Long-form: semantic clustering is decisive.} Surface
-    baselines collapse to chance on biographies, while meaning-aware
-    entropy, the LLM-judge variant, and the hidden-state probe all
-    recover a real signal (Section~\ref{sec:bio-results}). The clustering
-    backend is result-determining here
+  \item \textbf{Long-form: meaning-based scoring is what remains.} Surface
+    baselines have nothing to measure on paragraph-length text, where every
+    sample is a distinct string. Measured at claim level against human
+    labels, semantic entropy detects at $0.748 / 0.724 / 0.701$
+    (Section~\ref{sec:factualbio-results}). The whole-paragraph variant is
+    reported as a diagnostic rather than a detector: its score is pinned at
+    the ceiling for a large minority of records and the samples are partly
+    truncated (Section~\ref{sec:bio-results}). The clustering backend is
+    result-determining on paragraphs and nearly irrelevant on short answers
     (Section~\ref{sec:clustering-sensitivity}).
-  \item \textbf{Scale erodes the signal.} Both whole-paragraph and
-    claim-level detection get \emph{worse} as the generator grows,
-    because larger models confabulate more consistently
+  \item \textbf{Scale erodes the signal, gently.} Claim-level detection
+    falls monotonically as the generator grows, by $0.047$ AUROC across a
+    tenfold size difference, because larger models confabulate more
+    consistently; the whole-paragraph numbers move the same way
     (Section~\ref{sec:factualbio-results}).
   \item \textbf{Temperature decides which detector wins.} Sampling-based
     entropy and the single-pass probe respond to decoding temperature in

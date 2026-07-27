@@ -17,38 +17,40 @@ method.
 
 The answer is regime-dependent, in both directions and more sharply
 than expected. On short-answer tasks every sampling-based estimator
-detects errors well (AUROC 0.67--0.88), but entropy over normalized
-strings, the cheapest score in the family, is the strongest
-single method in six of nine model--dataset cells, and no semantic,
-kernel, probe, or self-evaluation method beats it by a margin of any
-practical size (the sole significant exception is $+0.003$ AUROC on
-SVAMP with the 70B model). A record-level analysis explains why: dataset
-normalization
-already removes almost all surface variation before any semantic step
-runs, so clustering has little left to merge. On long-form biography the
-same surface scores collapse to chance while the NLI-clustered and
-probability-weighted entropy estimators, along with the probe and,
-on the larger models, P(True), recover a statistically significant
-signal for every generator (KLE, whose sentence-embedding kernel does
-not cope with paragraph-length text, is the one exception); the
-strongest long-form scores come from
-probability-weighted naive entropy on the two smaller models
-(AUROC 0.77--0.78) and from the single-pass P(True) on the largest
-(0.78). Under the paper-faithful protocol, the short-answer
-semantic-entropy averages land in the same band as the original work's
-reported 0.790, with the same method ordering.
+detects errors well (AUROC between 0.70 and 0.90), but entropy over
+normalized strings, the cheapest score in the family, is the strongest
+single method in eight of nine model--dataset cells, and no semantic
+estimator beats it in any cell: all nine mean differences are negative, and
+the only Holm-significant one favours the surface baseline. A record-level
+analysis explains why: dataset normalization already removes almost all
+surface variation before any semantic step runs, so clustering has little
+left to merge. On long-form text the same surface score has nothing to
+measure --- every sampled paragraph is a distinct string, so it is pinned at
+its ceiling and sits at chance --- and meaning-based scoring is what remains.
+Measured at claim level against human factuality labels, semantic entropy
+detects confabulated claims at AUROC 0.748, 0.724 and 0.701 for the three
+generators. On whole paragraphs the picture is weaker and, on the evidence
+of two independent diagnostics, partly an artifact of granularity rather
+than of the method: the score is pinned at its ceiling for a large minority
+of records, and one generator's paragraphs are frequently cut off at the
+decoding limit.
 
 Two further findings qualify the method's practical use. First, the
-clustering backend is result-determining on long-form inputs: across
-NLI cross-encoders and an LLM judge, backends span chance-level to
-clearly useful behavior on the same saved samples, and the same
-artifact reappears at claim level, where exact-match clustering wrongly
-makes the largest model look worse than chance. Second, the claim-level FactualBio extension shows that
+clustering backend is result-determining on long-form inputs: across NLI
+cross-encoders and an LLM judge, backends span anti-predictive to
+moderately useful behavior on the same saved samples, while on short answers
+the same four backends span at most 0.04 AUROC. Backend capacity matters in
+proportion to the length of the text being compared, which makes it an
+implementation detail on short answers and a first-order design decision on
+long-form text. Second, the claim-level FactualBio extension shows that
 semantic entropy's discriminative power decreases monotonically with
-generator scale (AUROC 0.707 $\rightarrow$ 0.652 $\rightarrow$ 0.528
-from 7B to 70B, robust to the choice of entailment backend): larger
-models repeat their confabulations more consistently, eroding exactly
-the inconsistency that the method measures. Hidden-state probes invert this picture. On short answers they
+generator scale (AUROC 0.748 $\rightarrow$ 0.724 $\rightarrow$ 0.701 from 7B
+to 70B): larger models repeat their confabulations more consistently,
+eroding exactly the inconsistency that the method measures. The effect is a
+gentle slope rather than a collapse --- 0.047 AUROC across a tenfold size
+difference, with the largest model still clearly useful --- and it should not
+be extrapolated beyond the three models measured here.
+Hidden-state probes invert this picture. On short answers they
 are merely a cheap alternative, strictly weaker than sampling-based
 entropy, and converging to the same performance whether trained on
 correctness or on the semantic-entropy threshold. On long-form
@@ -101,9 +103,10 @@ since consistent confabulation at 70B is precisely the confident-error
 case; Simhi et al.~\cite{simhi_choke_2025} discuss this setting.
 
 Within the empirical results, the main residual limitations are the
-automated LLM judging behind every long-form label (whole-paragraph
-and claim-level alike), the three-seed basis of the stability
-estimates, and the English-only, biography-only long-form scope.
+automated LLM judging behind the whole-paragraph long-form labels (the
+claim-level evaluation uses published human labels), the three-seed basis of
+the stability estimates, and the English-only, biography-only long-form
+scope.
 Record-level issues (alias-type oracle failures on TriviaQA,
 semantically consistent refusals on biography, and SVAMP's
 integer-arithmetic structure) are documented in the audits; the

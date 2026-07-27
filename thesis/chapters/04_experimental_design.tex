@@ -356,6 +356,60 @@ A manual audit on a handful of records additionally checks that the
 clusters look reasonable; worked examples of such audits are shown in
 Section~\ref{sec:hand-audits}.
 
+\section{Protocol provenance: two families of runs}
+\label{sec:protocol-provenance}
+
+The results in Chapter~\ref{ch:results} come from two families of runs, and
+the distinction matters when reading any single number.
+
+\paragraph{The sealed primary.} The short-answer grid (three datasets, three
+models, three seeds, temperature $1.0$) and the claim-level FactualBio
+evaluation were produced under one frozen protocol and then sealed: an
+immutable manifest fixes the prompt sets, model and tokenizer revisions,
+decoding budgets, seeds, splits, and the code commit, and a completion step
+independently recomputes every reported metric from the per-record files and
+binds the summary to the physical artifact hashes. These runs carry every
+headline claim: the short-answer method comparison
+(Sections~\ref{sec:short-answer-results}--\ref{sec:significance}), the
+hidden-state probe on short answers (Section~\ref{sec:probes-results}), and
+the claim-level long-form result (Section~\ref{sec:factualbio-results}).
+
+\paragraph{The archived family.} The clustering-backend comparison
+(Section~\ref{sec:clustering-sensitivity}), the whole-paragraph biography
+analysis (Section~\ref{sec:bio-results}), \mbox{P(True)}, embedding
+regression, KLE, and the sampling-temperature sweep
+(Section~\ref{sec:temperature-sensitivity}) come from an earlier set of
+generation runs under their own decoding budgets and reclustering path. They
+are reported as supporting evidence and are labelled as such in every caption.
+
+\paragraph{Why they are not interchangeable.} The two families were generated
+separately, so even at the same nominal condition their numbers differ by
+sampling noise plus whatever the budget and pipeline differences contribute.
+Table~\ref{tab:protocol-drift} quantifies this directly: it lists discrete
+semantic entropy under the canonical backend at temperature $1.0$ in both
+families. The differences run from $-0.046$ to $+0.057$ AUROC, with no
+consistent sign, which is the right order of magnitude to expect and a useful
+calibration for the reader: differences of this size between the two families
+carry no interpretation.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{The same measurement under both protocol families: discrete semantic
+  entropy AUROC at temperature $1.0$ with canonical DeBERTa-v3-large
+  clustering. The sealed column is read back from the primary tables of
+  Chapter~\ref{ch:results} so the two cannot diverge. The spread bounds how
+  much of any cross-family comparison is protocol rather than method.}
+\label{tab:protocol-drift}
+\input{includes/generated_protocol_drift.tex}
+\end{table}
+
+Three rules follow, and are applied throughout Chapter~\ref{ch:results}. No
+table or figure mixes the two families. Absolute head-to-head method
+comparisons are drawn only from the sealed primary. Archived results are read
+for direction and rough magnitude, never for a decimal-level comparison
+against a sealed number.
+
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
 
