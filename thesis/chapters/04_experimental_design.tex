@@ -103,10 +103,22 @@ BioASQ~\cite{tsatsaronis_bioasq_2015} is omitted as a third
 open-domain recall task that differs from TriviaQA and NQ-Open
 primarily in domain; and TruthfulQA~\cite{lin_truthfulqa_2022} is
 omitted because the design isolates semantic clustering rather than
-broader truthfulness. Beyond the whole-paragraph biography evaluation,
-a claim-level long-form extension (FactualBio) decomposes the
-generated biographies into individual claims and scores each claim
-separately; its protocol and results are reported in
+broader truthfulness. Beyond the whole-paragraph biography evaluation, a claim-level long-form
+extension (FactualBio) scores individual factual claims rather than whole
+paragraphs. It starts from the $150$ published FactualBio claims together
+with their \emph{human} factuality labels, so no automatic judge stands
+between the method and the ground truth, and it generates no new
+biographies. Each claim carries six frozen questions, and three answers are
+regenerated per question from the model under test. The question set is
+hash-locked and shared across all three generators, which makes the model
+comparison paired at the cost of not tailoring questions per model; that
+fixed-question adaptation is disclosed rather than treated as neutral. Two
+further deviations from the released FactualBio code are disclosed for the
+same reason: clustering here is question-conditioned
+\texttt{cross-encoder/nli-deberta-v3-large}, where the original used
+answer-only \texttt{microsoft/deberta-v2-xlarge-mnli}. This is therefore a
+fixed-claim, question-conditioned FactualBio adaptation using the released
+claim labels, not a direct replication. Results are reported in
 Section~\ref{sec:factualbio-results}.
 
 \section{Models and the replication condition}
@@ -201,9 +213,9 @@ case where the two semantic-equivalence backends are most likely to
 disagree.
 
 \paragraph{Correctness labeling for long-form generations.}
-For TriviaQA and SVAMP a generation is marked correct by normalized
-string comparison against the reference answer, the same exact-string
-protocol used for the surface-form baseline. This is not available for
+For TriviaQA, NQ-Open and SVAMP a generation is marked correct by
+normalized string comparison against the reference answer, the same
+exact-string protocol used for the surface-form baseline. This is not available for
 paragraph-length biographies, which have no single short ground-truth
 string. The biography task therefore grades correctness with the open
 instruction-tuned judge
@@ -241,11 +253,11 @@ prompt at temperature $T=1.0$ with nucleus top-$p=0.9$ and
 top-$k=50$, applied uniformly to every generation stage. Per-sequence
 log-probabilities are captured for each sample and length-normalized,
 which is what enables the probability-weighted estimators (naive
-entropy and full semantic entropy) alongside the count-based ones. The
-maximum answer length is short for the short-answer datasets,
-appropriate for sentence-length question answering, and is raised for
-the biography task so that paragraph-length generations are not
-truncated.
+entropy and full semantic entropy) alongside the count-based ones. The maximum answer length is short for the short-answer datasets,
+appropriate for sentence-length question answering, and is raised for the
+biography task so that paragraph-length generations can complete. The exact
+ceilings, and the truncation actually observed under them, are given in
+Section~\ref{sec:budgets-and-exclusions}.
 
 Correctness labeling on the short-answer datasets also follows the
 original protocol: in addition to the ten high-temperature samples,
@@ -355,6 +367,75 @@ requirements:
 A manual audit on a handful of records additionally checks that the
 clusters look reasonable; worked examples of such audits are shown in
 Section~\ref{sec:hand-audits}.
+
+\section{Decoding budgets, truncation, and excluded prompts}
+\label{sec:budgets-and-exclusions}
+
+Three properties of the generation step affect how the results should be
+read, and all three are measured rather than assumed.
+
+\paragraph{Two independent decoding budgets.} The ten stochastic samples and
+the single greedy response used as the probe feature have separate token
+ceilings, recorded independently in the protocol manifest and re-checked at
+sealing. The stochastic ceiling is per dataset --- $64$ tokens for TriviaQA,
+$128$ for NQ-Open and SVAMP --- while the greedy feature response is fixed at
+$256$ tokens for every cell. The two must not be conflated: an early version
+of the protocol reused each dataset's stochastic ceiling for the greedy
+response, which is what the separate budgets now prevent.
+
+\paragraph{Residual truncation, measured.} A sample that reaches its ceiling
+before the model emits an end-of-sequence token is truncated, and a truncated
+sample can distort the entropy estimate computed over it. The protocol sets a
+$1\,\%$ ceiling on the truncation rate per shard. Measured across all $54$
+collection shards of the sealed run, \emph{no shard exceeds it}: the worst is
+$0.86\,\%$ (NQ-Open, Llama-3.1-8B, seed 42, training split). Pooled by
+dataset the rates are $0.38\,\%$ for TriviaQA ($341$ of $90\,000$ samples),
+$0.39\,\%$ for NQ-Open ($352$ of $90\,000$) and $0.07\,\%$ for SVAMP ($66$ of
+$90\,000$). Training splits run about twice as high as evaluation splits, as
+expected from the harder prompt pool. These residual rates are reported here
+because the protocol requires any nonzero rate to be stated, not merely
+certified as under the gate.
+
+\paragraph{Excluded prompts, and the subset every method is scored on.} On a
+small number of prompts, greedy decoding enters a repetition loop and never
+emits an end-of-sequence token within the $256$-token feature budget. A
+label-blind diagnostic at a $2048$-token ceiling confirmed these are genuine
+loops rather than merely slow completions, so raising the cap rescues none of
+them. Such a prompt is recorded with no probe feature and is skipped by the
+probes, while its ten stochastic samples remain in the entropy analysis.
+Across the whole sealed collection this affects $63$ of $27\,000$ prompts
+($0.23\,\%$). Within the evaluation grid that the primary table is computed
+on, it affects $33$ of $11\,700$ prompts ($0.28\,\%$), concentrated in four
+of the nine cells: TriviaQA with Llama-3.1-8B (4 per seed), NQ-Open with
+Mistral-7B (4) and Llama-3.1-8B (2), and SVAMP with Llama-3.1-70B (1); the
+other five cells have none.
+
+Because the headline claim is a head-to-head method comparison, every method
+in the primary short-answer table is scored on the same prompts: the
+$99.72\,\%$ of evaluation prompts for which all methods yield a score. The
+confirmatory DSE-versus-surface family is the exception, and deliberately so
+--- neither of those two scores uses the greedy feature, so both are defined
+on all $11\,700$ prompts and that comparison is already strictly paired on
+the full set.
+
+One detail is worth recording because it shows the exclusion criterion is
+principled rather than noise. The greedy feature response is decoded
+deterministically, so which prompts degenerate cannot depend on the sampling
+seed --- and indeed the counts are identical across all three seeds in every
+cell.
+
+\paragraph{Empty samples from Mistral-7B.} A separate artifact affects the
+archived family and is disclosed here because it shapes how those results
+should be read. The answer-extraction step strips a set of stop markers that
+includes Mistral's own chat-template tokens, so a sample that opens by
+echoing a new conversational turn is cut to the empty string. Measured on the
+archived short-answer records, $4.89$--$7.54\,\%$ of Mistral-7B samples are
+empty depending on the task, against exactly $0.00\,\%$ for both Llama
+generators, which do not share those markers. The empty string forms its own
+semantic cluster, and because it is uncorrelated with correctness it adds
+noise rather than signal: it \emph{attenuates} Mistral's measured
+performance. Any Mistral number in the archived family should therefore be
+read as a slight underestimate.
 
 \section{Protocol provenance: two families of runs}
 \label{sec:protocol-provenance}

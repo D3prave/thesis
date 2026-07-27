@@ -160,11 +160,16 @@ families therefore cross over between $T{=}0.7$ and $T{=}1.0$ on short
 answers. The practical consequence is concrete: under the near-greedy
 decoding common in production, the single-pass probe is both the cheaper
 and the stronger choice; a sampling-based estimator only earns its cost
-once the decoder is warm enough for the samples to genuinely disagree. Two
-qualifications apply: the temperature gain is shared by the
-surface baseline, so it reflects a general need for sampling diversity
-rather than something specific to semantic clustering, and P(True) is
-largely temperature-insensitive. On biography the curves are flat, so
+once the decoder is warm enough for the samples to genuinely disagree. Three
+qualifications apply. The temperature gain is shared by the surface
+baseline, so it reflects a general need for sampling diversity rather than
+something specific to semantic clustering; P(True) is largely
+temperature-insensitive; and for Mistral-7B part of the apparent trend is
+not a property of the detector at all. The empty-sample artifact described
+in Section~\ref{sec:budgets-and-exclusions} grows with temperature for that
+generator, adding a spurious cluster more often at the warm end of the
+sweep, so the Mistral curve should be read as an upper bound on how much of
+the change is genuine. On biography the curves are flat, so
 this trade-off is specific to the short-answer regime.
 
 \section{Model scale erodes the signal}
@@ -302,3 +307,56 @@ English only, and judge-labeled, so the short-versus-long contrast and
 the scale trend should not be over-generalized to all long-form
 generation, other languages, or settings where a different correctness
 oracle would change the labels.
+
+\section{Threats to validity}
+\label{sec:threats}
+
+The limitations above concern what the numbers mean. This section collects
+the ways in which they could be wrong, ordered by how much of the thesis
+each would move.
+
+\paragraph{Construct validity.} Correctness is an operational proxy, not
+truth. On short answers it is normalized string matching against a
+reference list; on whole-paragraph biography it is an LLM judge. Neither
+measures factuality directly, and the short-answer proxy is known to
+misfire on aliases (Example~\ref{sec:audit-artifact}). The one place this
+threat is largely absent is the claim-level evaluation, which uses published
+human labels --- which is why the long-form conclusion rests there. A related
+construct issue: semantic entropy measures inconsistency, so it can only
+detect the subset of hallucinations that are confabulations. A model that is
+confidently and repeatably wrong is invisible to it by construction, and no
+amount of additional data would change that.
+
+\paragraph{Internal validity.} The primary comparison is paired within each
+cell, which removes prompt difficulty and label noise as confounders
+between the two methods. What it does not remove is the dependence on a
+single entailment backend for the primary grid: DeBERTa-v3-large is one
+choice among several, and Section~\ref{sec:nli-sensitivity} shows the choice
+is consequential on long text even though it is nearly irrelevant on short
+answers. The primary grid is also run at a single temperature, and
+Section~\ref{sec:temperature-discussion} shows that the ranking between
+detector families depends on it. Two measured generation artifacts --- the
+Mistral empty-sample rate and the whole-paragraph saturation --- are
+disclosed in Section~\ref{sec:budgets-and-exclusions} and
+Section~\ref{sec:bio-results}; both attenuate rather than inflate the
+affected numbers, so they do not manufacture the negative short-answer
+result.
+
+\paragraph{Statistical validity.} The estimand is conditional on seeds
+42/43/44, with prompts as the resampling unit
+(Section~\ref{sec:evaluation-metrics}). One preregistered family of nine
+cells carries Holm correction; everything else is exploratory and is
+labelled as such. The negative short-answer result is a failure to reject,
+not a demonstration of equivalence: with $N=500$ per cell ($300$ for SVAMP),
+differences smaller than roughly the width of the reported intervals would
+not be detected, so the honest claim is that any advantage of meaning-based
+clustering on these datasets is smaller than that, not that it is exactly
+zero.
+
+\paragraph{External validity.} Three models from two families, three
+short-answer datasets, one long-form task, English only. Only the
+Llama-3.1 8B/70B contrast is within-family, so the scale observations are
+descriptive rather than causal, and extrapolating the claim-level slope
+beyond this range is not warranted. The generators are instruction-tuned
+chat models; nothing here speaks to base models, other decoding schemes, or
+retrieval-augmented settings.

@@ -434,6 +434,36 @@ step earns nothing over a normalized-string baseline. Whether it earns
 its keep at all is a question for the long-form setting, which the
 following sections examine.
 
+\paragraph{Why the null holds.} A negative result is more convincing with a
+mechanism attached, and here it is a simple one. AUROC depends only on the
+\emph{order} a score imposes on prompts, so if two scores order prompts
+alike they must score alike. Table~\ref{tab:rank-agreement} measures that
+agreement directly on the locked family, where both scores are recorded for
+the same prompts. The mean Spearman correlation across the nine cells is
+$0.898$, ranging from $0.745$ (TriviaQA with the 70B model) to $0.989$
+(SVAMP with the 70B model). More striking than the correlation is what
+drives it: on $57.6$ to $95.3\,\%$ of prompts the two scores are
+\emph{numerically identical}. Once the answer strings are normalized, the
+entailment step usually finds nothing left to merge, so the meaning-aware
+estimator returns exactly what the surface estimator returned. On SVAMP,
+where answers are integers, this happens on roughly nineteen prompts in
+twenty. The nine cells of
+Table~\ref{tab:significance-vs-surface} are therefore not a case of two
+different detectors performing similarly; they are largely the same detector
+evaluated twice, and the null result is what that predicts.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{How similarly the two short-answer scores rank prompts, on the
+  locked confirmatory family (mean over seeds 42/43/44). Spearman $\rho$ is
+  computed with average ranks for ties. ``Identical scores'' is the share of
+  prompts on which discrete semantic entropy and surface entropy return
+  exactly the same value.}
+\label{tab:rank-agreement}
+\input{includes/generated_rank_agreement.tex}
+\end{table}
+
 The picture changes on long-form text. There the same normalized-string
 baseline collapses toward chance, so meaning-aware scoring is what
 remains useful rather than redundant. The claim-level long-form results
