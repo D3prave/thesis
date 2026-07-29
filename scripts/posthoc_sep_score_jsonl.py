@@ -99,11 +99,12 @@ def main() -> None:
         if not records:
             raise ValueError(f"no records found in {input_path}")
         # Prompts whose greedy feature was excluded (degeneration) carry no
-        # probe feature and cannot be probe-scored. They are NOT dropped here:
-        # the scoring validation binds the record set to the probe's audited
-        # evaluation split, so it must continue to see the full locked split.
-        # `score_probe_for_record` returns None for the excluded prompts, which
-        # leaves them scoreless rather than absent.
+        # probe feature and cannot be probe-scored. The probe's audited split
+        # is exactly the feature-present subset (see train_sep_probe's
+        # split_audit_metadata), so the validation and the written artifact
+        # both use that subset. The excluded prompts remain in the collection
+        # and q-conditioned artifacts and in the entropy analysis; the
+        # completion seal reconstructs the locked split as present + excluded.
         n_excluded = sum(
             1
             for record in records
@@ -121,6 +122,14 @@ def main() -> None:
                 f"Excluding {n_excluded} record(s) with degenerate greedy "
                 "feature from probe scoring"
             )
+        records = [
+            record
+            for record in records
+            if (record.get("sep_feature_metadata") or {}).get(
+                "greedy_degenerate_excluded"
+            )
+            is not True
+        ]
         if args.expected_probe_kind == "semantic_entropy_probe":
             validate_canonical_sep_scoring_records(records, probe)
             provenance = canonical_sep_provenance(probe)
@@ -145,6 +154,7 @@ def main() -> None:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     n = 0
+    n_skipped = 0
     with output_path.open("w", encoding="utf-8") as fout:
         for record in records:
             score = score_probe_for_record(record, probe)
@@ -152,11 +162,13 @@ def main() -> None:
                 record["scores"] = {}
             if score is None:
                 # No probe feature exists for this prompt, so no probe score
-                # can exist. The prompt stays in the locked split (with its
-                # provenance) but the score field is OMITTED rather than set
-                # to null: a null would violate the record schema, and a
-                # silently absent score must be attributable to the declared
-                # degeneration exclusion — never to anything else.
+                # can exist and the prompt is not part of what the probe
+                # evaluates: it is omitted from the probe-scored artifact
+                # (the convention the sealed v2 artifacts and the completion
+                # seal use). It remains in the collection and q-conditioned
+                # artifacts and in the entropy analysis. A scoreless prompt
+                # must be attributable to the declared degeneration exclusion
+                # and nothing else.
                 excluded = (
                     record.get("sep_feature_metadata") or {}
                 ).get("greedy_degenerate_excluded") is True
@@ -169,9 +181,9 @@ def main() -> None:
                         file=sys.stderr,
                     )
                     sys.exit(2)
-                record["scores"].pop(score_field, None)
-            else:
-                record["scores"][score_field] = score
+                n_skipped += 1
+                continue
+            record["scores"][score_field] = score
             record[provenance_field] = provenance
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
             n += 1
@@ -179,6 +191,11 @@ def main() -> None:
                 print(f"  scored {n} records")
 
     print(f"wrote {n} SEP-scored records to {output_path}")
+    if n_skipped:
+        print(
+            f"omitted {n_skipped} degenerate-greedy record(s) with no probe "
+            "feature (present + excluded reconstructs the locked split)"
+        )
 
 
 if __name__ == "__main__":

@@ -269,8 +269,21 @@ def split_audit_metadata(
         metadata = record.get("sep_feature_metadata") or {}
         return metadata.get("greedy_degenerate_excluded") is not True
 
-    train_fitted = sum(1 for record in train_records if _present(record))
-    eval_fitted = sum(1 for record in eval_records if _present(record))
+    # The probe only ever sees prompts that HAVE a greedy feature, so its split
+    # audit describes the feature-present subset of each locked split. This is
+    # the convention the sealed v2 artifacts use (e.g. nqopen/70B/s42 records
+    # train_prompt_count=496 with four excluded prompts) and the one the
+    # completion seal, the primary lock and the table builder all validate
+    # against. The locked-split totals remain recoverable as
+    # present + excluded, which the seal asserts independently.
+    train_present = [record for record in train_records if _present(record)]
+    eval_present = [record for record in eval_records if _present(record)]
+    train_fitted = len(train_present)
+    eval_fitted = len(eval_present)
+    train_present_ids = _prompt_ids(train_present, "training")
+    eval_present_ids = _prompt_ids(eval_present, "evaluation")
+    train_present_identities = _prompt_identities(train_present, "training")
+    eval_present_identities = _prompt_identities(eval_present, "evaluation")
 
     entropy_target_provenance = canonical_entropy_target_provenance(
         train_records, eval_records
@@ -284,19 +297,21 @@ def split_audit_metadata(
         "threshold_fit_scope": "training_records_only",
         "split_overlap_count": 0,
         "split_content_overlap_count": 0,
-        "train_prompt_count": len(train_ids),
-        "eval_prompt_count": len(eval_ids),
-        # Locked-split counts above; what was actually fitted/scored below.
-        "train_prompt_fitted_count": train_fitted,
-        "eval_prompt_fitted_count": eval_fitted,
+        # Feature-present subset (what the probe actually sees).
+        "train_prompt_count": train_fitted,
+        "eval_prompt_count": eval_fitted,
+        # Locked-split totals, kept for auditability: count + excluded must
+        # reconstruct the locked split, which the seal verifies independently.
+        "train_prompt_locked_count": len(train_ids),
+        "eval_prompt_locked_count": len(eval_ids),
         "train_prompt_excluded_count": len(train_ids) - train_fitted,
         "eval_prompt_excluded_count": len(eval_ids) - eval_fitted,
-        "train_prompt_ids_sha256": digest(train_ids),
-        "eval_prompt_ids_sha256": digest(eval_ids),
-        "train_prompt_content_sha256": prompt_content_sha256(train_records),
-        "eval_prompt_content_sha256": prompt_content_sha256(eval_records),
-        "train_prompt_identity_sha256": identity_digest(train_identities),
-        "eval_prompt_identity_sha256": identity_digest(eval_identities),
+        "train_prompt_ids_sha256": digest(train_present_ids),
+        "eval_prompt_ids_sha256": digest(eval_present_ids),
+        "train_prompt_content_sha256": prompt_content_sha256(train_present),
+        "eval_prompt_content_sha256": prompt_content_sha256(eval_present),
+        "train_prompt_identity_sha256": identity_digest(train_present_identities),
+        "eval_prompt_identity_sha256": identity_digest(eval_present_identities),
         "analysis_code_commit": entropy_target_provenance[
             "analysis_code_commit"
         ],
@@ -411,32 +426,32 @@ def main() -> None:
     if eval_records is None:  # defensive: required above
         sys.exit("ERROR: held-out evaluation records were not loaded")
     # Held-out prompts whose greedy feature was excluded (degeneration) carry
-    # no probe feature, but they are NOT filtered out here: the validation
-    # binds to the probe's audited evaluation split, which is the complete
-    # locked split. The validator applies feature checks to the
-    # feature-present subset and separately requires the excluded records to
-    # be the declared feature-less shape. (Pre-filtering here previously made
-    # the count check compare a subset against the locked split count and
-    # failed every cell with an eval-side exclusion.)
-    n_excluded_eval = sum(
-        1
+    # no probe feature, so they are not part of what the probe evaluates. The
+    # probe's split audit describes exactly this feature-present subset (see
+    # split_audit_metadata), so the validation is applied to the same subset.
+    # The excluded prompts remain in the collection and q-conditioned
+    # artifacts and in the entropy analysis; the completion seal reconstructs
+    # the locked split as present + excluded.
+    eval_records_present = [
+        record
         for record in eval_records
         if (record.get("sep_feature_metadata") or {}).get(
             "greedy_degenerate_excluded"
         )
-        is True
-    )
+        is not True
+    ]
+    n_excluded_eval = len(eval_records) - len(eval_records_present)
     if n_excluded_eval:
         print(
-            f"Held-out records with degenerate greedy feature: "
-            f"{n_excluded_eval} (kept in the locked split, scored as null)",
+            f"Excluding {n_excluded_eval} held-out record(s) with degenerate "
+            f"greedy feature from probe validation",
             flush=True,
         )
     try:
         if internal_label_source == "semantic_entropy_threshold":
-            validate_canonical_sep_scoring_records(eval_records, probe)
+            validate_canonical_sep_scoring_records(eval_records_present, probe)
         else:
-            validate_canonical_accuracy_scoring_records(eval_records, probe)
+            validate_canonical_accuracy_scoring_records(eval_records_present, probe)
     except ValueError as exc:
         sys.exit(f"ERROR: canonical probe artifact validation failed: {exc}")
 

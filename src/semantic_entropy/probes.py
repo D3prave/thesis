@@ -1060,13 +1060,15 @@ def validate_canonical_sep_scoring_records(
 ) -> None:
     """Bind a canonical SEP to exact held-out records and feature identity.
 
-    ``records`` must be the COMPLETE locked evaluation split: the prompt
-    count and content hash are bound to it. Degenerate-greedy prompts inside
-    that split carry no probe feature, so the per-record feature identity
-    check applies to the feature-present subset while the excluded records
-    are separately required to be exactly the declared, feature-less shape.
-    Passing a pre-filtered subset is a bug — it silently reinterprets the
-    locked split.
+    ``records`` must be exactly the record set the probe audited, i.e. the
+    feature-present subset of the locked evaluation split: the prompt count
+    and content hash are bound to it (see ``train_sep_probe``'s
+    ``split_audit_metadata``, and the sealed v2 artifacts, which record
+    feature-present counts). Should a caller pass a set that still contains
+    declared degenerate-greedy prompts, the feature checks are applied to the
+    feature-present members and the excluded ones are separately required to
+    be exactly the declared, feature-less shape — so a null hidden state can
+    never pass as a feature, whichever set is supplied.
     """
 
     validate_canonical_sep_scoring_prompt_content(records, probe)
