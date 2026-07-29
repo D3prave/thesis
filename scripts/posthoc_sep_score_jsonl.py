@@ -150,7 +150,28 @@ def main() -> None:
             score = score_probe_for_record(record, probe)
             if "scores" not in record or record["scores"] is None:
                 record["scores"] = {}
-            record["scores"][score_field] = score
+            if score is None:
+                # No probe feature exists for this prompt, so no probe score
+                # can exist. The prompt stays in the locked split (with its
+                # provenance) but the score field is OMITTED rather than set
+                # to null: a null would violate the record schema, and a
+                # silently absent score must be attributable to the declared
+                # degeneration exclusion — never to anything else.
+                excluded = (
+                    record.get("sep_feature_metadata") or {}
+                ).get("greedy_degenerate_excluded") is True
+                if not excluded:
+                    print(
+                        "ERROR: record "
+                        f"{record.get('prompt_id', '<unknown>')!r} produced no "
+                        f"{score_field} but is not a declared degenerate-greedy "
+                        "exclusion",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+                record["scores"].pop(score_field, None)
+            else:
+                record["scores"][score_field] = score
             record[provenance_field] = provenance
             fout.write(json.dumps(record, ensure_ascii=False) + "\n")
             n += 1

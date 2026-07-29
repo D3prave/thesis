@@ -119,27 +119,37 @@ def summarize_records(
 
     _validate_records(records)
     correctness_labels = [record["correctness_label"] for record in records]
-    incorrect_labels = [not is_correct for is_correct in correctness_labels]
     fields = _resolve_score_fields(records, score_fields)
     score_metrics: dict[str, dict[str, float | None]] = {}
+    coverage: dict[str, dict[str, int]] = {}
 
     for field in fields:
-        values = [_score_value(record, field) for record in records]
+        labels, values, skipped = _score_pairs(records, field)
+        incorrect = [not is_correct for is_correct in labels]
         try:
-            auroc_value: float | None = auroc(incorrect_labels, values)
+            auroc_value: float | None = auroc(incorrect, values)
         except ValueError:
             auroc_value = None
         score_metrics[field] = {
             "auroc": auroc_value,
-            "aurac": aurac(correctness_labels, values),
+            "aurac": aurac(labels, values),
+        }
+        coverage[field] = {
+            "scored": len(values),
+            "degenerate_greedy_excluded": skipped,
         }
 
-    return {
+    summary: dict[str, Any] = {
         "num_records": len(records),
         "raw_accuracy": raw_accuracy(correctness_labels),
         "positive_class": "incorrect",
         "score_metrics": score_metrics,
     }
+    if any(entry["degenerate_greedy_excluded"] for entry in coverage.values()):
+        # Only emitted when a field actually has unscoreable prompts, so
+        # artifacts without exclusions keep their previous shape exactly.
+        summary["score_field_coverage"] = coverage
+    return summary
 
 
 def summarize_jsonl(input_path: Path, score_fields: Sequence[str] | None = None) -> dict[str, Any]:
@@ -155,13 +165,12 @@ def rejection_curve_rows(
     """Return plot-ready rejection-accuracy rows for scored records."""
 
     _validate_records(records)
-    correctness_labels = [record["correctness_label"] for record in records]
     fields = _resolve_score_fields(records, score_fields)
     rows: list[dict[str, float | int | str]] = []
 
     for field in fields:
-        values = [_score_value(record, field) for record in records]
-        for point in rejection_accuracy_curve(correctness_labels, values):
+        labels, values, _ = _score_pairs(records, field)
+        for point in rejection_accuracy_curve(labels, values):
             rows.append({"score_field": field, **point})
 
     return rows
@@ -341,6 +350,37 @@ def _resolve_score_fields(
     if not fields:
         raise ValueError("no score fields available for metric computation")
     return fields
+
+
+def _score_pairs(
+    records: Sequence[Mapping[str, Any]], field: str
+) -> tuple[list[bool], list[float], int]:
+    """Return (correctness labels, score values, skipped) for one score field.
+
+    A record that carries no value for ``field`` is skipped ONLY when it
+    declares a degenerate-greedy exclusion: such a prompt has no probe
+    feature, so no probe score can exist for it, yet it remains part of the
+    locked evaluation split. Any other missing score is an error, so a
+    genuinely absent value can never be silently dropped from a metric.
+    """
+
+    labels: list[bool] = []
+    values: list[float] = []
+    skipped = 0
+    for record in records:
+        scores = record["scores"]
+        if field not in scores:
+            metadata = record.get("sep_feature_metadata") or {}
+            if metadata.get("greedy_degenerate_excluded") is True:
+                skipped += 1
+                continue
+            prompt_id = record.get("prompt_id", "<unknown>")
+            raise ValueError(f"record {prompt_id} is missing scores.{field}")
+        labels.append(bool(record["correctness_label"]))
+        values.append(_score_value(record, field))
+    if not values:
+        raise ValueError(f"no records carry scores.{field}")
+    return labels, values, skipped
 
 
 def _score_value(record: Mapping[str, Any], field: str) -> float:
