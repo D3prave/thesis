@@ -410,29 +410,33 @@ def main() -> None:
 
     if eval_records is None:  # defensive: required above
         sys.exit("ERROR: held-out evaluation records were not loaded")
-    # Drop held-out prompts whose greedy feature was excluded (degeneration):
-    # they carry no probe feature and are validated/scored out of the probe
-    # evaluation. They remain in the collection file and the entropy analysis.
-    eval_records_present = [
-        record
+    # Held-out prompts whose greedy feature was excluded (degeneration) carry
+    # no probe feature, but they are NOT filtered out here: the validation
+    # binds to the probe's audited evaluation split, which is the complete
+    # locked split. The validator applies feature checks to the
+    # feature-present subset and separately requires the excluded records to
+    # be the declared feature-less shape. (Pre-filtering here previously made
+    # the count check compare a subset against the locked split count and
+    # failed every cell with an eval-side exclusion.)
+    n_excluded_eval = sum(
+        1
         for record in eval_records
         if (record.get("sep_feature_metadata") or {}).get(
             "greedy_degenerate_excluded"
         )
-        is not True
-    ]
-    n_excluded_eval = len(eval_records) - len(eval_records_present)
+        is True
+    )
     if n_excluded_eval:
         print(
-            f"Excluding {n_excluded_eval} held-out record(s) with degenerate "
-            f"greedy feature from probe validation",
+            f"Held-out records with degenerate greedy feature: "
+            f"{n_excluded_eval} (kept in the locked split, scored as null)",
             flush=True,
         )
     try:
         if internal_label_source == "semantic_entropy_threshold":
-            validate_canonical_sep_scoring_records(eval_records_present, probe)
+            validate_canonical_sep_scoring_records(eval_records, probe)
         else:
-            validate_canonical_accuracy_scoring_records(eval_records_present, probe)
+            validate_canonical_accuracy_scoring_records(eval_records, probe)
     except ValueError as exc:
         sys.exit(f"ERROR: canonical probe artifact validation failed: {exc}")
 

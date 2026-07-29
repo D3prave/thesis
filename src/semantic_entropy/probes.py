@@ -1009,22 +1009,84 @@ def _validate_scoring_record_features(
             )
 
 
+def _partition_feature_present(
+    records: Sequence[Mapping[str, Any]],
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+    """Split records into feature-present and degenerate-greedy-excluded."""
+
+    present: list[Mapping[str, Any]] = []
+    excluded: list[Mapping[str, Any]] = []
+    for record in records:
+        metadata = record.get("sep_feature_metadata") or {}
+        if metadata.get("greedy_degenerate_excluded") is True:
+            excluded.append(record)
+        else:
+            present.append(record)
+    return present, excluded
+
+
+def _validate_excluded_scoring_records(
+    excluded: Sequence[Mapping[str, Any]], probe: SEPProbe
+) -> None:
+    """Validate the degenerate-greedy prompts kept in the locked split.
+
+    These prompts carry no probe feature by construction, so the feature
+    checks cannot apply to them. They must still belong to the probe's cell,
+    and their absence of a feature must be the *declared* exclusion rather
+    than a silently missing or malformed hidden state.
+    """
+
+    expected_cell_identity = validate_sep_cell_identity(
+        probe.metadata["cell_identity"], role="probe metadata.cell_identity"
+    )
+    for index, record in enumerate(excluded):
+        actual_cell_identity = _record_sep_cell_identity(
+            record, role=f"excluded evaluation record {index}"
+        )
+        if actual_cell_identity != expected_cell_identity:
+            raise ValueError(
+                f"excluded evaluation record {index}: SEP cell identity does "
+                "not match the trained probe"
+            )
+        if record.get("sep_hidden_state") is not None:
+            raise ValueError(
+                f"excluded evaluation record {index}: greedy_degenerate_"
+                "excluded records must carry a null sep_hidden_state"
+            )
+
+
 def validate_canonical_sep_scoring_records(
     records: Sequence[Mapping[str, Any]], probe: SEPProbe
 ) -> None:
-    """Bind a canonical SEP to exact held-out records and feature identity."""
+    """Bind a canonical SEP to exact held-out records and feature identity.
+
+    ``records`` must be the COMPLETE locked evaluation split: the prompt
+    count and content hash are bound to it. Degenerate-greedy prompts inside
+    that split carry no probe feature, so the per-record feature identity
+    check applies to the feature-present subset while the excluded records
+    are separately required to be exactly the declared, feature-less shape.
+    Passing a pre-filtered subset is a bug — it silently reinterprets the
+    locked split.
+    """
 
     validate_canonical_sep_scoring_prompt_content(records, probe)
-    _validate_scoring_record_features(records, probe)
+    present, excluded = _partition_feature_present(records)
+    _validate_scoring_record_features(present, probe)
+    _validate_excluded_scoring_records(excluded, probe)
 
 
 def validate_canonical_accuracy_scoring_records(
     records: Sequence[Mapping[str, Any]], probe: SEPProbe
 ) -> None:
-    """Bind an accuracy probe to exact held-out records and feature identity."""
+    """Bind an accuracy probe to exact held-out records and feature identity.
+
+    Same split semantics as :func:`validate_canonical_sep_scoring_records`.
+    """
 
     validate_canonical_accuracy_scoring_prompt_content(records, probe)
-    _validate_scoring_record_features(records, probe)
+    present, excluded = _partition_feature_present(records)
+    _validate_scoring_record_features(present, probe)
+    _validate_excluded_scoring_records(excluded, probe)
 
 
 def _canonical_probe_provenance(probe: SEPProbe) -> dict[str, Any]:
