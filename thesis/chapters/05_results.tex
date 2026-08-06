@@ -322,7 +322,7 @@ accuracy-independent, is used as the primary metric throughout.
 \includegraphics[width=\linewidth]{multiseed_auroc.png}
 \caption{Per-task AUROC for the three full-grid sampling detectors on the
   short-answer tasks, averaged over seeds 42/43/44 (error bars are the seed
-  spread), sealed primary. The detectors cluster together on every task: no
+  spread). The detectors cluster together on every task: no
   single method dominates, and the cheap surface baseline sits inside the
   same band as the meaning-aware score. The probes are evaluated on held-out
   splits and are therefore shown separately
@@ -339,7 +339,7 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{TriviaQA AUROC by detector and model (mean $\pm$ std over seeds
-  42/43/44), sealed primary. Canonical setup: sampling temperature $1.0$,
+  42/43/44). Canonical setup: sampling temperature $1.0$,
   $M=10$ samples per question, post-hoc DeBERTa-v3-large clustering for the
   entropy methods. Best value per model column in bold (higher is better).}
 \label{tab:auroc-triviaqa}
@@ -538,9 +538,9 @@ for direction and magnitude.
 \caption{Discrete semantic entropy AUROC by clustering backend
   (mean $\pm$ std over seeds 42/43/44). Best
   backend per row in bold (higher is better). On biography, exact-match
-  clustering is not reported because it reduces exactly to the
-  surface-entropy baseline: every paragraph is a distinct string, so the two
-  scores coincide at chance (Table~\ref{tab:auroc-bio}).}
+  clustering reduces exactly to the surface-entropy baseline --- every
+  paragraph is a distinct string --- which is why it sits at chance there and
+  coincides with the surface row of Table~\ref{tab:auroc-bio}.}
 \label{tab:clustering-sensitivity}
 \input{includes/generated_backend_sensitivity.tex}
 \end{table}
@@ -565,13 +565,15 @@ to add. This is the same finding as
 Section~\ref{sec:significance}, seen from the other side.
 
 On biographies the choice is decisive
-(Figure~\ref{fig:bio-clustering-sensitivity}). Exact-match clustering is not
-even applicable, since no two paragraphs are the same string. The
-DeBERTa-v3-base backend reaches only $0.610$ for Mistral-7B and falls
-\emph{below} chance for both Llama generators ($0.464$ and $0.435$); the
-larger DeBERTa-v3-large recovers a usable signal in every cell ($0.708 /
-0.618 / 0.612$); and the Qwen-72B judge is stronger again ($0.736 / 0.685 /
-0.666$). The same samples therefore yield anything from anti-predictive to
+(Figure~\ref{fig:bio-clustering-sensitivity}). Exact-match clustering carries
+no information there, sitting at chance in all three cells ($0.500 / 0.498 /
+0.480$), because no two paragraphs are the same string and every sample
+therefore forms its own group. The DeBERTa-v3-base backend reaches only
+$0.605$ for Mistral-7B and falls \emph{below} chance for both Llama
+generators ($0.467$ and $0.471$); the larger DeBERTa-v3-large recovers a
+usable signal in every cell ($0.734 / 0.590 / 0.648$); and the Qwen-72B judge
+is stronger again ($0.755 / 0.678 / 0.695$). The same samples therefore yield
+anything from anti-predictive to
 moderately useful behaviour depending only on how equivalence is judged. On
 long-form inputs it is the capacity of the entailment model, not merely its
 presence, that determines whether a signal appears at all --- and a backend
@@ -626,11 +628,11 @@ one unambiguous long-form result of the section.
 
 Escaping string identity is necessary but not sufficient. KLE, which
 compares meanings softly through sentence embeddings rather than hard
-clusters, is at best marginally above chance ($0.545$, Mistral-7B with the
+clusters, is at best marginally above chance ($0.540$, Mistral-7B with the
 RoBERTa-NLI encoder) and falls \emph{below} chance for both Llama generators
-($0.360$--$0.464$): its kernels do not cope with paragraph-length inputs.
-Hard NLI clustering does better --- $0.708 / 0.618 / 0.612$ for
-DeBERTa-v3-large, $0.736 / 0.685 / 0.666$ with the Qwen judge --- but the
+($0.392$--$0.449$): its kernels do not cope with paragraph-length inputs.
+Hard NLI clustering does better --- $0.734 / 0.590 / 0.648$ for
+DeBERTa-v3-large, $0.755 / 0.678 / 0.695$ with the Qwen judge --- but the
 next paragraph shows why those values should not be read as a working
 long-form detector.
 
