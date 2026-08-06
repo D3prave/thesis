@@ -28,22 +28,24 @@ backends, and a sampling-temperature sweep. Ranking quality is measured
 with AUROC and rejection-accuracy curves; seed stability and
 record-level paired-bootstrap significance are reported separately.
 
-The answer depends on the length of the output. On short answers all
-sampling-based estimators work (AUROC between 0.70 and 0.90) and reproduce the
-original results under the matched protocol, but entropy over
+The answer depends on the length of the output. On short answers the core
+count-based sampling estimators generally reach AUROC values of roughly
+0.70--0.90 and reproduce the original results under the matched protocol, but entropy over
 normalized strings is the strongest single score in most cells, and no
 method beats it by a practically relevant margin: a record-level
 analysis shows that simple answer normalization, not semantic
 clustering, performs almost all of the grouping. On long-form biography
-the picture reverses. The surface baselines collapse to chance, the
-meaning-aware and representation-based detectors recover a
-statistically significant signal for every generator, and the choice of
+the picture changes. The two count-based string-frequency baselines collapse
+to chance, but surface-only probability-weighted naive entropy remains strong
+and is best for the two smaller generators. Meaning-aware and
+representation-based detectors also recover signal, and the choice of
 clustering backend becomes result-determining, spanning chance-level to
-clearly useful behavior on the same samples.
+moderately useful behavior on the same samples.
 
-Two further effects qualify practical use. Detection power falls as the
-generator scales, because larger models repeat their confabulations
-more consistently, leaving less inconsistency to measure. And
-sampling-based entropy and a single-pass hidden-state probe respond to
-decoding temperature in opposite directions, so which detector is
-stronger depends on how the model is decoded rather than being fixed.
+Two further effects qualify practical use. Claim-level detection power falls
+modestly as the generator scales, a pattern consistent with larger models
+repeating their confabulations more consistently and leaving less
+inconsistency to measure. Sampling-based entropy also strengthens as decoding
+temperature rises, whereas the single-pass P(True) self-evaluation baseline
+remains nearly flat. The hidden-state probes were not included in the
+temperature sweep.

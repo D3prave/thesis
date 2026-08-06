@@ -3,10 +3,10 @@
 
 This chapter interprets the results from Chapter~\ref{ch:results} rather
 than restating the tables. It works through five questions: why
-meaning-based clustering adds almost nothing on short answers but is
-essential on long-form text; what the clustering-backend comparison says
+meaning-based clustering adds almost nothing on short answers but recovers a
+signal on long-form text; what the clustering-backend comparison says
 about judge quality; why model scale erodes the signal; how the
-sampling methods and the hidden-state probe trade places with decoding
+sampling methods compare with P(True) across decoding
 temperature; and how all of this relates to the original semantic
 entropy paper of Farquhar et al.~\cite{semantic_entropy_nature_2024}. It
 closes with the limitations the numbers do not show on their own.
@@ -16,41 +16,43 @@ closes with the limitations the numbers do not show on their own.
 
 The most consequential pattern in the study is the split between the
 short-answer and long-form regimes (Figure~\ref{fig:regime-split}). On
-the three short-answer tasks every sampling-based detector works (AUROC
-between $0.70$ and $0.90$), and the cheapest of them, entropy over
+the three short-answer tasks the core count-based sampling detectors generally
+reach AUROC values of roughly $0.70$--$0.90$, and the cheapest of them, entropy over
 normalized answer strings, is the strongest single score in most
 cells, with no method beating it by a margin of practical size anywhere
 (Table~\ref{tab:significance-vs-surface}). On long-form
-biography the same surface score sits exactly at chance, pinned at its
-ceiling for every record, and a usable signal has to be created either by
-meaning-level grouping (discrete semantic entropy: $0.734 / 0.590 / 0.648$
-for Mistral-7B / Llama-3.1-8B / Llama-3.1-70B) or by
-reading the model's internal state with the correctness-trained accuracy
-probe ($0.704 / 0.680 / 0.773$). A genuine SEP is not defined for this
-answer-only whole-paragraph protocol.
+biography the two count-based string-frequency scores sit near chance because
+they are almost pinned at their ceiling. Meaning-level grouping recovers a
+signal (discrete semantic entropy: $0.734 / 0.590 / 0.648$ for Mistral-7B /
+Llama-3.1-8B / Llama-3.1-70B), as does the correctness-trained accuracy probe
+($0.704 / 0.680 / 0.773$). A genuine SEP is not defined for this answer-only
+whole-paragraph protocol. Importantly, the surface-only probability-weighted
+naive entropy remains strong at $0.769 / 0.769 / 0.757$ and is best for the two
+smaller generators.
 
 The mechanism behind both halves is visible in the worked examples of
 Section~\ref{sec:hand-audits}. On short answers (Example~1,
 Section~\ref{sec:audit-merge}) the model emits only a handful of distinct
 normalized strings, so simply \emph{normalizing} the answers already does
 most of the grouping; the extra meaning-based step only relabels a few
-boundary cases. On biographies (Example~3, Section~\ref{sec:audit-bio})
-every sampled paragraph is a unique string, so the surface score is
-permanently pinned at its maximum of $\ln 10$ and can rank nothing; it
-must be replaced by a method that groups paragraphs by what they claim.
-The biography task was added precisely to test this prediction, and it
-confirms it cleanly.
+boundary cases. On biographies (Example~3, Section~\ref{sec:audit-bio}),
+sampled paragraphs almost never repeat as identical strings, so the
+count-based surface score is nearly pinned at its maximum of $\ln 10$ and has
+little ranking information. Probability weighting and meaning-level grouping
+provide two different ways to recover signal. The biography task was added
+precisely to test this prediction, and it confirms the count-saturation
+mechanism.
 
 \section{Does meaning-based clustering help?}
 \label{sec:does-nli-help}
 
 At the level of the full grid the answer is now clear in both directions. On
 short answers, no --- and without exception. Every one of the nine cells has
-a negative mean difference, so not a single cell favours meaning-based
+a negative mean difference, so not a single cell favors meaning-based
 clustering even before significance is considered, and the one
 Holm-significant result runs the other way, with surface entropy ahead on
 NQ-Open with Llama-3.1-8B (Table~\ref{tab:significance-vs-surface}). The
-closest any cell comes to favouring the semantic score is SVAMP with the 70B
+closest any cell comes to favoring the semantic score is SVAMP with the 70B
 model, where two of three seeds are positive by $0.001$ but the mean is
 $-0.002$ with a Holm-adjusted $p$ of $1.0$: noise, not a narrow win. On
 long-form generation, yes: the NLI-clustered and probability-weighted
@@ -58,7 +60,7 @@ entropy estimators beat the chance-level surface baseline by $+0.11$ to
 $+0.28$ AUROC on biography, while KLE, meaning-aware only in a soft,
 embedding-based sense, does not (Section~\ref{sec:bio-results}); at claim
 level, against human labels, semantic entropy detects at $0.701$ to $0.748$
-where the surface score has nothing to work with. In the terms of
+without relying on whole-paragraph string identity. In the terms of
 Section~\ref{sec:research-aim}: H1 and H2 are not supported on these
 datasets, while H3 is supported.
 
@@ -90,7 +92,7 @@ Table~\ref{tab:clustering-sensitivity} established that the
 equivalence backend barely matters on short answers but is
 \emph{result-determining} on biography
 (Figure~\ref{fig:bio-clustering-sensitivity}), where the Qwen-72B judge
-($0.736 / 0.685 / 0.666$) clusters meanings more reliably than the
+($0.755 / 0.678 / 0.695$) clusters meanings more reliably than the
 DeBERTa cross-encoders and lifts AUROC accordingly.
 
 Two cautions follow. First, ``bigger judge'' is not automatically
@@ -102,7 +104,7 @@ Second, this is the long-form counterpart of the short-answer negative
 result: clustering quality matters exactly where clustering matters at all.
 The two ends of the study bracket the effect. On short answers, where the
 strings being compared are a few words long, the four backends span at most
-$0.04$ AUROC and plain exact matching is often the best of them. On whole
+$0.057$ AUROC and plain exact matching is best in seven of nine cells. On whole
 paragraphs the same swap decides whether a signal exists. The claim-level
 evaluation sits at the short-string end of that range by construction, since
 it re-samples brief answers to specific questions, which is one reason it is
@@ -117,17 +119,19 @@ points.
 
 The single-pass hidden-state probe (SEP) and correctness-trained accuracy
 probe read the model's internal state once, without drawing ten samples. On
-short answers this thrift costs accuracy. The probes are scored on held-out
+short answers this thrift can cost accuracy. The probes are scored on held-out
 splits, so they are not directly rankable against the full-grid entropy
-tables, but their level is clearly the same or lower: SEP lands between
+tables, but their levels overlap: SEP lands between
 $0.726$ and $0.900$ across the nine cells
 (Table~\ref{tab:probes}) against a surface baseline running
-from $0.755$ to $0.901$. The probe is therefore attractive on short answers
-only when its $M$-fold cost saving outweighs the AUROC it gives up. A
+from $0.755$ to $0.901$. The held-out comparisons do not show a uniform loss,
+so the relevant trade-off is the probe's $M$-fold test-time cost saving against
+its cell-specific ranking quality. A
 secondary observation is that the entropy-trained and correctness-trained
 probes land close together in every cell, differing by at most $0.040$
 AUROC, though the correctness target is ahead in eight of the nine: what is
-linearly readable from the last hidden state is largely one shared signal,
+linearly readable from the greedy response's final-content-token hidden state
+is largely one shared signal,
 and its level is the practical ceiling for this probe family.
 
 The whole-paragraph biography evidence is narrower because the sealed design
@@ -145,7 +149,7 @@ whole-paragraph samples are too diverse for hard clustering to rank reliably.
 \label{sec:temperature-discussion}
 
 The temperature sweep (Section~\ref{sec:temperature-sensitivity},
-Figure~\ref{fig:temp-sweep}) gives the probe-versus-entropy comparison
+Figure~\ref{fig:temp-sweep}) gives the P(True)-versus-entropy comparison
 a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
 as temperature rises (TriviaQA/70B semantic entropy climbs from $0.56$
@@ -180,15 +184,16 @@ The FactualBio claim-level extension
 the study, and the only long-form one measured against human labels:
 claim-level semantic entropy weakens monotonically as the generator grows,
 from AUROC $0.748$ (Mistral-7B) through $0.724$ (Llama-3.1-8B) to $0.701$
-(Llama-3.1-70B), with seed standard deviations of $0.017$ or less. The same
-downward direction is visible in the whole-paragraph biography numbers of
-Section~\ref{sec:bio-results}, so two granularities agree on the sign.
+(Llama-3.1-70B), with seed standard deviations of $0.017$ or less. The
+whole-paragraph biography numbers do not follow the same monotonic order:
+$0.734 / 0.590 / 0.648$ in Section~\ref{sec:bio-results}.
 
 The reason follows from what semantic entropy actually measures:
 \emph{inconsistency}. It flags an answer when regenerated samples disagree
-in meaning. A larger model that has confabulated a biographical detail
-tends to regenerate the \emph{same} wrong detail fluently and
-consistently, leaving less disagreement to detect. The size of the effect
+in meaning. A possible explanation is that a larger model which has
+confabulated a biographical detail may regenerate the \emph{same} wrong detail
+fluently and consistently, leaving less disagreement to detect; the experiment
+does not measure that mechanism directly. The size of the effect
 deserves emphasis, because it is easy to overstate: across a tenfold
 difference in parameter count the loss is $0.047$ AUROC, and the largest
 model is still a useful detector at $0.701$. The trend is a slope, not a
@@ -233,7 +238,7 @@ report as a separate baseline, is the strongest single short-answer
 score in most cells, and no semantic estimator beats it by more than a
 practically negligible margin (Section~\ref{sec:significance}).
 Semantic clustering provides measurable value only in the long-form regime, where
-the paper's qualitative claim is strongly confirmed: surface scores
+the paper's qualitative claim is confirmed for the count-based scores: they
 collapse to chance and NLI-clustered entropy recovers a statistically
 significant signal for every generator. The grid also extends the original analysis in a
 direction it did not quantify: the entailment backend, which is
@@ -252,8 +257,9 @@ this case: ten identical wrong answers, entropy zero, maximum
 (mis)confidence. A deployed system would need a complementary detector
 for that failure mode.
 
-\paragraph{Noisy correctness labels.} On short-answer tasks correctness
-is decided by string matching against a reference list, which marks a
+\paragraph{Noisy correctness labels.} On TriviaQA and NQ-Open, correctness is
+decided by SQuAD token-F1 against a reference list; SVAMP uses normalized
+numeric exact match. These automatic rules can mark a
 correct answer wrong whenever the model uses an unlisted alias, stage
 name, or title; see again Example~2, where ``Stansfield Turner'' is graded
 against a gold list of ``George Bush''. This adds noise to every
@@ -269,7 +275,7 @@ judge bias would propagate into every whole-paragraph AUROC. The claim-level
 evaluation does not share this weakness: it uses the published human
 factuality labels (Section~\ref{sec:factualbio-results}), which is a second
 reason the long-form conclusions of this thesis are drawn from it. Where the
-two disagree in magnitude, the human-labelled measurement is the one to
+two disagree in magnitude, the human-labeled measurement is the one to
 believe.
 
 \paragraph{Accuracy probe on biography.} The correctness-trained accuracy
@@ -290,7 +296,7 @@ numbers are clustered with the independent DeBERTa-v3-large
 cross-encoder, so there the clusterer and grader differ; and the backend
 comparison (Section~\ref{sec:clustering-sensitivity}), which varies the
 clusterer while holding the label fixed, still recovers a signal, which
-argues against a pure clustering artefact. What no such control rules out
+argues against a pure clustering artifact. What no such control rules out
 is a bias in the grader itself, shared across every backend; only
 human-validated labels could settle that, and it remains the main
 long-form threat.
@@ -320,8 +326,9 @@ the ways in which they could be wrong, ordered by how much of the thesis
 each would move.
 
 \paragraph{Construct validity.} Correctness is an operational proxy, not
-truth. On short answers it is normalized string matching against a
-reference list; on whole-paragraph biography it is an LLM judge. Neither
+truth. On TriviaQA and NQ-Open it is SQuAD token-F1 against a reference list,
+on SVAMP it is normalized numeric exact match, and on whole-paragraph
+biography it is an LLM judge. None
 measures factuality directly, and the short-answer proxy is known to
 misfire on aliases (Example~\ref{sec:audit-artifact}). The one place this
 threat is largely absent is the claim-level evaluation, which uses published
@@ -350,7 +357,7 @@ result.
 42/43/44, with prompts as the resampling unit
 (Section~\ref{sec:evaluation-metrics}). One preregistered family of nine
 cells carries Holm correction; everything else is exploratory and is
-labelled as such. The negative short-answer result is a failure to reject, not a demonstration
+labeled as such. The negative short-answer result is a failure to reject, not a demonstration
 of equivalence, but its precision is quantified rather than left vague
 (Table~\ref{tab:equivalence-bound}). An advantage for meaning-based
 clustering larger than $+0.026$ AUROC is excluded in every cell and larger

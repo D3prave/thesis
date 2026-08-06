@@ -89,11 +89,13 @@ over sampled strings on the same prompts. A secondary hypothesis is that any
 improvement is at least directionally consistent across the three
 short-answer benchmarks, despite their different answer formats. The
 biography task tests a complementary hypothesis: that meaning-aware methods
-separate more clearly once raw surface diversity stops being informative.
+separate more clearly from count-based surface scores once raw surface
+diversity stops being informative.
 These expectations are referred to below as H1 (semantic entropy beats
 surface entropy on short answers), H2 (any improvement is directionally
 consistent across the three short-answer benchmarks), and H3
-(meaning-aware methods separate clearly on the long-form task).
+(meaning-aware methods separate clearly from count-based surface scores on the
+long-form task).
 
 One result of this study qualifies the first hypothesis (H1) in a way the original
 aggregate evaluation does not show. On short answers, the value of
@@ -107,7 +109,7 @@ largest it does not within the range measured. At the temperature where
 sampling-based methods work best,
 semantic entropy is about as good as a much cheaper surface-form entropy on
 short answers. The clearer advantage of meaning-aware methods appears on the
-long-form task, where surface methods break down. These points are stated
+long-form task, where count-based surface scores break down. These points are stated
 carefully and with their limits in Chapters~\ref{ch:results}
 and~\ref{ch:discussion}.
 
@@ -177,12 +179,13 @@ meaning-level clustering helps. Concretely, it delivers:
   \item extension baselines and sensitivity checks covering Semantic Entropy
     Probes, Kernel Language Entropy, P(True), in- and out-of-distribution
     embedding regression, NLI judges of different sizes, and a
-    sampling-temperature sweep that shows the opposite temperature dependence
-    of sampling-based and probe-based detectors;
+    sampling-temperature sweep that shows sampling-based entropy strengthening
+    while the single-pass P(True) baseline remains comparatively flat;
   \item a controlled short-versus-long-form comparison that places the
     FactScore-style biography task next to the short-answer benchmarks,
     including a claim-level long-form extension, and shows the regime where
-    meaning-aware methods separate clearly from surface-form baselines.
+    meaning-aware methods separate clearly from count-based surface-form
+    baselines.
 \end{enumerate}
 
 \section{Thesis outline}

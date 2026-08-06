@@ -132,7 +132,7 @@ Figure~\ref{fig:method-schematic} reproduces the original illustration of
 the method. Panel~(a) makes the central point on a short factual
 question: when the sampled answers are counted as raw strings,
 paraphrases such as ``Paris'' and ``It's Paris'' are treated as different
-answers and the naive entropy looks misleadingly high; after the answers
+answers and the raw-string entropy looks misleadingly high; after the answers
 are grouped by meaning, the same samples give a low semantic entropy.
 Panel~(b) shows the long-form version used later in this thesis
 (FactualBio), where a generated biography is split into individual factual
@@ -144,8 +144,8 @@ confabulation.
 \centering
 \includegraphics[width=\textwidth]{semantic_entropy_paper_fig1.png}
 \caption{The semantic-entropy method. (a)~On a short question, counting
-  distinct wordings overstates uncertainty (``misleadingly high naive
-  entropy''), whereas grouping the answers by meaning first gives a low
+  distinct wordings overstates uncertainty (labeled ``misleadingly high naive
+  entropy'' in the source figure), whereas grouping the answers by meaning first gives a low
   semantic entropy. (b)~The same idea applied to long-form biographies at
   the level of individual claims (FactualBio). Reproduced from Farquhar et
   al.~\cite{semantic_entropy_nature_2024} (\emph{Nature}, 2024), licensed
@@ -517,7 +517,7 @@ minimal:
         configured equivalence relation, which is either normalized
         exact match or bidirectional NLI entailment.
   \item \emph{Output.} Return the cluster assignments
-        $\{c_1,\ldots,c_K\}$, the naive surface-form entropy
+        $\{c_1,\ldots,c_K\}$, the surface entropy
         $\widehat{H}_{\mathrm{lex}}(x)$ over normalized strings, and
         the discrete semantic entropy
         $\widehat{H}_{\mathrm{sem}}(x)$ over cluster frequencies.
@@ -567,8 +567,8 @@ sentence-embedding similarity.
     pairwise distances between these vectors into similarities
     $K_{ij}=\exp(-\lVert\mathbf{v}_i-\mathbf{v}_j\rVert^2/2\sigma^2)$,
     with the bandwidth $\sigma^2$ set to the median pairwise distance.
-    The matrix is rescaled so its entries behave like a probability
-    table (it sums to one along the diagonal).
+    The positive-semidefinite kernel matrix is normalized to have unit
+    trace, so its diagonal entries sum to one.
   \item \textbf{Take the entropy of the matrix.} The KLE score is the
     von~Neumann entropy of that matrix, a matrix generalization of
     Shannon entropy, computed as the Shannon entropy of the matrix's
@@ -598,16 +598,14 @@ off the model's internal state, so that at test time only a
 entailment comparisons.
 
 \begin{itemize}
-  \item \textbf{Training.} On a set of questions for which answers and
-    correctness labels are already available, the model is run once per
-    question and the hidden state of the last generated token (at the
-    final Transformer layer) is recorded as a feature vector. A simple
-    logistic-regression classifier is then trained to predict, from that
-    vector alone, whether the answer is incorrect. This connects to a
-    broader line of work showing that a model's internal representations
-    carry signals about
-    truthfulness~\cite{burns_latent_knowledge_2023,%
-    azaria_internal_state_lying_2023,chen_inside_2024,gao_h_neurons_2025}.
+  \item \textbf{Training.} For each training question, one greedy response
+    supplies the final-layer hidden state of its final content token before
+    EOS or EOT. Separately, ten high-temperature responses are grouped by
+    meaning to compute discrete semantic entropy. That entropy is binarized,
+    and a logistic-regression classifier is trained to predict high versus
+    low semantic entropy from the greedy-response hidden state. Correctness
+    labels are not used for a genuine SEP; the separately named accuracy
+    probe below is trained directly on incorrectness.
   \item \textbf{Inference.} For a new question, generate one answer, read
     the same hidden state, and apply the trained classifier. Its output
     (a number between 0 and 1) is used as the uncertainty score, larger
@@ -615,14 +613,14 @@ entailment comparisons.
 \end{itemize}
 
 Concretely, the probe used here is a scikit-learn logistic regression
-over the final-layer hidden state of the last generated token, trained
+over the final-layer hidden state of the final content token before EOS or EOT, trained
 separately per dataset, model, and seed on its own set of prompts and
 then scored on a disjoint evaluation set (the held-out evaluation
 counts are listed in Appendix Table~\ref{tab:sep-heldout-appendix}).
 Because the probe is trained and evaluated on \emph{disjoint} sets of
 questions, its scores are a genuine held-out test rather than a re-scoring
-of the same records. The feature choices (final layer, last-token
-pooling) are fixed in advance rather than tuned on the test set, so they
+of the same records. The feature choices (final layer, final-content-token
+selection) are fixed in advance rather than tuned on the test set, so they
 do not leak information. The trade-off is the obvious one: the probe is
 far cheaper than full semantic entropy, but it can only use what is
 linearly readable from one hidden state.
@@ -634,12 +632,12 @@ Two further baselines round out the comparison.
 
 \textbf{P(True)} asks the model to grade itself: after it produces an
 answer, the model is prompted to say how likely that answer is to be
-true, and the probability it assigns to ``true'' is read off as a
-(inverted) confidence score. It needs no extra samples and no probe
+true. The reported uncertainty score is $1-P(\mathrm{True})$, so larger
+values mean greater estimated risk. It needs no extra samples and no probe
 training, which makes it a natural cheap reference point.
 
 \textbf{Embedding regression} is a close cousin of the SEP probe: the
-same kind of linear model trained on the same last-token hidden states,
+same kind of linear model trained on the same greedy-response hidden states,
 but supervised directly on \emph{judged correctness} rather than on a
 semantic-entropy threshold. It is reported in two forms,
 \emph{in-distribution} (trained and tested on the same task) and

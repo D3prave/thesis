@@ -207,7 +207,7 @@ larger NLI backend, an LLM-as-judge backend, and Kernel Language
 Entropy); they are described next.
 
 \paragraph{The biography task under the same comparison.}
-The biography task is not a separate study but a third dataset evaluated
+The biography task is not a separate study but a fourth dataset evaluated
 under exactly the same baseline-versus-semantic comparison. The baseline
 clusters its samples by exact match and the replication condition by
 semantic clustering, with the only
@@ -221,9 +221,10 @@ case where the two semantic-equivalence backends are most likely to
 disagree.
 
 \paragraph{Correctness labeling for long-form generations.}
-For TriviaQA, NQ-Open and SVAMP a generation is marked correct by
-normalized string comparison against the reference answer, the same
-exact-string protocol used for the surface-form baseline. This is not available for
+For TriviaQA and NQ-Open, the low-temperature most-likely answer is marked
+correct when its maximum SQuAD token-F1 against the reference answers exceeds
+$0.5$; SVAMP uses exact match after numeric normalization. This short-answer
+protocol is not available for
 paragraph-length biographies, which have no single short ground-truth
 string. The biography task therefore grades correctness with the open
 instruction-tuned judge
@@ -303,8 +304,8 @@ P(True)~\cite{kadavath_language_models_know_2022}, in which the
 generator judges whether its own most-likely answer is true (the
 grading prompt shows a few solved examples of the true/false judgment,
 ``few-shot in-context'', before the actual question, and the
-probability the model assigns to the token ``True'' is read off as the
-score); embedding regression, a logistic probe on the final
+probability the model assigns to the token ``True'' is converted to the
+uncertainty score $1-P(\mathrm{True})$); embedding regression, a logistic probe on the final
 hidden state trained to predict incorrectness, evaluated both
 in-distribution and trained on a different short-answer dataset
 (out-of-distribution); and the semantic-entropy probe defined in
@@ -334,9 +335,10 @@ of every sample together with one representative string per cluster,
 all entropy scores, the clustering backend, and the correctness label.
 This makes generation, clustering, scoring, and evaluation auditable
 from a single line of JSONL, while leaving extensions free to add
-method-specific fields (KLE, probe, and P(True) scores; hidden states
-in the SEP collection runs). The full field-by-field schema is
-reproduced in Appendix~\ref{app:schema}.
+method-specific fields (KLE, probe, and P(True) scores; a greedy-response
+hidden state and its feature metadata in canonical SEP collection runs).
+The metric-relevant schema and canonical SEP feature shape are reproduced in
+Appendix~\ref{app:schema}.
 
 In the exact-match baseline artifacts, \texttt{surface\_entropy} and
 \texttt{discrete\_semantic\_entropy} coincide by construction, because
@@ -346,8 +348,11 @@ baseline, where unnormalized spelling, casing, punctuation, and
 whitespace variants remain distinct. The SEP collection runs use the
 exact-match clustering backend (so \texttt{discrete\_semantic\_entropy}
 again equals \texttt{surface\_entropy} on those records) and additionally
-write a \texttt{hidden\_states} array per record; held-out evaluation
-splits also carry a \texttt{probe\_uncertainty} score in $[0,1]$.
+write one greedy-response \texttt{sep\_hidden\_state} with
+\texttt{sep\_feature\_metadata} per record; held-out evaluation splits also
+carry a \texttt{probe\_uncertainty} score in $[0,1]$. The legacy
+\texttt{hidden\_states} matrix is reserved for the separately named
+sample-level accuracy-probe path.
 The serialized \texttt{phase} field remains as a legacy condition label
 so recorded outputs stay traceable; the thesis presentation uses
 baseline, replication condition, and additional analysis instead.
@@ -562,7 +567,7 @@ comparisons for the one that speaks loudest.
 \label{sec:hpc-execution}
 
 This section records how the design above was implemented and run. The
-work used the NHR@FAU computing centre (Nationales Höchstleistungsrechnen
+work used the NHR@FAU computing center (Nationales Höchstleistungsrechnen
 an der Friedrich-Alexander-Universität): its GPU cluster \emph{Alex}
 (NVIDIA A100 nodes) for all generation and GPU-heavy steps, and its CPU
 cluster \emph{Fritz} for the lighter posthoc reclustering and KLE scoring

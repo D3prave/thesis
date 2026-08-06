@@ -16,17 +16,20 @@ claim-level long-form extension, rather than a new semantic-entropy
 method.
 
 The answer is regime-dependent, in both directions and more sharply
-than expected. On short-answer tasks every sampling-based estimator
-detects errors well (AUROC between 0.70 and 0.90), but entropy over
+than expected. On short-answer tasks the core count-based sampling estimators
+generally reach AUROC values of roughly $0.70$--$0.90$, but entropy over
 normalized strings, the cheapest score in the family, is the strongest
 single method in eight of nine model--dataset cells, and no semantic
 estimator beats it in any cell: all nine mean differences are negative, and
-the only Holm-significant one favours the surface baseline. A record-level
+the only Holm-significant one favors the surface baseline. A record-level
 analysis explains why: dataset normalization already removes almost all
 surface variation before any semantic step runs, so clustering has little
-left to merge. On long-form text the same surface score has nothing to
-measure --- every sampled paragraph is a distinct string, so it is pinned at
-its ceiling and sits at chance --- and meaning-based scoring is what remains.
+left to merge. On long-form text the two count-based string-frequency scores
+have little to measure: paragraphs almost never repeat as identical strings,
+so the scores are nearly pinned at their ceiling and sit near chance.
+Surface-only probability-weighted naive entropy remains strong, while
+meaning-level clustering and a correctness-trained probe recover signal by
+different routes.
 Measured at claim level against human factuality labels, semantic entropy
 detects confabulated claims at AUROC 0.748, 0.724 and 0.701 for the three
 generators. On whole paragraphs the picture is weaker and, on the evidence
@@ -39,14 +42,15 @@ Two further findings qualify the method's practical use. First, the
 clustering backend is result-determining on long-form inputs: across NLI
 cross-encoders and an LLM judge, backends span anti-predictive to
 moderately useful behavior on the same saved samples, while on short answers
-the same four backends span at most 0.04 AUROC. Backend capacity matters in
+the same four backends span at most 0.057 AUROC. Backend capacity matters in
 proportion to the length of the text being compared, which makes it an
 implementation detail on short answers and a first-order design decision on
 long-form text. Second, the claim-level FactualBio extension shows that
 semantic entropy's discriminative power decreases monotonically with
 generator scale (AUROC 0.748 $\rightarrow$ 0.724 $\rightarrow$ 0.701 from 7B
-to 70B): larger models repeat their confabulations more consistently,
-eroding exactly the inconsistency that the method measures. The effect is a
+to 70B), a pattern consistent with larger models repeating their
+confabulations more consistently and thereby leaving less inconsistency to
+measure. The experiment does not establish that mechanism directly. The effect is a
 gentle slope rather than a collapse --- 0.047 AUROC across a tenfold size
 difference, with the largest model still clearly useful --- and it should not
 be extrapolated beyond the three models measured here.
@@ -72,16 +76,17 @@ significance kept separate from seed stability
 (Sections~\ref{sec:evaluation-metrics}--\ref{sec:hpc-execution});
 (3)~the extension baselines --- P(True), in- and out-of-distribution
 embedding regression, Kernel Language Entropy under two encoders, and
-the Semantic Entropy Probe~\cite{kossen_semantic_entropy_probes_2024}
-with the probe-equivalence observation that correctness-trained and
-SE-trained probes are interchangeable in practice
+the Semantic Entropy Probe~\cite{kossen_semantic_entropy_probes_2024},
+with the observation that correctness-trained and SE-trained probes perform
+similarly in this grid, although the correctness-trained probe is ahead in
+eight of nine cells
 (Sections~\ref{sec:related-estimators}, \ref{sec:probes-results});
 (4)~the two-granularity long-form evaluation, whole-paragraph and
 claim-level, which yields the scale trend, the clustering-artifact result,
-and a transferable negative design result: a consistency-based detector must
-be applied at a granularity at which independent samples can agree, a
-condition that is checkable from the samples alone before any AUROC is
-computed (Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
+and evidence from this biography task that a consistency-based detector should
+be evaluated at a granularity where independent samples can plausibly agree, a
+condition that can be checked from the samples before any AUROC is computed
+(Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
 (5)~the record-level worked audits that give mechanistic rather than
 purely metric-level evidence for the main conclusions
 (Section~\ref{sec:hand-audits}); and (6)~the sampling-temperature sweep,
@@ -108,7 +113,9 @@ Within the empirical results, the main residual limitations are the
 automated LLM judging behind the whole-paragraph long-form labels (the
 claim-level evaluation uses published human labels), the three-seed basis of
 the stability estimates, and the English-only, biography-only long-form
-scope.
+scope. The hidden-state probes were not included in the temperature sweep, the
+granularity interpretation comes from one long-form task, and AUROC ranking
+alone does not establish deployment utility.
 Record-level issues (alias-type oracle failures on TriviaQA,
 semantically consistent refusals on biography, and SVAMP's
 integer-arithmetic structure) are documented in the audits; the
