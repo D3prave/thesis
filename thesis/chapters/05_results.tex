@@ -285,7 +285,10 @@ remaining detectors follow task by task below.
   evaluation with human labels (Section~\ref{sec:factualbio-results}), not
   the whole-paragraph biography experiment of
   Section~\ref{sec:bio-results}; the two score different objects and are
-  never compared directly.}
+  never compared directly. The probability-weighted estimator has no
+  biography entry because the claim-level evaluation scores extracted claims,
+  which carry no sequence probability of their own to weight with; only the
+  count-based estimator is defined there.}
 \label{tab:auroc-overview}
 \input{includes/generated_overview.tex}
 \end{table*}
@@ -310,7 +313,8 @@ accuracy-independent, is used as the primary metric throughout.
 \centering
 \caption{Selective-prediction AURAC (seed-mean over 42/43/44), the companion
   to Table~\ref{tab:auroc-overview} and with the same column meanings: the
-  \emph{Biography} column is the claim-level FactualBio evaluation. AURAC
+  \emph{Biography} column is the claim-level FactualBio evaluation, which
+  defines only the count-based estimator. AURAC
   tracks base accuracy, so values are comparable within a cell but not
   across cells.}
 \label{tab:aurac-overview}
@@ -662,7 +666,9 @@ magnitude.
   the score cannot discriminate; ``clusters'' is the mean number of distinct
   semantic clusters per record. Seeds 42/43/44.
   The short-answer rows give the same measurement under the canonical
-  backend, as a range over the three tasks.}
+  backend, as a range over the three tasks; the other two backends were not
+  run on the short-answer tasks, which is what the dashes in those columns
+  mean.}
 \label{tab:longform-saturation}
 \input{includes/generated_longform_saturation.tex}
 \end{table}
@@ -753,7 +759,11 @@ record counts.
   (higher is better). The accuracy probe is trained and scored on the same
   task; the transfer variant is trained on the other tasks and scored on the
   held-out one, so the pair measures how much of the probe's signal survives
-  a change of task.}
+  a change of task. Biography carries neither: the SEP target is a threshold
+  on question-conditioned semantic entropy while biography clustering is
+  answer-only, and the transfer probe trains on the other short-answer tasks,
+  of which biography is not one. A dash is therefore a measurement the design
+  does not define, never a failed run.}
 \label{tab:probes}
 \input{includes/generated_probes.tex}
 \end{table}
