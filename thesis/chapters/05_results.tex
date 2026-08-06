@@ -169,11 +169,10 @@ quantitatively and explains why it happens.
   as good as meaning-aware clustering. On the long-form biography task
   the surface bar drops to the chance line (it stops working
   entirely) while the meaning-aware bar stays well above it. This
-  short-versus-long contrast is the central finding. The short-answer
-  groups are sealed-primary numbers; the shaded biography group comes from
-  the archived family (Section~\ref{sec:protocol-provenance}). Each pair of
-  bars is a comparison within one cell of one family, and no bar is compared
-  across the divider.}
+  short-versus-long contrast is the central finding. Each pair of bars is a
+  comparison within one cell, and no bar is compared across the divider: the
+  two regimes are graded differently, so their absolute heights are not
+  commensurable.}
 \label{fig:regime-split}
 \end{figure*}
 
@@ -529,29 +528,28 @@ Table~\ref{tab:clustering-sensitivity} compares four backends
 (exact-match, two sizes of DeBERTa NLI, and a large Qwen judge)
 holding everything else fixed: the same saved samples are re-clustered by
 each backend, so any difference is attributable to the equivalence judge
-alone. This comparison and the biography analysis that follows come from the
-archived protocol family (Section~\ref{sec:protocol-provenance}); they are
-read here for direction and magnitude, not for decimal-level comparison
-against the sealed short-answer tables above.
+alone. This comparison and the biography analysis that follows are descriptive
+rather than preregistered (Section~\ref{sec:protocol-provenance}), and are read
+for direction and magnitude.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Discrete semantic entropy AUROC by clustering backend
-  (mean $\pm$ std over seeds 42/43/44), archived protocol family. Best
+  (mean $\pm$ std over seeds 42/43/44). Best
   backend per row in bold (higher is better). On biography, exact-match
   clustering is not reported because it reduces exactly to the
   surface-entropy baseline: every paragraph is a distinct string, so the two
   scores coincide at chance (Table~\ref{tab:auroc-bio}).}
 \label{tab:clustering-sensitivity}
-\input{includes/generated_backend_sensitivity_archived.tex}
+\input{includes/generated_backend_sensitivity.tex}
 \end{table}
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.85\textwidth]{bio_clustering_sensitivity.png}
 \caption{Biography AUROC for discrete semantic entropy under different
-  clustering backends, archived protocol family (error bars are the seed
+  clustering backends (error bars are the seed
   spread). On long-form inputs the backend is result-determining: the same
   saved samples yield anything from below chance to clearly useful detection
   depending only on how equivalence is judged. Exact-match grouping is the
@@ -608,13 +606,12 @@ that claim-level result rather than on the numbers in this section.
 \centering
 \caption{Biography (whole-paragraph) AUROC by detector and model
   (mean $\pm$ std over seeds 42/43/44), canonical DeBERTa-v3-large
-  clustering, archived protocol family
-  (Section~\ref{sec:protocol-provenance}). The two count-based surface
+  clustering. The two count-based surface
   scores (naive \emph{sample} entropy and surface entropy) sit at chance
   ($\approx 0.50$) because long paragraphs almost never repeat as identical
   strings. Best value per model column in bold (higher is better).}
 \label{tab:auroc-bio}
-\input{includes/generated_bio_wholepara_archived.tex}
+\input{includes/generated_bio_wholepara.tex}
 \end{table}
 
 The contrast with short answers is stark. The two count-based surface
@@ -661,7 +658,7 @@ magnitude.
   ``At ceiling'' is the share of records whose discrete semantic entropy
   equals $\ln 10$, i.e.\ where all ten samples fall in separate clusters and
   the score cannot discriminate; ``clusters'' is the mean number of distinct
-  semantic clusters per record. Archived protocol family, seeds 42/43/44.
+  semantic clusters per record. Seeds 42/43/44.
   The short-answer rows give the same measurement under the canonical
   backend, as a range over the three tasks.}
 \label{tab:longform-saturation}
@@ -714,9 +711,9 @@ general law.
 Semantic entropy needs several samples per question. Two cheaper-at-test
 alternatives read the model's internal state from a single pass: the
 hidden-state probe (SEP) and embedding regression.
-Table~\ref{tab:embedding-regression} reports the sealed short-answer
-probes, and Table~\ref{tab:probes-archived} adds \mbox{P(True)},
-embedding regression, and the biography cells from the archived family.
+Table~\ref{tab:embedding-regression} reports the short-answer probes on their
+held-out splits, and Table~\ref{tab:probes} adds \mbox{P(True)}, the transfer
+probe, and the biography cells.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
@@ -746,16 +743,16 @@ record counts.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Single-pass probe and self-evaluation AUROC across all four tasks
-  (mean $\pm$ std over seeds 42/43/44), archived protocol family
-  (Section~\ref{sec:protocol-provenance}). Best value per row in bold
-  (higher is better). The in-distribution embedding regression is trained
-  and scored on the same task; the out-of-distribution variant is trained on
-  the other tasks and scored on the held-out one.}
-\label{tab:probes-archived}
-\input{includes/generated_probes_archived.tex}
+  (mean $\pm$ std over seeds 42/43/44). Best value per row in bold
+  (higher is better). The accuracy probe is trained and scored on the same
+  task; the transfer variant is trained on the other tasks and scored on the
+  held-out one, so the pair measures how much of the probe's signal survives
+  a change of task.}
+\label{tab:probes}
+\input{includes/generated_probes.tex}
 \end{table}
 
-Two patterns run through Table~\ref{tab:probes-archived}. First, the probes
+Two patterns run through Table~\ref{tab:probes}. First, the probes
 are relatively strongest on biography: SEP reaches $0.728$ (8B) and $0.731$
 (70B), above every meaning-based clustering method on those generators
 (Table~\ref{tab:auroc-bio}), and \mbox{P(True)} is the best biography score
@@ -783,12 +780,11 @@ Every result so far used the model's default sampling temperature. Since
 sampling-based detectors depend on getting \emph{diverse} samples, the
 decoding temperature ought to matter, and it does. This is one of the more
 practically useful findings in the thesis, because it says which detector to
-reach for under which decoding settings. The sweep was run as its own
-experiment within the archived protocol family
-(Section~\ref{sec:protocol-provenance}), so all five temperatures were
-produced the same way and the comparison across them is internally
-consistent; its $T{=}1.0$ column is the archived measurement of that cell
-rather than the sealed one.
+reach for under which decoding settings. Each temperature is a separate sealed
+instance of the same protocol (Section~\ref{sec:protocol-provenance}),
+differing from the others in the sampling temperature and in nothing else, so
+the comparison across them is internally consistent and the $T{=}1.0$ column
+is the same measurement reported in the tables above.
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
 deterministic) to $1.0$; the table reports the sweep for the largest
@@ -812,7 +808,7 @@ all three.
 \centering
 \includegraphics[width=\linewidth]{auroc_vs_temperature.png}
 \caption{AUROC as a function of sampling temperature, per task and
-  model, archived protocol family. The sampling-based scores (semantic
+  model. The sampling-based scores (semantic
   entropy, surface entropy)
   climb as temperature increases, because more diverse samples reveal
   more disagreement to measure. The hidden-state probe moves the

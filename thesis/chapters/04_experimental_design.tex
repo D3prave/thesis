@@ -433,77 +433,59 @@ deterministically, so which prompts degenerate cannot depend on the sampling
 seed --- and indeed the counts are identical across all three seeds in every
 cell.
 
-\paragraph{Empty samples from Mistral-7B.} A separate artifact affects the
-archived family and is disclosed here because it shapes how those results
-should be read. The answer-extraction step strips a set of stop markers that
-includes Mistral's own chat-template tokens, so a sample that opens by
-echoing a new conversational turn is cut to the empty string. Measured on the
-archived short-answer records, $4.89$--$7.54\,\%$ of Mistral-7B samples are
-empty depending on the task, against exactly $0.00\,\%$ for both Llama
-generators, which do not share those markers. The empty string forms its own
-semantic cluster, and because it is uncorrelated with correctness it adds
-noise rather than signal: it \emph{attenuates} Mistral's measured
-performance. Any Mistral number in the archived family should therefore be
-read as a slight underestimate.
+\paragraph{Empty samples from Mistral-7B.} A separate artifact is recorded
+here because it affected an earlier set of runs and because the sealed records
+allow it to be checked rather than assumed. The answer-extraction step strips
+a set of stop markers that includes Mistral's own chat-template tokens, so a
+sample that opens by echoing a new conversational turn is cut to the empty
+string. The empty string then forms its own semantic cluster, and being
+uncorrelated with correctness it adds noise rather than signal: it inflates
+the entropy estimate and \emph{attenuates} measured performance. In the
+superseded runs the effect was substantial, reaching several per cent of
+Mistral-7B samples. Measured over every eval collection of the sealed family,
+at all five temperatures, it is absent: no cell exceeds one empty sample in
+$5\,000$ ($\le 0.02\,\%$), and both Llama generators, which do not share those
+markers, sit at exactly $0.00\,\%$. No Mistral number reported in this thesis
+is attenuated by it.
 
-\section{Protocol provenance: two families of runs}
+\section{Protocol provenance}
 \label{sec:protocol-provenance}
 
-The results in Chapter~\ref{ch:results} come from two families of runs, and
-the distinction matters when reading any single number.
+Every number reported in Chapter~\ref{ch:results} comes from one sealed family
+of runs. A frozen master protocol fixes the prompt sets, the model and
+tokenizer revisions, the decoding budgets, the sampling parameters, the seeds,
+the train/eval splits and the code commit. One instance of that protocol is
+derived per sampling temperature and is hash-bound to the master, so the five
+temperatures differ in exactly one declared parameter and in nothing else. No
+result in this thesis mixes protocols, and none carries a provenance caveat.
 
-\paragraph{The sealed primary.} The short-answer grid (three datasets, three
-models, three seeds, temperature $1.0$) and the claim-level FactualBio
-evaluation were produced under one frozen protocol and then sealed: an
-immutable manifest fixes the prompt sets, model and tokenizer revisions,
-decoding budgets, seeds, splits, and the code commit, and a completion step
-independently recomputes every reported metric from the per-record files and
-binds the summary to the physical artifact hashes. These runs carry every
-headline claim: the short-answer method comparison
-(Sections~\ref{sec:short-answer-results}--\ref{sec:significance}), the
-hidden-state probe on short answers (Section~\ref{sec:probes-results}), and
-the claim-level long-form result (Section~\ref{sec:factualbio-results}).
+Sealing is mechanical rather than declarative, and happens in two stages. The
+first grades the $27$ protocol cells --- three datasets, three generators,
+three seeds --- by recomputing every reported metric from the per-record files
+and binding each artifact by content hash. A cell whose metadata disagrees with
+the manifest in any field, whether clustering backend, revision pin, split role
+or decoding budget, fails the seal outright instead of being recorded with a
+note. The second stage binds the complement: the clustering-backend sensitivity
+arm, exact-match and LLM-judge grading, KLE, \mbox{P(True)}, the hidden-state
+probes, and the aggregated summary tables from which the tables in this thesis
+are generated. Together the two are required to account for every artifact
+bound to the protocol, so a run directory that is neither bound nor explicitly
+declared is an error rather than something a later glob might pick up as a
+result.
 
-\paragraph{The archived family.} The clustering-backend comparison
-(Section~\ref{sec:clustering-sensitivity}), the whole-paragraph biography
-analysis (Section~\ref{sec:bio-results}), \mbox{P(True)}, embedding
-regression, KLE, and the sampling-temperature sweep
-(Section~\ref{sec:temperature-sensitivity}) come from an earlier set of
-generation runs under their own decoding budgets and reclustering path. They
-are reported as supporting evidence and are labelled as such in every caption.
+What still distinguishes the results of Chapter~\ref{ch:results} from one
+another is statistical, not procedural. The semantic-versus-surface comparison
+is preregistered, and its significance is assessed against a fixed bootstrap
+over prompt clusters; the remaining comparisons are descriptive, and are read
+for direction and magnitude. That distinction is stated where it applies rather
+than attached to every caption.
 
-\paragraph{Why they are not interchangeable.} The two families were generated
-separately, so even at the same nominal condition their numbers differ by
-sampling noise plus whatever the budget and pipeline differences contribute.
-Table~\ref{tab:protocol-drift} quantifies this directly: it lists discrete
-semantic entropy under the canonical backend at temperature $1.0$ in both
-families. The differences run from $-0.046$ to $+0.057$ AUROC, with no
-consistent sign, which is the right order of magnitude to expect and a useful
-calibration for the reader: differences of this size between the two families
-carry no interpretation.
-
-\begin{table}[ht]
-\thisfloatsetup{capposition=above}
-\centering
-\caption{The same measurement under both protocol families: discrete semantic
-  entropy AUROC at temperature $1.0$ with canonical DeBERTa-v3-large
-  clustering. The sealed column is read back from the primary tables of
-  Chapter~\ref{ch:results} so the two cannot diverge. The spread bounds how
-  much of any cross-family comparison is protocol rather than method.}
-\label{tab:protocol-drift}
-\input{includes/generated_protocol_drift.tex}
-\end{table}
-
-Three rules follow, and are applied throughout Chapter~\ref{ch:results}.
-First, no table places numbers from the two families in a single comparison,
-and every caption names the family it draws on. One figure
-(Figure~\ref{fig:regime-split}) deliberately shows both, because the
-short-versus-long contrast is the thesis's central claim; there the
-biography group is shaded and separated by a divider, and every comparison
-made from it is between two bars on the same side of that line. Second,
-absolute head-to-head method comparisons are drawn only from the sealed
-primary. Third, archived results are read for direction and rough magnitude,
-never for a decimal-level comparison against a sealed number.
+One figure (Figure~\ref{fig:regime-split}) places short-answer and biography
+results side by side, because the short-versus-long contrast is the central
+claim of this thesis. The biography group is shaded and separated by a divider
+there, and comparisons are made only between bars on the same side of that
+line --- not for provenance reasons, but because the two regimes are graded
+differently, which makes their absolute AUROC values incommensurable.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
