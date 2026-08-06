@@ -724,7 +724,11 @@ probe, and the biography cells.
   over seeds 42/43/44). Both probes read the same greedy
   response feature and are scored on the same held-out records within each
   cell: SEP is trained on a binarized semantic-entropy target, the accuracy
-  probe on correctness. Because these are held-out splits, the values are
+  probe on correctness. The accuracy probe's seed spread is exactly zero by
+  construction, not by rounding: its feature and its label are both
+  deterministic given the prompt, so the three seeds fit the same probe. SEP
+  varies across seeds because its target is computed from the sampled
+  answers. Because these are held-out splits, the values are
   not ranked against the full-grid entropy tables earlier in this chapter.}
 \label{tab:embedding-regression}
 \input{includes/generated_embedding_regression.tex}
@@ -810,26 +814,43 @@ all three.
 \centering
 \includegraphics[width=\linewidth]{auroc_vs_temperature.png}
 \caption{AUROC as a function of sampling temperature, per task and
-  model. The sampling-based scores (semantic
-  entropy, surface entropy)
-  climb as temperature increases, because more diverse samples reveal
-  more disagreement to measure. The hidden-state probe moves the
-  opposite way. The two families therefore \emph{cross over} between
-  temperature $0.7$ and $1.0$ on short answers; on biography the curves
-  are flat.}
+  model. The sampling-based scores (semantic entropy, surface entropy,
+  LLM-judge clustering, KLE) climb as temperature increases, because more
+  diverse samples reveal more disagreement to measure. \mbox{P(True)}, which
+  reads a single greedy self-evaluation, is close to flat. The gap therefore
+  closes in every cell, and on the two smaller generators the curves
+  \emph{cross}; on Llama-3.1-70B they do not, within the range measured. The
+  hidden-state probes are trained once at the canonical setup
+  (Section~\ref{sec:protocol-provenance}) and so are not swept; biography was
+  generated at the canonical temperature only and is likewise not shown.}
 \label{fig:temp-sweep}
 \end{figure*}
 
 At low temperature the model repeats nearly the same answer every time,
 so there is little diversity for a sampling-based method to work with and
-semantic entropy is weak (TriviaQA/70B: AUROC $0.54$ at $T{=}0.1$). As
+semantic entropy is weak (TriviaQA/70B: AUROC $0.56$ at $T{=}0.1$). As
 temperature rises the samples spread out and the same method becomes
-strong ($0.79$ at $T{=}1.0$). The hidden-state probe does the reverse
-(it is best at low temperature and degrades as decoding gets noisier),
-so the two families \emph{cross over}. The practical lesson is that there
-is no single best detector: at low decoding temperature, use the probe;
-at high temperature, use sampling-based entropy. On biography the curves
-are flat, so this trade-off is specific to the short-answer regime.
+strong ($0.78$ at $T{=}1.0$). \mbox{P(True)}, which reads one greedy
+self-evaluation and never looks at the samples, barely moves: across the nine
+cells it changes by $+0.031$ on average and declines in only one of them.
+
+The consequence is a closing gap rather than a symmetric exchange. At
+$T{=}0.1$ the single-pass baseline is ahead in \emph{all nine} cells, by as
+much as $0.335$ AUROC; by $T{=}1.0$ that lead has shrunk everywhere, and in
+five of the nine cells it has reversed. Which cells reverse follows model
+scale rather than task: every Mistral-7B cell crosses, two of three
+Llama-3.1-8B cells cross, and no Llama-3.1-70B cell crosses within the
+measured range. The crossing also arrives earlier for weaker generators ---
+between $T{=}0.1$ and $0.3$ for Mistral-7B on two tasks, only between $0.7$
+and $1.0$ for Llama-3.1-8B on SVAMP.
+
+The practical lesson is that the right detector depends on both the decoding
+temperature and the generator: under near-greedy decoding the cheap
+single-pass score is the better choice everywhere, and how warm the decoder
+must run before sampling-based entropy overtakes it grows with model
+strength --- past $T{=}1.0$ for the largest model tested. Biography was
+generated at the canonical temperature only, so this trade-off is established
+on the short-answer tasks alone.
 
 \paragraph{Is this a property of the decoding temperature or of the seeds?}
 The distinction matters, because a trend that only appeared under one random
@@ -848,17 +869,20 @@ predict, not a coincidence to be explained after the fact.
 Second, the size of the effect dwarfs the seed variation on the entropy side.
 Every point in Table~\ref{tab:temp-sweep} and Figure~\ref{fig:temp-sweep} is
 a mean over the same three seeds, and the seed standard deviation across the
-short-answer sweep cells averages $0.010$. Semantic entropy rises in
-\emph{all nine} model--dataset cells, by $0.163$ to $0.305$ AUROC, which is
-between $13$ and $66$ times the seed spread of the cell it occurs in (median
-$37$). A change that large cannot be an accident of which seeds were drawn.
+short-answer sweep cells averages $0.006$. Semantic entropy rises
+\emph{monotonically in all nine} model--dataset cells, by $0.159$ to $0.263$
+AUROC, which is between $28$ and $56$ times the seed spread of the cell it
+occurs in (median $35$). A change that large, and that consistent in shape,
+cannot be an accident of which seeds were drawn.
 
-Third, and stated plainly because it qualifies the picture: the probe side is
-weaker. Its decline is consistent in sign in all nine cells, but it is a
-smaller movement --- $0.051$ on average, a median of about five times the
-seed spread --- and in two TriviaQA cells the decline is no larger than the
-seed variation itself. The crossover is therefore carried mainly by the
-entropy family rising, with the probe drifting down beneath it.
+Third, and stated plainly because it qualifies the picture: the movement is
+almost entirely on the entropy side. \mbox{P(True)} changes by $-0.023$ to
+$+0.076$ across the same sweep, a median of about three times its seed
+spread, and its direction is not even consistent --- it rises in eight of the
+nine cells. The closing gap is therefore carried by the entropy family
+climbing, not by the single-pass baseline falling away beneath it. Any
+account of this as two detectors moving in opposite directions would
+overstate what the sweep shows.
 
 None of this makes the behaviour universal. Three seeds, three datasets and
 three generators cannot establish that, and the sweep is one run set. What
@@ -948,9 +972,11 @@ The experiments support a single, regime-dependent picture.
     tenfold size difference, because larger models confabulate more
     consistently; the whole-paragraph numbers move the same way
     (Section~\ref{sec:factualbio-results}).
-  \item \textbf{Temperature decides which detector wins.} Sampling-based
-    entropy and the single-pass probe respond to decoding temperature in
-    opposite directions and cross over on short answers
+  \item \textbf{Temperature decides which detector wins, and so does model
+    scale.} Sampling-based entropy climbs steeply with decoding temperature
+    while the single-pass baseline stays flat, so their gap closes in every
+    short-answer cell and reverses in five of nine --- on the two smaller
+    generators, never on the largest
     (Section~\ref{sec:temperature-sensitivity}).
   \item \textbf{Two blind spots, seen by hand.} Confident systematic
     errors and noisy gold labels (Example~\ref{sec:audit-artifact}) are

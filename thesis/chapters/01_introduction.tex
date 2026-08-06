@@ -100,9 +100,11 @@ aggregate evaluation does not show. On short answers, the value of
 sampling-based methods such as semantic entropy depends strongly on the
 decoding temperature. At low temperature the repeated samples are nearly
 identical, so there is little diversity to measure and these methods are weak;
-at high temperature they become strong. Single-pass probes that read the
-model's internal state move the other way, so the two families cross over as
-temperature rises. At the temperature where sampling-based methods work best,
+at high temperature they become strong. A single-pass self-evaluation baseline
+is close to temperature-independent, so the gap between the two closes as
+temperature rises --- and on the smaller generators it reverses, while on the
+largest it does not within the range measured. At the temperature where
+sampling-based methods work best,
 semantic entropy is about as good as a much cheaper surface-form entropy on
 short answers. The clearer advantage of meaning-aware methods appears on the
 long-form task, where surface methods break down. These points are stated

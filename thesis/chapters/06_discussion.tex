@@ -152,15 +152,19 @@ The temperature sweep (Section~\ref{sec:temperature-sensitivity},
 Figure~\ref{fig:temp-sweep}) gives the probe-versus-entropy comparison
 a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
-as temperature rises (TriviaQA/70B semantic entropy climbs from $0.54$
-at $T{=}0.1$ to $0.79$ at $T{=}1.0$). The hidden-state probe moves the
-other way, because the information it reads is present regardless of how
-diverse the samples are, and noisier decoding only blurs it. The two
-families therefore cross over between $T{=}0.7$ and $T{=}1.0$ on short
-answers. The practical consequence is concrete: under the near-greedy
-decoding common in production, the single-pass probe is both the cheaper
-and the stronger choice; a sampling-based estimator only earns its cost
-once the decoder is warm enough for the samples to genuinely disagree. Three
+as temperature rises (TriviaQA/70B semantic entropy climbs from $0.56$
+at $T{=}0.1$ to $0.78$ at $T{=}1.0$). The single-pass baseline does not
+move with it: the information it reads is present regardless of how
+diverse the samples are, and \mbox{P(True)} shifts by only $+0.031$ on
+average across the sweep. The gap therefore closes in every short-answer
+cell and reverses in five of the nine, on Mistral-7B in all three tasks and
+on Llama-3.1-8B in two, but on Llama-3.1-70B not at any temperature
+measured. The practical consequence is concrete: under the near-greedy
+decoding common in production, the single-pass score is both the cheaper
+and the stronger choice in every cell; a sampling-based estimator earns its
+cost only once the decoder is warm enough for the samples to genuinely
+disagree, and how warm that is rises with the strength of the generator ---
+beyond $T{=}1.0$ for the largest model here. Three
 qualifications apply. The temperature gain is shared by the surface
 baseline, so it reflects a general need for sampling diversity rather than
 something specific to semantic clustering; P(True) is largely
