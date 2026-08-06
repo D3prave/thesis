@@ -40,7 +40,11 @@ to chance, but surface-only probability-weighted naive entropy remains strong
 and is best for the two smaller generators. Meaning-aware and
 representation-based detectors also recover signal, and the choice of
 clustering backend becomes result-determining, spanning anti-predictive to
-moderately useful behavior on the same samples.
+moderately useful behavior on the same samples. Scored one claim at a time
+against human labels, where the surface baseline still ranks usefully rather
+than sitting at its ceiling, meaning-based clustering leads it by 0.07 to
+0.11 AUROC for every generator: the one regime measured here in which the
+clustering step earns its cost.
 
 Two further effects qualify practical use. Claim-level detection power falls
 modestly as the generator scales, a pattern consistent with larger models

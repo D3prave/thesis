@@ -925,7 +925,10 @@ reports the result.
   std over seeds 42/43/44). The $150$ published claims carry
   human factuality labels; six frozen questions per claim and three
   regenerated answers per question are grouped with the disclosed
-  question-conditioned DeBERTa-v3-large clustering adaptation. Detection
+  question-conditioned DeBERTa-v3-large clustering adaptation. The surface
+  columns repeat the measurement with normalized exact-match grouping in
+  place of entailment, on the same records, so $\Delta$ isolates the
+  meaning-clustering step; positive $\Delta$ favours it. Detection
   quality decreases as the generator gets larger.}
 \label{tab:factualbio}
 \input{includes/generated_factualbio_main.tex}
@@ -939,6 +942,24 @@ AUROC across a tenfold difference in parameter count --- and the largest
 model still detects well above chance. AURAC behaves the same way and is
 almost flat ($0.847 / 0.843 / 0.838$), which is what one expects when the
 underlying claim accuracy is similar across generators.
+
+\paragraph{Does meaning-clustering earn its keep here?} The same records
+answer this directly, because the surface baseline can be recomputed on them
+by replacing entailment with normalized exact match and changing nothing
+else. It does not collapse the way it does on whole paragraphs: the
+regenerated answers are short strings, so exact-match grouping still ranks
+usefully, at AUROC $0.642 / 0.650 / 0.619$. Meaning-based clustering is
+nevertheless ahead in every cell, by $0.07$ to $0.11$ AUROC and $0.03$ to
+$0.06$ AURAC --- five to seventeen times the seed spread of the cells
+concerned. This is the mirror image of the short-answer result of
+Section~\ref{sec:significance}, and it is the cleaner of the two long-form
+comparisons: the gain is measured against a baseline that works rather than
+against one pinned at its ceiling, and it is measured against human labels.
+The comparison is exploratory rather than preregistered
+(Section~\ref{sec:evaluation-metrics}), and three generators on one claim set
+cannot establish a general law, but within this grid the meaning-clustering
+step pays for itself at claim granularity in a way it never does on short
+answers.
 
 The whole-paragraph observation of Section~\ref{sec:bio-results} does not
 reproduce this monotonic ordering: its values are $0.734 / 0.590 / 0.648$.
@@ -968,7 +989,10 @@ The experiments support a single, regime-dependent picture.
     count-based surface baselines have little to measure on paragraph-length
     text, where samples almost never repeat as identical strings. The
     surface-only probability-weighted naive estimator remains strong. Measured at claim level against human
-    labels, semantic entropy detects at $0.748 / 0.724 / 0.701$
+    labels, semantic entropy detects at $0.748 / 0.724 / 0.701$ and beats the
+    normalized surface baseline by $0.07$ to $0.11$ AUROC in every cell ---
+    the one regime in this study where meaning-clustering earns its cost
+    against a baseline that still works
     (Section~\ref{sec:factualbio-results}). The whole-paragraph variant is
     reported as a diagnostic rather than a detector: its score is pinned at
     the ceiling for a large minority of records and the samples are partly

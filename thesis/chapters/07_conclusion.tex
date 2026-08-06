@@ -37,7 +37,11 @@ meaning-level clustering and a correctness-trained probe recover signal by
 different routes.
 Measured at claim level against human factuality labels, semantic entropy
 detects confabulated claims at AUROC 0.748, 0.724 and 0.701 for the three
-generators. On whole paragraphs the picture is weaker and, on the evidence
+generators, and there it does beat the normalized surface baseline --- by
+$0.07$ to $0.11$ AUROC in every cell, against a baseline that still ranks
+usefully at $0.642 / 0.650 / 0.619$ rather than one pinned at its ceiling.
+The meaning-clustering step therefore earns its keep at claim granularity
+exactly where it fails to on short answers. On whole paragraphs the picture is weaker and, on the evidence
 of two independent diagnostics, partly an artifact of granularity rather
 than of the method: the score is pinned at its ceiling for a large minority
 of records, and one generator's paragraphs are frequently cut off at the
@@ -120,12 +124,9 @@ claim-level evaluation uses published human labels), the three-seed basis of
 the stability estimates, and the English-only, biography-only long-form
 scope. The hidden-state probes were not included in the temperature sweep, the
 granularity interpretation comes from one long-form task, and AUROC ranking
-alone does not establish deployment utility. The claim-level evaluation was
-also run without a surface comparator, so it shows that meaning-based
-scoring works at claim granularity but does not by itself separate
-meaning-aware from count-based scoring; that separation rests on the
-whole-paragraph comparison, which
-Section~\ref{sec:bio-results} treats as a diagnostic.
+alone does not establish deployment utility. The claim-level
+surface comparison is exploratory rather than preregistered, and rests on one
+claim set and three generators.
 Record-level issues (alias-type oracle failures on TriviaQA,
 semantically consistent refusals on biography, and SVAMP's
 integer-arithmetic structure) are documented in the audits; the

@@ -66,18 +66,18 @@ In the terms of Section~\ref{sec:research-aim}, H1 is not supported on these
 datasets. The direction is in fact uniform in the opposite sense, all nine
 cells favoring the surface baseline, which leaves H2 --- a claim about the
 consistency of an improvement --- without an improvement to describe. H3 is
-supported, but the support comes from the whole-paragraph comparison, where
-the count-based surface scores sit at chance and every meaning-aware or
-probability-weighted estimator is clearly above them. That comparison is a
+supported, and by two measurements rather than one. On whole paragraphs the
+count-based surface scores sit at chance while every meaning-aware or
+probability-weighted estimator is clearly above them; that comparison is a
 diagnostic rather than a detector benchmark
-(Section~\ref{sec:bio-results}), and the claim-level evaluation, which
-carries the long-form conclusions of this thesis, was run without a
-surface comparator, so it establishes that meaning-based scoring works at
-claim granularity without itself separating meaning-aware from count-based
-scoring. Supplying that comparator is the single cheapest addition that
-would strengthen the long-form half of this study, because the regenerated
-claim-level answers are short strings for which a normalized exact-match
-baseline is well defined.
+(Section~\ref{sec:bio-results}), because a baseline pinned at its ceiling is
+easy to beat. The claim-level evaluation, which carries the long-form
+conclusions of this thesis, settles the question on its own terms: against
+human labels, and against a surface baseline that still works
+($0.642 / 0.650 / 0.619$), meaning-based clustering leads in every cell by
+$0.07$ to $0.11$ AUROC (Section~\ref{sec:factualbio-results}). That is the
+comparison H3 asks for, made where the thesis says its long-form evidence
+lies.
 
 The short-answer non-result is worth stating plainly, because the
 theoretical motivation for semantic entropy is that surface variation is
