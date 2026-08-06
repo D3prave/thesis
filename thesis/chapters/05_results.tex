@@ -280,7 +280,7 @@ remaining detectors follow task by task below.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Selective-prediction AUROC for discrete semantic entropy
-  (seed-mean over 42/43/44), sealed primary. The three short-answer tasks
+  (seed-mean over 42/43/44). The three short-answer tasks
   are on the left. The \emph{Biography} column is the claim-level FactualBio
   evaluation with human labels (Section~\ref{sec:factualbio-results}), not
   the whole-paragraph biography experiment of
@@ -795,10 +795,10 @@ all three.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{AUROC versus sampling temperature (seed-mean over 42/43/44),
-  Llama-3.1-70B, archived protocol family. Sampling-based entropy rises with
-  temperature; the single-pass probe falls. All five temperatures come from
-  the same run set, so the trend across the row is a like-for-like
-  comparison.}
+  Llama-3.1-70B. Sampling-based entropy rises with
+  temperature; the single-pass probe falls. Each temperature is a separate
+  sealed instance of the same protocol, differing only in that parameter, so
+  the trend across the row is a like-for-like comparison.}
 \label{tab:temp-sweep}
 \resizebox{\linewidth}{!}{%
 \input{includes/generated_temp_sweep_auroc.tex}}
