@@ -786,7 +786,12 @@ reach for under which decoding settings. Each temperature is a separate sealed
 instance of the same protocol (Section~\ref{sec:protocol-provenance}),
 differing from the others in the sampling temperature and in nothing else, so
 the comparison across a row is internally consistent: what changes from
-column to column is the decoding temperature and nothing besides.
+column to column is the decoding temperature and nothing besides. The
+$T{=}1.0$ column is computed on the same evaluation records as the tables
+above and reproduces them exactly in seven of the nine cells; the two that
+differ do so by $0.005$ and $0.001$, because the sweep scores the full
+evaluation set while the primary tables use the feature-present subset
+(Section~\ref{sec:budgets-and-exclusions}).
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
 deterministic) to $1.0$; the table reports the sweep for the largest
@@ -803,7 +808,7 @@ all three.
   sealed instance of the same protocol, differing only in that parameter, so
   the trend across the row is a like-for-like comparison. Seed spreads are
   omitted here for width and are summarized in the text below: they average
-  $0.006$ across the short-answer sweep cells.}
+  $0.007$ across the short-answer sweep cells.}
 \label{tab:temp-sweep}
 \resizebox{\linewidth}{!}{%
 \input{includes/generated_temp_sweep_auroc.tex}}
@@ -827,25 +832,27 @@ all three.
 
 At low temperature the model repeats nearly the same answer every time,
 so there is little diversity for a sampling-based method to work with and
-semantic entropy is weak (TriviaQA/70B: AUROC $0.56$ at $T{=}0.1$). As
+semantic entropy is weak (TriviaQA/70B: AUROC $0.52$ at $T{=}0.1$). As
 temperature rises the samples spread out and the same method becomes
-strong ($0.78$ at $T{=}1.0$). \mbox{P(True)}, which reads one greedy
+strong ($0.75$ at $T{=}1.0$). \mbox{P(True)}, which reads one greedy
 self-evaluation and never looks at the samples, barely moves: across the nine
 cells it changes by $+0.031$ on average and declines in only one of them.
 
 The consequence is a closing gap rather than a symmetric exchange. At
-$T{=}0.1$ the single-pass baseline is ahead in \emph{all nine} cells, by as
-much as $0.335$ AUROC; by $T{=}1.0$ that lead has shrunk everywhere, and in
-five of the nine cells it has reversed. Which cells reverse follows model
-scale rather than task: every Mistral-7B cell crosses, two of three
-Llama-3.1-8B cells cross, and no Llama-3.1-70B cell crosses within the
-measured range. The crossing also arrives earlier for weaker generators ---
-between $T{=}0.1$ and $0.3$ for Mistral-7B on two tasks, only between $0.7$
-and $1.0$ for Llama-3.1-8B on SVAMP.
+$T{=}0.1$ the single-pass baseline is ahead in eight of the nine cells, by as
+much as $0.329$ AUROC; by $T{=}1.0$ that lead has shrunk in every cell, and
+in five of them it has reversed. Where the ranking ends up follows model
+scale rather than task, and it does so without exception: at $T{=}1.0$
+semantic entropy is ahead in all six cells of the two smaller generators and
+behind in all three cells of Llama-3.1-70B. Five of those six are crossings;
+the sixth, SVAMP with Mistral-7B, is the one cell where semantic entropy
+already leads at $T{=}0.1$. The crossing also arrives earlier for weaker
+generators --- by $T{=}0.3$ for Mistral-7B on NQ-Open, and not until between
+$0.5$ and $0.7$ for Llama-3.1-8B on TriviaQA.
 
 The practical lesson is that the right detector depends on both the decoding
 temperature and the generator: under near-greedy decoding the cheap
-single-pass score is the better choice everywhere, and how warm the decoder
+single-pass score is the better choice in eight of the nine cells, and how warm the decoder
 must run before sampling-based entropy overtakes it grows with model
 strength --- past $T{=}1.0$ for the largest model tested. Biography was
 generated at the canonical temperature only, so this trade-off is established
@@ -867,10 +874,10 @@ work.
 Second, the size of the effect dwarfs the seed variation on the entropy side.
 Every point in Table~\ref{tab:temp-sweep} and Figure~\ref{fig:temp-sweep} is
 a mean over the same three seeds, and the seed standard deviation across the
-short-answer sweep cells averages $0.006$. Semantic entropy rises
-\emph{monotonically in all nine} model--dataset cells, by $0.159$ to $0.263$
-AUROC, which is between $28$ and $56$ times the seed spread of the cell it
-occurs in (median $35$). A change that large, and that consistent in shape,
+short-answer sweep cells averages $0.007$. Semantic entropy rises
+\emph{monotonically in all nine} model--dataset cells, by $0.178$ to $0.279$
+AUROC, which is between $22$ and $51$ times the seed spread of the cell it
+occurs in (median $32$). A change that large, and that consistent in shape,
 cannot be an accident of which seeds were drawn.
 
 Third, and stated plainly because it qualifies the picture: the movement is

@@ -169,16 +169,18 @@ The temperature sweep (Section~\ref{sec:temperature-sensitivity},
 Figure~\ref{fig:temp-sweep}) gives the P(True)-versus-entropy comparison
 a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
-as temperature rises (TriviaQA/70B semantic entropy climbs from $0.56$
-at $T{=}0.1$ to $0.78$ at $T{=}1.0$). The single-pass baseline does not
+as temperature rises (TriviaQA/70B semantic entropy climbs from $0.52$
+at $T{=}0.1$ to $0.75$ at $T{=}1.0$). The single-pass baseline does not
 move with it: the information it reads is present regardless of how
 diverse the samples are, and \mbox{P(True)} shifts by only $+0.031$ on
 average across the sweep. The gap therefore closes in every short-answer
-cell and reverses in five of the nine, on Mistral-7B in all three tasks and
-on Llama-3.1-8B in two, but on Llama-3.1-70B not at any temperature
-measured. The practical consequence is concrete: under the near-greedy
+cell and reverses in five of the nine, on Llama-3.1-8B in all three tasks
+and on Mistral-7B in two; on the third, SVAMP, semantic entropy already
+leads at the lowest temperature, so at $T{=}1.0$ it is ahead in every cell
+of both smaller generators. On Llama-3.1-70B it does not overtake at any
+temperature measured. The practical consequence is concrete: under the near-greedy
 decoding common in production, the single-pass score is both the cheaper
-and the stronger choice in every cell; a sampling-based estimator earns its
+and the stronger choice in eight of the nine cells; a sampling-based estimator earns its
 cost only once the decoder is warm enough for the samples to genuinely
 disagree, and how warm that is rises with the strength of the generator ---
 beyond $T{=}1.0$ for the largest model here. Three
