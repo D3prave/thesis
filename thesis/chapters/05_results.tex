@@ -350,7 +350,7 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{NQ-Open AUROC by detector and model (mean $\pm$ std over seeds
-  42/43/44), sealed primary. Canonical setup as in
+  42/43/44). Canonical setup as in
   Table~\ref{tab:auroc-triviaqa} (temperature $1.0$, $M=10$,
   DeBERTa-v3-large clustering). Best value per model column in bold (higher
   is better).}
@@ -362,7 +362,7 @@ SVAMP respectively.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{SVAMP AUROC by detector and model (mean $\pm$ std over seeds
-  42/43/44), sealed primary. Canonical setup as in
+  42/43/44). Canonical setup as in
   Table~\ref{tab:auroc-triviaqa} (temperature $1.0$, $M=10$,
   DeBERTa-v3-large clustering). Best value per model column in bold (higher
   is better).}
@@ -404,7 +404,7 @@ beats the surface baseline by more than sampling noise would explain.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Confirmatory paired comparison of question-conditioned discrete
-  semantic entropy against the surface baseline, sealed primary, in the
+  semantic entropy against the surface baseline in the
   canonical setup
   (temperature $1.0$, $M=10$; DeBERTa-v3-large clustering). Each row
   reports the per-seed AUROC difference $\Delta = \text{AUROC(DSE)} -
@@ -460,7 +460,7 @@ evaluated twice, and the null result is what that predicts.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{How similarly the two short-answer scores rank prompts, on the
-  locked confirmatory family of the sealed primary (mean over seeds
+  locked confirmatory family (mean over seeds
   42/43/44). Spearman $\rho$ is
   computed with average ranks for ties. ``Identical scores'' is the share of
   prompts on which discrete semantic entropy and surface entropy return
@@ -721,7 +721,7 @@ probe, and the biography cells.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Held-out probe AUROC on the short-answer tasks (mean $\pm$ std
-  over seeds 42/43/44), sealed primary. Both probes read the same greedy
+  over seeds 42/43/44). Both probes read the same greedy
   response feature and are scored on the same held-out records within each
   cell: SEP is trained on a binarized semantic-entropy target, the accuracy
   probe on correctness. Because these are held-out splits, the values are
@@ -892,7 +892,7 @@ reports the result.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Claim-level FactualBio AUROC and AURAC by generator (mean $\pm$
-  std over seeds 42/43/44), sealed primary. The $150$ published claims carry
+  std over seeds 42/43/44). The $150$ published claims carry
   human factuality labels; six frozen questions per claim and three
   regenerated answers per question are grouped with the disclosed
   question-conditioned DeBERTa-v3-large clustering adaptation. Detection
