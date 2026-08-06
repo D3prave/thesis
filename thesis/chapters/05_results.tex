@@ -537,15 +537,7 @@ for direction and magnitude.
   backend per row in bold (higher is better). On biography, exact-match
   clustering reduces to the surface-entropy baseline --- paragraphs almost
   never repeat as identical strings --- which is why it sits near chance and
-  coincides with the surface row of Table~\ref{tab:auroc-bio}.
-  Unlike the primary tables, this comparison is scored on the full evaluation
-  split rather than the feature-present subset
-  (Section~\ref{sec:protocol-provenance}): the paired-subset rule exists to make
-  entropy scores and hidden-state probes share one prompt set, and no probe
-  appears here. All four backends are scored on the same records, so the
-  comparison across columns remains strictly paired. Two cells therefore differ
-  in the third decimal from the same quantity in
-  Table~\ref{tab:auroc-triviaqa} and Table~\ref{tab:auroc-svamp}.}
+  coincides with the surface row of Table~\ref{tab:auroc-bio}.}
 \label{tab:clustering-sensitivity}
 \input{includes/generated_backend_sensitivity.tex}
 \end{table}
