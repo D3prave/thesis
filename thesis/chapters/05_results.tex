@@ -643,12 +643,13 @@ long-form detector.
 \paragraph{Whole-paragraph entropy is partly saturated.}
 Table~\ref{tab:longform-saturation} measures how often the score is pinned at
 its ceiling. Under the canonical backend, discrete semantic entropy takes its
-maximum value on $32.1\,\%$ of Mistral-7B records, $17.5\,\%$ for
-Llama-3.1-8B and $7.4\,\%$ for Llama-3.1-70B, with $5.4$ to $7.2$ of the ten
-samples landing in distinct clusters. The same measurement on short answers
-gives $0.1$--$4.9\,\%$ at the ceiling and $1.6$--$5.1$ clusters. Under the
+maximum value on $31.8\,\%$ of Mistral-7B records, $15.6\,\%$ for
+Llama-3.1-8B and $9.0\,\%$ for Llama-3.1-70B, with $5.3$ to $7.3$ of the ten
+samples landing in distinct clusters.
+\input{includes/generated_longform_saturation_note.tex}
+Under the
 weaker DeBERTa-v3-base backend the biography figures rise to
-$35.8$--$74.4\,\%$. So on long text a large minority of records carry an
+$35.2$--$72.3\,\%$. So on long text a large minority of records carry an
 identical, maximal score and contribute nothing to the ranking; the detector
 is working only on the remainder. The relationship is not a simple one ---
 the Qwen judge saturates more than DeBERTa-v3-large on two of the three
@@ -664,8 +665,9 @@ magnitude.
   ``At ceiling'' is the share of records whose discrete semantic entropy
   equals $\ln 10$, i.e.\ where all ten samples fall in separate clusters and
   the score cannot discriminate; ``clusters'' is the mean number of distinct
-  semantic clusters per record. Seeds 42/43/44.
-  \input{includes/generated_longform_saturation_note.tex}}
+  semantic clusters per record. Seeds 42/43/44. The short-answer contrast is
+  given in the text, because it was measured under the canonical backend
+  alone and would leave two thirds of this table empty.}
 \label{tab:longform-saturation}
 \input{includes/generated_longform_saturation.tex}
 \end{table}
