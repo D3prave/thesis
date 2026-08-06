@@ -25,8 +25,9 @@ biography the same surface score sits exactly at chance, pinned at its
 ceiling for every record, and a usable signal has to be created either by
 meaning-level grouping (discrete semantic entropy: $0.734 / 0.590 / 0.648$
 for Mistral-7B / Llama-3.1-8B / Llama-3.1-70B) or by
-reading the model's internal state with a probe (SEP), which recovers a
-comparable signal.
+reading the model's internal state with the correctness-trained accuracy
+probe ($0.704 / 0.680 / 0.773$). A genuine SEP is not defined for this
+answer-only whole-paragraph protocol.
 
 The mechanism behind both halves is visible in the worked examples of
 Section~\ref{sec:hand-audits}. On short answers (Example~1,
@@ -111,13 +112,12 @@ clustering choice from an implementation detail to a first-order design
 decision on everything long-form is one of the study's main methodological
 points.
 
-\section{Hidden-state probes: cheap, and strongest where entropy is
-weakest}
+\section{Hidden-state probes as cheap single-pass alternatives}
 \label{sec:sep-scaling-discussion}
 
-The single-pass hidden-state probe (SEP) and embedding regression read
-the model's internal state once, without drawing ten samples. On short
-answers this thrift costs accuracy. The probes are scored on held-out
+The single-pass hidden-state probe (SEP) and correctness-trained accuracy
+probe read the model's internal state once, without drawing ten samples. On
+short answers this thrift costs accuracy. The probes are scored on held-out
 splits, so they are not directly rankable against the full-grid entropy
 tables, but their level is clearly the same or lower: SEP lands between
 $0.726$ and $0.900$ across the nine cells
@@ -130,20 +130,16 @@ AUROC, though the correctness target is ahead in eight of the nine: what is
 linearly readable from the last hidden state is largely one shared signal,
 and its level is the practical ceiling for this probe family.
 
-On biography the probe is far stronger than on short answers: it beats
-every meaning-based clustering method for both Llama generators
-($0.728$ at 8B, $0.731$ at 70B). It is not, however, the single best
-long-form detector: probability-weighted naive entropy is higher on
-the two smaller models, and P(True) is highest on the 70B model
-($0.777$). What is most telling is the \emph{direction} of the scale
-effect: on biography the probe's AUROC \emph{rises} with model size
-($0.656 \to 0.728 \to 0.731$), the opposite of the claim-level entropy
-trend in Section~\ref{sec:scale-factualbio}. The probe wins relative to
-clustering exactly where sampling-based clustering is weakest, on fluent,
-internally consistent confabulated paragraphs, because it reads the
-representation rather than the diversity of the samples. This makes it
-the natural complement to semantic entropy: cheap at test time, and
-relatively strongest precisely in the regime where entropy struggles.
+The whole-paragraph biography evidence is narrower because the sealed design
+defines only the correctness-trained accuracy probe, not a genuine SEP. Its
+AUROC is $0.704 / 0.680 / 0.773$ from 7B to 70B. It exceeds all reported
+meaning-based entropy scores on the two Llama generators, but not on
+Mistral-7B; probability-weighted naive entropy remains higher on the two
+smaller models, while \mbox{P(True)} is highest on the 70B model at $0.835$.
+The non-monotonic sequence does not support the earlier claim that probe
+performance rises with model scale. What it does support is more limited: a
+correctness-trained single-pass probe can remain useful when repeated
+whole-paragraph samples are too diverse for hard clustering to rank reliably.
 
 \section{Temperature decides which detector wins}
 \label{sec:temperature-discussion}
@@ -276,14 +272,13 @@ reason the long-form conclusions of this thesis are drawn from it. Where the
 two disagree in magnitude, the human-labelled measurement is the one to
 believe.
 
-\paragraph{Embedding regression on biography.} Embedding regression is
-reported on biography across all three seeds, but its in-distribution
-value coincides numerically with the SEP probe, because both are linear
-probes over the same pooled hidden states and converge to the same
-solution whether trained on correctness or on the semantic-entropy
-threshold. It therefore adds no independent in-distribution signal on
-long-form text; only the pooled leave-one-out out-of-distribution
-variant, which drops toward chance, is a distinct measurement
+\paragraph{Accuracy probe on biography.} The correctness-trained accuracy
+probe is reported on biography across all three seeds. The corresponding SEP
+target is unavailable because it would require question-conditioned entropy,
+which the answer-only whole-paragraph protocol does not define. The sealed OOD
+grid likewise covers leave-one-out transfer only among the three short-answer
+tasks. Consequently, the biography result supports neither equivalence between
+the two probe targets nor a claim about short-to-long transfer
 (Section~\ref{sec:probes-results}).
 
 \paragraph{Judge coupling on biography.} A further long-form caveat

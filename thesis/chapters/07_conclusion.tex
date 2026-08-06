@@ -50,17 +50,15 @@ eroding exactly the inconsistency that the method measures. The effect is a
 gentle slope rather than a collapse --- 0.047 AUROC across a tenfold size
 difference, with the largest model still clearly useful --- and it should not
 be extrapolated beyond the three models measured here.
-Hidden-state probes invert this picture. On short answers they
-are merely a cheap alternative, strictly weaker than sampling-based
-entropy, and converging to the same performance whether trained on
-correctness or on the semantic-entropy threshold. On long-form
-biography, however, the SEP probe is competitive, and, unlike every
-sampling-based score, its accuracy \emph{rises} with model scale (though
-naive entropy, and P(True) on the 70B model, score higher). Where a
-larger model's growing self-consistency erodes entropy- and
-agreement-based detection, a probe that reads the model's own
-representation does not, making it the natural complement to semantic
-entropy precisely where entropy is weakest.
+Hidden-state probes offer a cheaper, single-pass alternative. On short
+answers the entropy-trained SEP and correctness-trained accuracy probe land
+close together, with the correctness target ahead in eight of nine held-out
+cells. The whole-paragraph biography design reports only the accuracy probe,
+at $0.704 / 0.680 / 0.773$ from 7B to 70B; it defines neither a genuine SEP nor
+an OOD transfer result. Its non-monotonic scale pattern therefore does not
+support a claim that hidden-state detection strengthens with model size. The
+measured conclusion is narrower: the correctness-trained probe remains a
+useful single-pass comparator when whole-paragraph cluster scores saturate.
 
 \section{Contributions}
 

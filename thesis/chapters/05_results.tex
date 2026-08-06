@@ -685,9 +685,9 @@ for one generator far more than the others.
 \paragraph{What the table still supports.} Two detectors that need no
 clustering at all are the strongest here. Probability-weighted naive entropy,
 which keeps each distinct paragraph but weights it by the model's own
-sequence probability, is the best score on the two smaller models ($0.781$
-Mistral-7B, $0.769$ Llama-3.1-8B), and the self-evaluation baseline
-\mbox{P(True)} is the best on the largest ($0.777$). Neither is affected by
+sequence probability, is the best score on the two smaller models ($0.769$
+for both Mistral-7B and Llama-3.1-8B), and the self-evaluation baseline
+\mbox{P(True)} is the best on the largest ($0.835$). Neither is affected by
 the saturation above, because neither counts clusters. The lesson is that on
 long text the model's \emph{own probability signal} carries much of the
 confabulation information, while the hard-clustering step recovers it only
@@ -717,7 +717,7 @@ general law.
 
 Semantic entropy needs several samples per question. Two cheaper-at-test
 alternatives read the model's internal state from a single pass: the
-hidden-state probe (SEP) and embedding regression.
+hidden-state probe (SEP) and the correctness-trained accuracy probe.
 Table~\ref{tab:embedding-regression} reports the short-answer probes on their
 held-out splits, and Table~\ref{tab:probes} adds \mbox{P(True)}, the transfer
 probe, and the biography cells.
@@ -758,35 +758,34 @@ record counts.
   (higher is better). The accuracy probe is trained and scored on the same
   task; the transfer variant is trained on the other tasks and scored on the
   held-out one, so the pair measures how much of the probe's signal survives
-  a change of task. Biography carries neither: the SEP target is a threshold
-  on question-conditioned semantic entropy while biography clustering is
-  answer-only, and the transfer probe trains on the other short-answer tasks,
-  of which biography is not one. A dash is therefore a measurement the design
-  does not define, never a failed run.}
+  a change of task. For whole-paragraph biography, the accuracy probe and
+  \mbox{P(True)} are part of the sealed design, but the other two columns are
+  not. A canonical SEP target would require question-conditioned semantic
+  entropy, whereas biography clustering is answer-only; the OOD transfer grid
+  was defined only as leave-one-task-out transfer among the three short-answer
+  tasks. A dash therefore marks a measurement outside the design, never a
+  failed run.}
 \label{tab:probes}
 \input{includes/generated_probes.tex}
 \end{table}
 
-Two patterns run through Table~\ref{tab:probes}. First, the probes
-are relatively strongest on biography: SEP reaches $0.728$ (8B) and $0.731$
-(70B), above every meaning-based clustering method on those generators
-(Table~\ref{tab:auroc-bio}), and \mbox{P(True)} is the best biography score
-on the 70B model at $0.777$. Unlike the clustered entropies, neither is
-affected by the ceiling saturation of
-Table~\ref{tab:longform-saturation}, which is part of why they look better
-there. Second, in-distribution embedding regression matches the SEP probe
-almost exactly in every cell, for the same reason as above: both are linear
-probes over the same hidden states and converge to the same solution whether
-the target is correctness or the semantic-entropy threshold.
+Two patterns run through Table~\ref{tab:probes}. First, the short-answer
+accuracy probe remains close to SEP while being ahead in eight of the nine
+cells, as the paired table above showed. Under distribution shift that
+advantage narrows: the pooled leave-one-out accuracy probe is below its
+in-distribution counterpart in all nine short-answer cells. The loss ranges
+from $0.021$ AUROC (TriviaQA, 70B) to $0.206$ (SVAMP, 8B), so the hidden-state
+signal is partly task-specific even within the short-answer regime.
 
-Under distribution shift that advantage disappears. The pooled leave-one-out
-variant, trained on the other tasks and scored on the held-out one, degrades
-in every cell, and the drop is largest on SVAMP ($0.567$--$0.710$) and
-biography ($0.549$, $0.635$, $0.582$ from 7B to 70B), where a probe fitted
-mostly on short factual answers transfers poorly. Single-pass probes are
-therefore cheap and strong in-distribution but do not travel well across task
-types --- and, as the next section shows, their advantage also depends on the
-decoding temperature.
+Second, the whole-paragraph biography row supports a narrower comparison. The
+correctness-trained accuracy probe scores $0.704 / 0.680 / 0.773$ from 7B to
+70B, while \mbox{P(True)} scores $0.507 / 0.643 / 0.835$. The accuracy probe is
+higher on the two smaller generators and \mbox{P(True)} on the largest; there
+is no biography SEP or OOD transfer result in the sealed design. These
+single-pass methods do not count sample clusters and therefore avoid the
+ceiling saturation in Table~\ref{tab:longform-saturation}, but the table does
+not establish how a genuine biography SEP or a short-to-long transfer probe
+would behave.
 
 \section{Sampling-temperature sensitivity}
 \label{sec:temperature-sensitivity}
