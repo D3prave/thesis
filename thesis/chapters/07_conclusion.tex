@@ -18,10 +18,15 @@ method.
 The answer is regime-dependent, in both directions and more sharply
 than expected. On short-answer tasks the core count-based sampling estimators
 generally reach AUROC values of roughly $0.70$--$0.90$, but entropy over
-normalized strings, the cheapest score in the family, is the strongest
-single method in eight of nine model--dataset cells, and no semantic
-estimator beats it in any cell: all nine mean differences are negative, and
-the only Holm-significant one favors the surface baseline. A record-level
+normalized strings, the cheapest score in the family, is the strongest of
+the three count-based sampling scores in eight of nine model--dataset cells
+and the strongest of all detectors in six of them (outright in five, tied in
+one), and no semantic estimator
+beats it by a practically relevant margin anywhere: every mean difference
+for discrete semantic entropy is negative, the single exception in the whole
+family is a $0.002$ AUROC lead for the probability-weighted variant on
+SVAMP with Llama-3.1-70B, and the only Holm-significant result favors the
+surface baseline. A record-level
 analysis explains why: dataset normalization already removes almost all
 surface variation before any semantic step runs, so clustering has little
 left to merge. On long-form text the two count-based string-frequency scores
@@ -59,9 +64,9 @@ answers the entropy-trained SEP and correctness-trained accuracy probe land
 close together, with the correctness target ahead in eight of nine held-out
 cells. The whole-paragraph biography design reports only the accuracy probe,
 at $0.704 / 0.680 / 0.773$ from 7B to 70B; it defines neither a genuine SEP nor
-an OOD transfer result. Its non-monotonic scale pattern therefore does not
-support a claim that hidden-state detection strengthens with model size. The
-measured conclusion is narrower: the correctness-trained probe remains a
+an OOD transfer result. Its scale pattern is not monotonic, so those three
+cells give no evidence that hidden-state detection strengthens with model
+size. The measured conclusion is narrower: the correctness-trained probe remains a
 useful single-pass comparator when whole-paragraph cluster scores saturate.
 
 \section{Contributions}
@@ -115,7 +120,12 @@ claim-level evaluation uses published human labels), the three-seed basis of
 the stability estimates, and the English-only, biography-only long-form
 scope. The hidden-state probes were not included in the temperature sweep, the
 granularity interpretation comes from one long-form task, and AUROC ranking
-alone does not establish deployment utility.
+alone does not establish deployment utility. The claim-level evaluation was
+also run without a surface comparator, so it shows that meaning-based
+scoring works at claim granularity but does not by itself separate
+meaning-aware from count-based scoring; that separation rests on the
+whole-paragraph comparison, which
+Section~\ref{sec:bio-results} treats as a diagnostic.
 Record-level issues (alias-type oracle failures on TriviaQA,
 semantically consistent refusals on biography, and SVAMP's
 integer-arithmetic structure) are documented in the audits; the

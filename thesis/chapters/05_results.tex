@@ -90,10 +90,11 @@ weighted.
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Key to the detector names used in this chapter. The first
-  three scores never consider meaning; the next two group answers by
+  three scores never consider meaning; the next three group answers by
   meaning (bidirectional NLI entailment) before measuring spread; the
   rest are the related estimators of
-  Section~\ref{sec:other-estimators}.}
+  Section~\ref{sec:related-estimators}. Where a table prints a longer or
+  shorter variant of a name, the variant is given here in parentheses.}
 \label{tab:detector-key}
 \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
 \begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{8.2cm}@{}}
@@ -122,21 +123,31 @@ Semantic entropy (full, prob.-weighted) & the same NLI groups, weighted
   by sequence probability; the original paper's primary estimator
   (Section~\ref{sec:estimator-family}) \\
 \addlinespace[3pt]
+Discrete semantic entropy (Qwen-72B judge) & the same count-based score
+  as \emph{DSE} above, but with meaning equivalence decided by the open
+  instruction-tuned judge instead of a DeBERTa cross-encoder (printed as
+  \emph{LLM-judge clustering} in the temperature table)
+  (Section~\ref{sec:clustering}) \\
+\addlinespace[3pt]
 KLE (MiniLM / RoBERTa-NLI) & soft meaning comparison through sentence
   embeddings instead of hard NLI clusters; the suffix names the
-  embedding model used (Section~\ref{sec:kle}) \\
+  embedding model used (printed as \emph{Embedding-RBF KLE variant} in
+  the per-task tables) (Section~\ref{sec:kle}) \\
 \addlinespace[3pt]
 SEP probe & logistic regression on the greedy response's final-content-token hidden state,
   trained to predict high semantic entropy; one forward pass, no
   sampling at test time (Section~\ref{sec:sep-method}) \\
 \addlinespace[3pt]
-Embedding regression (in-dist.\ / OOD) & the same kind of hidden-state
+Accuracy probe (in-dist.\ / OOD) & the same kind of hidden-state
   probe trained directly on correctness; in-dist.\ $=$ trained and
-  tested on the same task, OOD $=$ trained on the other tasks
+  tested on the same task, OOD $=$ trained on the pooled prompts of the
+  other two tasks and scored on the held-out one; called \emph{embedding
+  regression} in Chapter~\ref{ch:semantic_entropy} and in the original work
   (Section~\ref{sec:other-estimators}) \\
 \addlinespace[3pt]
 P(True) & the model grades its own most-likely answer; the uncertainty
-  score is one minus the probability it assigns to ``True''
+  score is one minus the probability it assigns to ``True'', which the
+  per-task tables print as \emph{1 - P(True)}
   (Section~\ref{sec:other-estimators}) \\
 \bottomrule
 \end{tabular}%
@@ -275,16 +286,18 @@ figure.
 \label{sec:short-answer-results}
 
 This section begins with the three short-answer tasks (TriviaQA, NQ-Open, SVAMP).
-Table~\ref{tab:auroc-overview} gives the bird's-eye view: discrete semantic
-entropy, the method at the center of the thesis, for all three models across
+Table~\ref{tab:auroc-overview} gives the bird's-eye view: the two
+meaning-aware estimators, with discrete semantic entropy --- the method at
+the center of the thesis --- in the upper block, for all three models across
 the three short-answer tasks. The remaining detectors follow task by task
 below.
 
 \begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Selective-prediction AUROC for discrete semantic entropy
-  (seed-mean over 42/43/44) on the three short-answer tasks.}
+\caption{Selective-prediction AUROC for the two meaning-aware estimators,
+  discrete semantic entropy and its probability-weighted counterpart
+  (seed-mean over 42/43/44), on the three short-answer tasks.}
 \label{tab:auroc-overview}
 \input{includes/generated_overview.tex}
 \end{table*}
@@ -307,7 +320,8 @@ accuracy-independent, is used as the primary metric throughout.
 \begin{table*}[!ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Selective-prediction AURAC (seed-mean over 42/43/44), the companion
+\caption{Selective-prediction AURAC for the same two estimators (seed-mean
+  over 42/43/44), the companion
   to Table~\ref{tab:auroc-overview} on the same three short-answer tasks.
   AURAC tracks base accuracy, so values are comparable within a cell but not
   across cells.}
@@ -322,13 +336,16 @@ accuracy-independent, is used as the primary metric throughout.
   short-answer tasks, averaged over seeds 42/43/44 (error bars are the seed
   spread). The detectors cluster together on every task: no
   single method dominates, and the cheap surface baseline sits inside the
-  same band as the meaning-aware score. The probes are evaluated on held-out
-  splits and are therefore shown separately
-  (Table~\ref{tab:probes}) rather than alongside these bars.}
+  same band as the meaning-aware score. The single-pass probes are trained on
+  a disjoint set of prompts and are reported separately in
+  Table~\ref{tab:probes} rather than alongside these bars.}
 \label{fig:multiseed-auroc}
 \end{figure*}
 
-The detailed per-task tables follow.
+Figure~\ref{fig:multiseed-auroc} shows the three full-grid count-based
+detectors side by side across the same cells, which makes the closeness of
+the three bands easier to see than the tables do. The detailed per-task
+tables follow.
 Tables~\ref{tab:auroc-triviaqa}, \ref{tab:auroc-nqopen}
 and~\ref{tab:auroc-svamp} list every detector for TriviaQA, NQ-Open and
 SVAMP respectively.
@@ -369,18 +386,22 @@ SVAMP respectively.
 \end{table}
 
 Three things stand out on short answers. First, all of the
-sampling-based detectors work: AUROC sits between roughly $0.70$ and
-$0.90$ across the three datasets and both smaller and larger models,
+sampling-based detectors work: AUROC sits between roughly $0.67$ and
+$0.90$ across the three datasets and both smaller and larger models, and
+the three count-based scores that carry the comparison stay above $0.69$,
 consistent with the original semantic entropy paper under the matched
 protocol. Second, the normalized \emph{surface} baseline is the
-strongest of the three scores in eight of the nine cells---every
-NQ-Open and SVAMP cell and both larger TriviaQA models---and discrete
-semantic entropy matches it closely but never exceeds it. On NQ-Open,
-for instance, surface reaches $0.799$, $0.827$ and $0.755$ against the
-meaning-aware $0.794$, $0.799$ and $0.725$; only with Mistral-7B on
-TriviaQA does any score edge past surface, and there it is the
-raw-string naive estimator ($0.784$ versus $0.781$), not the
-meaning-aware one. Third, discrete semantic entropy tracks the surface
+strongest of the three count-based scores in eight of the nine
+cells---every NQ-Open and SVAMP cell and both larger TriviaQA
+models---and discrete semantic entropy matches it closely but never
+exceeds it. On NQ-Open, for instance, surface reaches $0.799$, $0.827$
+and $0.755$ against the meaning-aware $0.794$, $0.799$ and $0.725$; only
+with Mistral-7B on TriviaQA does either of the other two count-based
+scores edge past surface, and there it is the raw-string naive estimator
+($0.784$ versus $0.781$), not the meaning-aware one. The
+probability-weighted naive estimator is higher still in that cell
+($0.821$), which is the long-form pattern of
+Section~\ref{sec:bio-results} showing up early. Third, discrete semantic entropy tracks the surface
 baseline throughout: normalizing the answer strings already performs
 almost all of the useful grouping, so adding an NLI-based
 meaning-clustering step changes the ranking little. The reason, made
@@ -410,9 +431,10 @@ beats the surface baseline by more than sampling noise would explain.
   the mean $\Delta$, its $95\,\%$ prompt-cluster bootstrap interval, and
   the Holm-adjusted $p$-value across the complete nine-cell family; the
   interval and test condition on the three fixed seeds and resample
-  prompts (Section~\ref{sec:evaluation-metrics}). A negative mean with an
-  interval excluding zero means the surface baseline is significantly
-  ahead.}
+  prompts (Section~\ref{sec:evaluation-metrics}). The intervals are
+  unadjusted; significance is decided by the Holm-adjusted $p$-value in
+  the final column, so a negative mean with a Holm $p$ below $0.05$ means
+  the surface baseline is significantly ahead.}
 \label{tab:significance-vs-surface}
 \input{includes/generated_significance.tex}
 \end{table}
@@ -447,8 +469,8 @@ drives it: on $57.6$ to $95.3\,\%$ of prompts the two scores are
 \emph{numerically identical}. Once the answer strings are normalized, the
 entailment step usually finds nothing left to merge, so the meaning-aware
 estimator returns exactly what the surface estimator returned. On SVAMP,
-where answers are integers, this happens on roughly nineteen prompts in
-twenty. The nine cells of
+where answers are integers, this happens on $85$ to $95\,\%$ of prompts.
+The nine cells of
 Table~\ref{tab:significance-vs-surface} are therefore not a case of two
 different detectors performing similarly; they are largely the same detector
 evaluated twice, and the null result is what that predicts.
@@ -479,7 +501,7 @@ cell would detect at $80\,\%$ power.
 Read one-sided, the bound is reasonably tight. An advantage for
 meaning-based clustering larger than $+0.026$ AUROC is excluded in every
 cell, and larger than $+0.011$ in eight of the nine; in three cells the
-entire interval lies below zero. So the claim supported here is not merely
+interval excludes zero altogether or reaches it only at its upper limit. So the claim supported here is not merely
 that no advantage was observed, but that an advantage large enough to justify
 the cost of pairwise entailment would very likely have been seen if it were
 there.
@@ -488,8 +510,8 @@ The precision is not uniform, and one cell is genuinely weak. Minimum
 detectable effects run from $0.012$ (SVAMP with the 70B model) to $0.062$
 (TriviaQA with the 70B model); seven of the nine are at or below $0.03$. The
 TriviaQA/70B cell is the exception and should not be read as evidence of
-absence --- its interval spans $\pm 0.04$, wide enough to accommodate a
-difference that would matter. Note also that this is a post-hoc precision
+absence --- its interval runs from $-0.047$ to $+0.026$, wide enough to
+accommodate a difference that would matter. Note also that this is a post-hoc precision
 analysis: no equivalence margin was preregistered, so these are reported as
 bounds rather than as a test declaring equivalence against a threshold chosen
 after the fact.
@@ -693,9 +715,12 @@ The suggestion they support is that a consistency-based detector works best
 at a granularity at which independent samples can plausibly agree, and that
 this is worth checking from the samples themselves before interpreting an
 AUROC. Two quantities suffice: how often the score sits at its ceiling, and
-how many distinct clusters the samples form. On short answers those are
-$0.1$--$4.9\,\%$ and $1.6$--$5.1$ clusters; on whole paragraphs,
-$7$--$74\,\%$ and $5.4$--$9.6$. Read only through AUROC, the second case
+how many distinct clusters the samples form. Compared like for like under
+the canonical backend, on short answers those are $0.0$--$4.8\,\%$ and
+$1.3$--$4.4$ clusters, and on whole paragraphs $9.0$--$31.8\,\%$ and
+$5.3$--$7.3$ clusters; across all three backends the whole-paragraph
+figures span $3.2$--$72.3\,\%$ and $2.7$--$9.5$ clusters
+(Table~\ref{tab:longform-saturation}). Read only through AUROC, the second case
 looks like a weak detector and invites a stronger entailment model or more
 samples; read through these two quantities, it looks instead like a unit that
 is too large for the test being applied. The claim-level evaluation of
@@ -711,8 +736,8 @@ general law.
 Semantic entropy needs several samples per question. Two cheaper-at-test
 alternatives read the model's internal state from a single pass: the
 hidden-state probe (SEP) and the correctness-trained accuracy probe.
-Table~\ref{tab:probes} reports both probes on their held-out short-answer
-splits and adds \mbox{P(True)} and leave-one-task-out transfer.
+Table~\ref{tab:probes} reports both probes on the short-answer evaluation
+records and adds \mbox{P(True)} and leave-one-task-out transfer.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
@@ -725,9 +750,12 @@ splits and adds \mbox{P(True)} and leave-one-task-out transfer.
   correctness. The accuracy probe's seed spread is exactly zero by
   construction because its feature and label are deterministic given the
   prompt, whereas SEP's sampled-answer target varies across seeds. The OOD
-  accuracy probe is trained on the other two tasks and scored on the held-out
-  task. Because these are held-out splits, the probe values are not ranked
-  against the full-grid entropy tables earlier in this chapter.}
+  accuracy probe is trained on the pooled prompts of the other two tasks and
+  scored on the held-out task. The probes are trained on a disjoint set of
+  prompts and scored on the same evaluation records as the entropy tables
+  earlier in this chapter, so the two are directly comparable;
+  Table~\ref{tab:sep-heldout-appendix} gives the per-split record counts and
+  the entropy scores recomputed on those records.}
 \label{tab:probes}
 \input{includes/generated_probes.tex}
 \end{table}
@@ -757,8 +785,8 @@ practically useful findings in the thesis, because it says which detector to
 reach for under which decoding settings. Each temperature is a separate sealed
 instance of the same protocol (Section~\ref{sec:protocol-provenance}),
 differing from the others in the sampling temperature and in nothing else, so
-the comparison across them is internally consistent and the $T{=}1.0$ column
-is the same measurement reported in the tables above.
+the comparison across a row is internally consistent: what changes from
+column to column is the decoding temperature and nothing besides.
 Table~\ref{tab:temp-sweep} and
 Figure~\ref{fig:temp-sweep} sweep the temperature from $0.1$ (nearly
 deterministic) to $1.0$; the table reports the sweep for the largest
@@ -773,7 +801,9 @@ all three.
   temperature; the single-pass P(True) baseline remains comparatively flat.
   Each temperature is a separate
   sealed instance of the same protocol, differing only in that parameter, so
-  the trend across the row is a like-for-like comparison.}
+  the trend across the row is a like-for-like comparison. Seed spreads are
+  omitted here for width and are summarized in the text below: they average
+  $0.006$ across the short-answer sweep cells.}
 \label{tab:temp-sweep}
 \resizebox{\linewidth}{!}{%
 \input{includes/generated_temp_sweep_auroc.tex}}
@@ -846,7 +876,8 @@ cannot be an accident of which seeds were drawn.
 Third, and stated plainly because it qualifies the picture: the movement is
 almost entirely on the entropy side. \mbox{P(True)} changes by $-0.023$ to
 $+0.076$ across the same sweep, a median of about three times its seed
-spread, and its direction is not even consistent --- it rises in eight of the
+spread, and where it moves it more often rises than falls: it ends higher at
+$T{=}1.0$ than at $T{=}0.1$ in eight of the
 nine cells. The closing gap is therefore carried by the entropy family
 climbing, not by the single-pass baseline falling away beneath it. Any
 account of this as two detectors moving in opposite directions would

@@ -18,7 +18,7 @@ goal is not to detect arbitrary types of hallucination; the goal is to
 detect those answers that are unreliable because the model is uncertain
 about the meaning of the answer it has produced.
 
-\section{Hallucinations and Confabulations}
+\section{Hallucinations and confabulations}
 
 The semantic entropy paper~\cite{semantic_entropy_nature_2024}, on which
 this thesis is based, sharpens the target to \emph{confabulations}:
@@ -46,7 +46,7 @@ In particular, uncertainty-based detection is, by construction, unable
 to flag high-certainty hallucinations or systematic
 errors~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
 
-\section{Uncertainty in Free-Form Generation}
+\section{Uncertainty in free-form generation}
 
 When a model has to pick from a fixed, short list of answers, say
 ``cat'', ``dog'', or ``horse'', measuring its uncertainty is easy: it
@@ -87,7 +87,7 @@ and other sampling-based estimators, and systematic benchmarks now
 compare many such estimators head to
 head~\cite{lm_polygraph_vashurin_2025}.
 
-\section{Confidence, Calibration, and Abstention}
+\section{Confidence, calibration, and abstention}
 
 The motivation for estimating uncertainty is not only to attach a score
 to an answer, but to decide what should happen next: answer, abstain,
@@ -130,7 +130,7 @@ consistency); semantic entropy sits between them, adding an explicit
 meaning-equivalence step that none of the others perform, and it is the
 marginal value of this step that the present study isolates.
 
-\section{Semantic Equivalence and Entailment}
+\section{Semantic equivalence and entailment}
 
 For computing the semantic entropy, the key operational step is
 deciding when two sampled answers should be treated as the same answer.
@@ -159,11 +159,17 @@ run through the model.
 The exact bidirectional-entailment rule and the recorded backend choices
 are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
 
-\section{Research Gap}
+\section{Research gap}
 
 Prior evaluations of semantic entropy report strong aggregate AUROC but
-leave three questions unresolved. First, they rarely include a
-normalized surface-form baseline, so it is unclear how much of the
+leave three questions unresolved. First, the original evaluation compares
+semantic entropy against naive entropy over raw sampled strings, but not
+against a normalized surface-form
+baseline~\cite{semantic_entropy_nature_2024}, and the survey and
+benchmark literature that follows it inherits that set of
+comparisons~\cite{shorinwa_uq_llm_survey_2024,%
+liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. It
+is therefore unclear how much of the
 reported gain over ``naive'' entropy is attributable to semantic
 clustering rather than to simple answer normalization. Second, the
 short-answer and long-form settings are typically reported together

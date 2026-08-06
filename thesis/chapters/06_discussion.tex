@@ -56,13 +56,28 @@ closest any cell comes to favoring the semantic score is SVAMP with the 70B
 model, where two of three seeds are positive by $0.001$ but the mean is
 $-0.002$ with a Holm-adjusted $p$ of $1.0$: noise, not a narrow win. On
 long-form generation, yes: the NLI-clustered and probability-weighted
-entropy estimators beat the chance-level surface baseline by $+0.09$ to
+entropy estimators beat the chance-level surface baseline by $+0.08$ to
 $+0.28$ AUROC on biography, while KLE, meaning-aware only in a soft,
 embedding-based sense, does not (Section~\ref{sec:bio-results}); at claim
 level, against human labels, semantic entropy detects at $0.701$ to $0.748$
-without relying on whole-paragraph string identity. In the terms of
-Section~\ref{sec:research-aim}: H1 and H2 are not supported on these
-datasets, while H3 is supported.
+without relying on whole-paragraph string identity.
+
+In the terms of Section~\ref{sec:research-aim}, H1 is not supported on these
+datasets. The direction is in fact uniform in the opposite sense, all nine
+cells favoring the surface baseline, which leaves H2 --- a claim about the
+consistency of an improvement --- without an improvement to describe. H3 is
+supported, but the support comes from the whole-paragraph comparison, where
+the count-based surface scores sit at chance and every meaning-aware or
+probability-weighted estimator is clearly above them. That comparison is a
+diagnostic rather than a detector benchmark
+(Section~\ref{sec:bio-results}), and the claim-level evaluation, which
+carries the long-form conclusions of this thesis, was run without a
+surface comparator, so it establishes that meaning-based scoring works at
+claim granularity without itself separating meaning-aware from count-based
+scoring. Supplying that comparator is the single cheapest addition that
+would strengthen the long-form half of this study, because the regenerated
+claim-level answers are short strings for which a normalized exact-match
+baseline is well defined.
 
 The short-answer non-result is worth stating plainly, because the
 theoretical motivation for semantic entropy is that surface variation is
@@ -119,9 +134,10 @@ points.
 
 The single-pass hidden-state probe (SEP) and correctness-trained accuracy
 probe read the model's internal state once, without drawing ten samples. On
-short answers this thrift can cost accuracy. The probes are scored on held-out
-splits, so they are not directly rankable against the full-grid entropy
-tables, but their levels overlap: SEP lands between
+short answers this thrift can cost accuracy. The probes are trained on a
+disjoint set of prompts and scored on the same evaluation records as the
+entropy tables earlier in this chapter, so the two are directly comparable:
+SEP lands between
 $0.726$ and $0.900$ across the nine cells
 (Table~\ref{tab:probes}) against a surface baseline running
 from $0.755$ to $0.901$. The held-out comparisons do not show a uniform loss,
@@ -140,8 +156,9 @@ AUROC is $0.704 / 0.680 / 0.773$ from 7B to 70B. It exceeds all reported
 meaning-based entropy scores on the two Llama generators, but not on
 Mistral-7B; probability-weighted naive entropy remains higher on the two
 smaller models, while \mbox{P(True)} is highest on the 70B model at $0.835$.
-The non-monotonic sequence does not support the earlier claim that probe
-performance rises with model scale. What it does support is more limited: a
+The sequence is not monotonic in model size, so these three cells give no
+evidence that hidden-state probing strengthens as the generator grows. What
+they do support is more limited: a
 correctness-trained single-pass probe can remain useful when repeated
 whole-paragraph samples are too diverse for hard clustering to rank reliably.
 
@@ -168,13 +185,15 @@ beyond $T{=}1.0$ for the largest model here. Three
 qualifications apply. The temperature gain is shared by the surface
 baseline, so it reflects a general need for sampling diversity rather than
 something specific to semantic clustering; P(True) is largely
-temperature-insensitive; and for Mistral-7B part of the apparent trend is
-not a property of the detector at all. The empty-sample artifact described
-in Section~\ref{sec:budgets-and-exclusions} grows with temperature for that
-generator, adding a spurious cluster more often at the warm end of the
-sweep, so the Mistral curve should be read as an upper bound on how much of
-the change is genuine. On biography the curves are flat, so
-this trade-off is specific to the short-answer regime.
+temperature-insensitive; and the sweep covers the short-answer tasks only,
+because biography was generated at the canonical temperature alone, so the
+trade-off described here is established on short answers and not on
+long-form text. One concern that would have qualified the Mistral-7B curve
+does not apply: an answer-extraction artifact that can empty a Mistral
+sample, and so add a spurious cluster, might plausibly grow with
+temperature, but it was measured directly in every sealed instance of the
+sweep and stays at or below one sample in five thousand throughout
+(Section~\ref{sec:budgets-and-exclusions}).
 
 \section{Model scale erodes the signal}
 \label{sec:scale-factualbio}
@@ -239,8 +258,11 @@ score in most cells, and no semantic estimator beats it by more than a
 practically negligible margin (Section~\ref{sec:significance}).
 Semantic clustering provides measurable value only in the long-form regime, where
 the paper's qualitative claim is confirmed for the count-based scores: they
-collapse to chance and NLI-clustered entropy recovers a statistically
-significant signal for every generator. The grid also extends the original analysis in a
+collapse to chance while NLI-clustered entropy recovers a clearly
+above-chance signal for every generator. That long-form comparison is
+descriptive rather than tested, since the preregistered family covers the
+short-answer cells alone
+(Section~\ref{sec:evaluation-metrics}). The grid also extends the original analysis in a
 direction it did not quantify: the entailment backend, which is
 immaterial on short answers, is result-determining on whole paragraphs
 (Section~\ref{sec:nli-sensitivity}).

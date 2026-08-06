@@ -307,8 +307,9 @@ grading prompt shows a few solved examples of the true/false judgment,
 probability the model assigns to the token ``True'' is converted to the
 uncertainty score $1-P(\mathrm{True})$); embedding regression, a logistic probe on the final
 hidden state trained to predict incorrectness, evaluated both
-in-distribution and trained on a different short-answer dataset
-(out-of-distribution); and the semantic-entropy probe defined in
+in-distribution and, in the out-of-distribution form, trained on the
+pooled prompts of the other two short-answer tasks and scored on the
+held-out one; and the semantic-entropy probe defined in
 Section~\ref{sec:sep-method}.
 SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
 sampling-based baseline but was not included in the recorded runs.

@@ -91,8 +91,10 @@ $K$ & number of distinct clusters, $1 \le K \le M$ \\
 $n_k$ & number of sampled answers assigned to cluster $c_k$ \\
 $\hat{p}_k$ & empirical cluster probability $n_k / M$ \\
 $\widehat{H}_{\mathrm{sem}}(x)$ & discrete semantic entropy score \\
-$\widehat{H}_{\mathrm{lex}}(x)$ & naive lexical entropy score
-                                  (surface-form baseline) \\
+$\widehat{H}_{\mathrm{lex}}(x)$ & surface entropy score over normalized
+                                  strings (surface-form baseline; called
+                                  \emph{surface entropy} in
+                                  Chapter~\ref{ch:results}) \\
 AUROC & area under the receiver operating characteristic curve \\
 AURAC & area under the rejection-accuracy curve \\
 \hline
@@ -486,6 +488,12 @@ city of Australia}$\times 1$, \emph{Sydney}$\times 1$,
   &\approx 1.33 \text{ nats.}
 \end{align*}
 
+In this example the count over normalized strings and the count over raw
+strings coincide, because no two of the five samples differ only in case
+or punctuation. Chapter~\ref{ch:results} keeps them apart as
+\emph{surface entropy} and \emph{naive sample entropy}, since on the
+recorded data they do not always agree.
+
 The surface-form score is higher (1.33 vs.\ 0.95) because it treats the
 paraphrase \emph{``Canberra is the capital city of Australia''} as a
 different answer from \emph{``Canberra''}, inflating the apparent
@@ -641,6 +649,9 @@ same kind of linear model trained on the same greedy-response hidden states,
 but supervised directly on \emph{judged correctness} rather than on a
 semantic-entropy threshold. It is reported in two forms,
 \emph{in-distribution} (trained and tested on the same task) and
-\emph{out-of-distribution} (trained on one task and tested on another),
-so that the experiments can measure how well a hidden-state probe
-transfers between datasets.
+\emph{out-of-distribution} (trained on the pooled prompts of the other two
+short-answer tasks and scored on the held-out one, a leave-one-task-out
+design), so that the experiments can measure how well a hidden-state probe
+transfers between datasets. The results chapter prints this probe under
+the name \emph{accuracy probe}, since what distinguishes it from SEP is its
+training target.
