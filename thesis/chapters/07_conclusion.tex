@@ -24,7 +24,7 @@ Entropy over normalized strings is the strongest of the three count-based
 scores in eight of the nine model--dataset cells, and the strongest of all
 detectors in six. No semantic estimator beats it by a margin that matters:
 every mean difference for discrete semantic entropy is negative, and the one
-Holm-significant result favours the surface baseline. The single exception
+Holm-significant result favors the surface baseline. The single exception
 anywhere is a $0.002$ lead for the probability-weighted variant on SVAMP
 with Llama-3.1-70B, which is noise. A record-level
 analysis explains why: dataset normalization already removes almost all
@@ -53,7 +53,7 @@ Two further findings qualify the method's practical use.
 
 The first is that the clustering backend decides the long-form result. Across
 NLI cross-encoders and an LLM judge, the same saved samples yield anything
-from anti-predictive to moderately useful behaviour. On short answers the
+from anti-predictive to moderately useful behavior. On short answers the
 same four backends span at most 0.057 AUROC. Backend capacity seems to matter
 in proportion to the length of the text being compared. That makes it an
 implementation detail on short answers and a first-order design decision on
