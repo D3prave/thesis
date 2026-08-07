@@ -42,7 +42,7 @@ generators. Here it does beat the normalized surface baseline, by $0.07$ to
 $0.11$ AUROC in every cell. What makes that comparison worth more than the
 whole-paragraph one is the baseline: at claim level it still ranks usefully,
 at $0.642 / 0.650 / 0.619$, rather than sitting at its ceiling. So the
-meaning-clustering step earns its keep at claim granularity, and fails to on
+meaning-clustering step is worth its cost at claim granularity, and is not on
 short answers. On whole paragraphs the picture is weaker and, on the evidence
 of two independent diagnostics, partly an artifact of granularity rather
 than of the method: the score is pinned at its ceiling for a large minority
@@ -113,6 +113,45 @@ The full source code, result tables, Slurm templates, and LaTeX thesis
 source are available at \url{https://github.com/D3prave/thesis}.
 The Python implementation lives in the \texttt{src/semantic\_entropy/}
 package; entry points are documented in \texttt{README.md}.
+
+\section{Future work}
+
+Four follow-ups come directly out of the results above, in rough order of how
+much they would settle.
+
+The first is granularity. The clearest finding here is that a
+consistency-based detector needs a unit at which independent samples can
+plausibly agree, and the claim-level evaluation is the only place that
+condition is met on long-form text. Testing the same claim-level protocol on
+long-form tasks other than biography --- summarization, or open-ended
+explanation --- would show whether the granularity argument generalizes or is
+specific to the biographical facts that decompose neatly into claims.
+
+The second is labels. The whole-paragraph correctness labels come from an LLM
+judge, and that is the largest single threat to the long-form numbers
+(Section~\ref{sec:discussion-limitations}). Human annotation of even a few
+hundred paragraphs would settle whether the judge introduces a systematic bias,
+and would put the whole-paragraph and claim-level measurements on the same
+footing.
+
+The third is the temperature sweep, which currently covers the entropy family
+and \mbox{P(True)} but not the hidden-state probes, because the probes are
+trained once at the canonical setting. Retraining them at each temperature
+would show whether the single-pass advantage under near-greedy decoding extends
+to probes or belongs to \mbox{P(True)} alone --- the practical question a
+deployer would ask first.
+
+The fourth is scale. The claim-level decline from $0.748$ to $0.701$ rests on
+three generators, only two of which share an architecture. A within-family
+ladder of four or five sizes would turn a suggestive slope into a measurement,
+and would test the proposed mechanism directly: if larger models really do
+repeat their confabulations more consistently, that consistency is itself
+measurable from the samples, independently of any AUROC.
+
+Two smaller items were scoped out rather than answered: the graph-kernel
+variants of Kernel Language Entropy (only the embedding-RBF variant is
+evaluated here), and the probability-weighted estimators under a clustering
+backend other than the canonical one.
 
 \section{Limitations}
 

@@ -356,8 +356,8 @@ carry a \texttt{probe\_uncertainty} score in $[0,1]$. The legacy
 \texttt{hidden\_states} matrix is reserved for the separately named
 sample-level accuracy-probe path.
 The serialized \texttt{phase} field remains as a legacy condition label
-so recorded outputs stay traceable; the thesis presentation uses
-baseline, replication condition, and additional analysis instead.
+so recorded outputs stay traceable; this thesis instead uses the labels
+baseline, replication condition, and additional analysis.
 Larger raw generations, model caches, and full intermediate outputs
 are described by the storage and reproducibility policy in
 Section~\ref{sec:hpc-execution}.
@@ -387,96 +387,69 @@ Section~\ref{sec:hand-audits}.
 \label{sec:budgets-and-exclusions}
 
 Three properties of the generation step affect how the results should be
-read, and all three are measured rather than assumed.
+read. All three are measured rather than assumed, and all three turn out to be
+small; they are recorded here so that later chapters can refer to a number
+instead of an assurance.
 
-\paragraph{Two independent decoding budgets.} The ten stochastic samples and
-the single greedy response used as the probe feature have separate token
-ceilings, recorded independently in the protocol manifest and re-checked at
-sealing. The stochastic ceiling is per dataset --- $64$ tokens for TriviaQA,
-$128$ for NQ-Open and SVAMP --- while the greedy feature response is fixed at
-$256$ tokens for every cell. The two must not be conflated: an early version
-of the protocol reused each dataset's stochastic ceiling for the greedy
-response, which is what the separate budgets now prevent.
+\paragraph{Two decoding budgets.} The ten stochastic samples and the single
+greedy response used as the probe feature have separate token ceilings. The
+stochastic ceiling is per dataset ($64$ tokens for TriviaQA, $128$ for NQ-Open
+and SVAMP, $256$ for biography), while the greedy feature response is fixed at
+$256$ tokens everywhere. Keeping the two apart matters: an earlier version of
+the pipeline reused the stochastic ceiling for the greedy response and cut it
+short.
 
-\paragraph{Residual truncation, measured.} A sample that reaches its ceiling
-before the model emits an end-of-sequence token is truncated, and a truncated
-sample can distort the entropy estimate computed over it. The protocol sets a
-$1\,\%$ ceiling on the truncation rate per shard. Measured across all $54$
-collection shards of the sealed run, \emph{no shard exceeds it}: the worst is
-$0.86\,\%$ (NQ-Open, Llama-3.1-8B, seed 42, training split). Pooled by
-dataset the rates are $0.38\,\%$ for TriviaQA ($341$ of $90\,000$ samples),
-$0.39\,\%$ for NQ-Open ($352$ of $90\,000$) and $0.07\,\%$ for SVAMP ($66$ of
-$90\,000$). Training splits run about twice as high as evaluation splits, as
-expected from the harder prompt pool. These residual rates are reported here
-because the protocol requires any nonzero rate to be stated, not merely
-certified as under the gate.
+\paragraph{Truncation.} A sample that hits its ceiling before the model emits
+an end-of-sequence token is truncated, which can distort the entropy computed
+over it. The protocol rejects any collection shard above $1\,\%$; no shard
+reaches it, the worst being $0.86\,\%$. Pooled by dataset the rates are
+$0.38\,\%$ for TriviaQA, $0.39\,\%$ for NQ-Open and $0.07\,\%$ for SVAMP.
 
-\paragraph{Excluded prompts, and the subset every method is scored on.} On a
-small number of prompts, greedy decoding enters a repetition loop and never
-emits an end-of-sequence token within the $256$-token feature budget. A
-label-blind diagnostic at a $2048$-token ceiling confirmed these are genuine
-loops rather than merely slow completions, so raising the cap rescues none of
-them. Such a prompt is recorded with no probe feature and is skipped by the
-probes, while its ten stochastic samples remain in the entropy analysis.
-Across the whole sealed collection this affects $63$ of $27\,000$ prompts
-($0.23\,\%$). Within the evaluation grid that the primary table is computed
-on, it affects $33$ of $11\,700$ prompts ($0.28\,\%$), concentrated in four
-of the nine cells: TriviaQA with Llama-3.1-8B (4 per seed), NQ-Open with
-Mistral-7B (4) and Llama-3.1-8B (2), and SVAMP with Llama-3.1-70B (1); the
-other five cells have none.
+\paragraph{Excluded prompts.} On a few prompts greedy decoding enters a
+repetition loop and never terminates within the feature budget; a diagnostic
+at a $2048$-token ceiling confirmed these are genuine loops, so a larger cap
+would not rescue them. Such a prompt keeps its ten stochastic samples in the
+entropy analysis but carries no probe feature, and is skipped by the probes.
+This affects $33$ of the $11\,700$ prompts in the evaluation grid
+($0.28\,\%$). Because the greedy response is decoded deterministically, the
+affected prompts are identical across all three seeds, which is what makes the
+exclusion a property of the prompt rather than of the draw.
 
-The headline claim is a head-to-head comparison, so every method in the
-primary short-answer table is scored on the same prompts: the $99.72\,\%$
-for which all methods yield a score. The confirmatory
-semantic-versus-surface family is a deliberate exception. Neither of those
-two scores needs the greedy feature, so both are defined on all $11\,700$
-prompts, and that comparison is already paired on the full set.
+So that the primary short-answer table compares like with like, every method
+in it is scored on the same $99.72\,\%$ of prompts for which all methods
+produce a score. The confirmatory semantic-versus-surface comparison is the
+exception: neither score needs the greedy feature, so both are defined on all
+$11\,700$ prompts and that comparison is paired on the full set.
 
-One detail is worth recording because it shows the exclusion criterion is
-principled rather than noise. The greedy feature response is decoded
-deterministically, so which prompts degenerate cannot depend on the sampling
-seed --- and indeed the counts are identical across all three seeds in every
-cell.
-
-\paragraph{Empty samples from Mistral-7B.} A separate artifact is recorded
-here because it affected an earlier set of runs and because the sealed records
-allow it to be checked rather than assumed. The answer-extraction step strips
-a set of stop markers that includes Mistral's own chat-template tokens, so a
-sample that opens by echoing a new conversational turn is cut to the empty
-string. The empty string then forms its own semantic cluster, and being
-uncorrelated with correctness it adds noise rather than signal: it inflates
-the entropy estimate and \emph{attenuates} measured performance. In the
-superseded runs the effect was substantial, reaching several per cent of
-Mistral-7B samples. Measured over every eval collection of the sealed family,
-at all five temperatures, it is absent: no cell exceeds one empty sample in
-$5\,000$ ($\le 0.02\,\%$), and both Llama generators, which do not share those
-markers, sit at exactly $0.00\,\%$. No Mistral number reported in this thesis
-is attenuated by it.
+\paragraph{Empty samples from Mistral-7B.} One further artifact is recorded
+because it damaged an earlier set of runs. The answer-extraction step strips
+stop markers that include Mistral's own chat-template tokens, so a sample
+opening with a new conversational turn was cut to the empty string, which then
+formed its own cluster and inflated the entropy. In the sealed runs it is
+effectively gone: no cell exceeds one empty sample in $5\,000$
+($\le 0.02\,\%$), and the two Llama generators sit at $0.00\,\%$. The effect
+would in any case attenuate rather than inflate measured performance, so no
+Mistral number in this thesis is flattered by it.
 
 \section{Protocol provenance}
 \label{sec:protocol-provenance}
 
-Every number reported in Chapter~\ref{ch:results} comes from one sealed family
-of runs. A frozen master protocol fixes the prompt sets, the model and
-tokenizer revisions, the decoding budgets, the sampling parameters, the seeds,
-the train/eval splits and the code commit. One instance of that protocol is
-derived per sampling temperature and is hash-bound to the master, so the five
-temperatures differ in exactly one declared parameter and in nothing else. No
-result in this thesis mixes protocols, and none carries a provenance caveat.
+Every number reported in Chapter~\ref{ch:results} comes from one family of
+runs. A frozen master protocol fixes the prompt sets, the model and tokenizer
+revisions, the decoding budgets, the sampling parameters, the seeds, the
+train/eval splits and the code commit. One instance of that protocol is derived
+per sampling temperature, so the five temperatures differ in exactly one
+declared parameter and in nothing else. No result in this thesis mixes
+protocols.
 
-Sealing is mechanical rather than declarative, and happens in two stages. The
-first grades the $27$ protocol cells --- three datasets, three generators,
-three seeds --- by recomputing every reported metric from the per-record files
-and binding each artifact by content hash. A cell whose metadata disagrees with
-the manifest in any field, whether clustering backend, revision pin, split role
-or decoding budget, fails the seal outright instead of being recorded with a
-note. The second stage binds the complement: the clustering-backend sensitivity
-arm, exact-match and LLM-judge grading, KLE, \mbox{P(True)}, the hidden-state
-probes, and the aggregated summary tables from which the tables in this thesis
-are generated. Together the two are required to account for every artifact
-bound to the protocol, so a run directory that is neither bound nor explicitly
-declared is an error rather than something a later glob might pick up as a
-result.
+The binding is mechanical rather than declarative. Before any artifact is
+accepted, every reported metric is recomputed from the per-record files and
+each artifact is fixed by content hash. A cell whose recorded metadata
+disagrees with the manifest in any field --- clustering backend, revision pin,
+split role, decoding budget --- is rejected outright rather than kept with a
+note. Every artifact behind a number in this thesis is bound this way, the
+supporting analyses no less than the headline ones. The manifest digests are
+listed in Appendix~\ref{app:reproducibility}.
 
 What still distinguishes the results of Chapter~\ref{ch:results} from one
 another is statistical, not procedural. The semantic-versus-surface comparison
@@ -487,10 +460,12 @@ than attached to every caption.
 
 One figure (Figure~\ref{fig:regime-split}) places short-answer and biography
 results side by side, because the short-versus-long contrast is the central
-claim of this thesis. The biography group is shaded and separated by a divider
-there, and comparisons are made only between bars on the same side of that
-line --- not for provenance reasons, but because the two regimes are graded
-differently, which makes their absolute AUROC values incommensurable.
+claim of this thesis. The two biography groups are shaded and separated by a
+divider there, and comparisons are made only between the two bars of one group.
+The three regimes are graded differently --- short answers against reference
+answers, whole paragraphs by an LLM judge, and individual claims against
+published human labels --- so their absolute AUROC values are not
+commensurable.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
@@ -559,9 +534,9 @@ entropy against the normalized surface baseline, across the nine
 short-answer task--model cells, with Holm correction over that nine-member
 family. Every other comparison reported in this thesis --- clustering
 backends, probes, \mbox{P(True)}, KLE, temperature, and both long-form
-analyses --- is exploratory and is described as such. This distinction is
-what keeps a negative headline result from being a search over many
-comparisons for the one that speaks loudest.
+analyses --- is exploratory and is described as such. The distinction matters because
+it prevents the negative headline result from being read as the outcome of a
+search across many comparisons for the most striking one.
 
 \section{Implementation and HPC execution}
 \label{sec:hpc-execution}

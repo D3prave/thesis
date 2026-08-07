@@ -42,6 +42,18 @@ are grouped by meaning. The aim of this thesis is not to
 propose the method, but to re-implement it in a smaller, locally reproducible
 setup and to study how well it works there, and under which conditions.
 
+One point about the method is worth stating early, because it is easy to
+misread. Semantic entropy is not a training objective. It is not added to a
+loss function, it is not used to fine-tune anything, and it never changes the
+model's weights. The generator is an ordinary, already-trained model that is
+used exactly as it comes. Everything described in this thesis happens
+\emph{after} training and after the model has answered: the method asks the
+same question a few times, looks at the answers that come back, and turns them
+into a risk score. The main method needs nothing beyond those sampled answers.
+Two of the additional estimators in Chapter~\ref{ch:semantic_entropy} also read
+the model's internal state, but they too only read it; no estimator in this
+thesis modifies the generator.
+
 \begin{figure*}[!ht]
 \centering
 \includegraphics[width=\linewidth]{method_schematic.png}
@@ -49,9 +61,10 @@ setup and to study how well it works there, and under which conditions.
   sampled several times for the same question; counting distinct
   \emph{wordings} (left path) makes the model look very unsure, because
   paraphrases such as ``Canberra'' and ``Canberra is the capital\ldots''
-  are treated as different answers. Grouping the samples by
-  \emph{meaning} with bidirectional NLI entailment (right path) shows
-  that the model has mostly settled on one answer, and the entropy over
+  are treated as different answers. The right path groups the samples by
+  \emph{meaning} instead. It does so with a Natural Language Inference (NLI)
+  model, which is asked whether each pair of answers implies the other. Grouped
+  this way, the model has mostly settled on one answer, and the entropy over
   these meaning-groups is the semantic entropy used throughout the
   thesis. The same example is worked through numerically in
   Chapter~\ref{ch:semantic_entropy}.}
@@ -62,8 +75,10 @@ setup and to study how well it works there, and under which conditions.
 \label{sec:research-aim}
 
 The main question is simple to state. Is semantic entropy a better warning
-signal than surface-form uncertainty, and does the answer change when the
-output grows from a short answer to a paragraph? A good signal here also
+signal than \emph{surface-form uncertainty} --- that is, than simply counting
+how many of the sampled answers differ as strings, without asking what any of
+them means --- and does the answer change when the output grows from a short
+answer to a paragraph? A good signal here also
 supports \emph{selective abstention}: letting the system decline the
 questions it is most likely to get wrong.
 
@@ -137,8 +152,8 @@ as semantic entropy.
 
 \textbf{Replication condition.} The main semantic-entropy condition repeats
 the same model--dataset grid on the NHR@FAU high-performance computing
-cluster and replaces exact-match clustering with a bidirectional Natural
-Language Inference (NLI) clustering step using DeBERTa-v3 cross-encoders
+cluster and replaces exact-match clustering with a bidirectional
+NLI clustering step using DeBERTa-v3 cross-encoders
 (the base model end to end, and the large model as the canonical
 post-hoc backend).
 This is the configuration that corresponds most closely to the method of

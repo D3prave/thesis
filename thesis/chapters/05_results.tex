@@ -81,9 +81,9 @@ The detectors compared are the ones defined in
 Chapter~\ref{ch:semantic_entropy}. Because their names are easy to mix
 up, Table~\ref{tab:detector-key} lists every detector name that appears
 in the result tables, with a one-line reminder of what it does and
-where it is defined; the naming convention is that ``surface''/``naive''
-scores look only at answer strings, ``semantic'' scores group answers
-by meaning first, and the parenthetical says what is counted or
+where it is defined. The naming convention is simple: ``surface'' and
+``naive'' scores look only at answer strings, ``semantic'' scores group
+answers by meaning first, and the parenthetical says what is counted or
 weighted.
 
 \begin{table}[ht]
@@ -157,37 +157,50 @@ P(True) & the model grades its own most-likely answer; the uncertainty
 \section{The headline picture}
 \label{sec:headline}
 
-Figure~\ref{fig:regime-split} is the single most important result of the
-thesis, and the rest of the chapter unpacks it. It compares two
+Figure~\ref{fig:regime-split} summarizes the main result of the thesis, and
+the rest of the chapter works through it in detail. It compares two
 detectors across the four tasks and three models: the \emph{cheap}
 surface score, which just counts how many of the sampled answers are
 different strings, and the \emph{meaning-aware} semantic entropy, which
 first groups answers that mean the same thing and then measures the
 spread over meanings.
 
-The pattern is the same for all three models. On short answers the two
-bars are nearly equal, so the expensive meaning-based machinery yields
-little measurable improvement over simply noticing that the model wrote
-different strings. On long-form biographies the cheap baseline collapses to the
-chance line while the meaning-aware score survives. \emph{Semantic
-clustering is needed precisely in the long-form regime; on short answers
-it is close to redundant.} The remainder of the chapter establishes this
-quantitatively and explains why it happens.
+The pattern is the same for all three models, and it has three parts. On
+short answers the two bars are nearly equal, so the expensive meaning-based
+machinery yields little measurable improvement over simply noticing that the
+model wrote different strings. On whole-paragraph biographies the cheap
+baseline drops to the chance line while the meaning-aware score survives ---
+but it drops there because it is pinned at its ceiling and has no variance
+left, which makes it a degenerate opponent rather than a beaten one
+(Section~\ref{sec:bio-results}). The third group is the one that settles the
+question. Scoring the same biographies one claim at a time gives the surface
+baseline short strings to work with again, so it ranks usefully rather than
+sitting at its ceiling --- and the meaning-aware score still leads it, in every
+cell. \emph{Meaning-based clustering is close to redundant on short answers,
+and earns its cost on long-form text at a granularity where the comparison is
+fair.} The remainder of the chapter establishes this quantitatively and
+explains why it happens.
 
 \begin{figure*}[!ht]
 \centering
 \includegraphics[width=\linewidth]{regime_split.png}
 \caption{Surface-form versus meaning-aware detection across tasks
-  (AUROC, higher is better; the dashed line is the useless ``coin-flip''
+  (AUROC, higher is better; the dashed line is the ``coin-flip''
   level of 0.5). On the three short-answer tasks the two scores are
   almost the same height: the cheap string-counting baseline is already
-  as good as meaning-aware clustering. On the long-form biography task
-  the surface bar drops to the chance line (it stops working
-  entirely) while the meaning-aware bar stays well above it. This
-  short-versus-long contrast is the central finding. Each pair of bars is a
-  comparison within one cell, and no bar is compared across the divider: the
-  two regimes are graded differently, so their absolute heights are not
-  commensurable.}
+  as good as meaning-aware clustering. On whole-paragraph biographies the
+  surface bar sits at the chance line, because paragraphs almost never repeat
+  as identical strings and the score is pinned at its maximum; that comparison
+  is therefore a diagnostic rather than a fair contest
+  (Section~\ref{sec:bio-results}). Scored one claim at a time, the surface
+  baseline works again ($0.62$--$0.65$), and the meaning-aware score still
+  leads it by $0.07$ to $0.11$ AUROC in every cell
+  (Section~\ref{sec:factualbio-results}). That is the one regime in this study
+  where meaning-based clustering beats a baseline that is genuinely competing.
+  Each pair of bars is a comparison within one group; no bar is compared
+  across groups. The three regimes are graded differently --- against
+  reference answers, an LLM judge, and published human labels respectively ---
+  so their absolute heights are not commensurable.}
 \label{fig:regime-split}
 \end{figure*}
 
@@ -286,7 +299,7 @@ figure.
 \label{sec:short-answer-results}
 
 This section begins with the three short-answer tasks (TriviaQA, NQ-Open, SVAMP).
-Table~\ref{tab:auroc-overview} gives the bird's-eye view: the two
+Table~\ref{tab:auroc-overview} gives the overall view: the two
 meaning-aware estimators, with discrete semantic entropy --- the method at
 the center of the thesis --- in the upper block, for all three models across
 the three short-answer tasks. The remaining detectors follow task by task
@@ -413,8 +426,8 @@ entailment then has little left to add.
 baseline?}
 \label{sec:significance}
 
-Because the surface and semantic scores are so close on short answers,
-the honest question is whether the difference is real or just noise.
+Because the surface and semantic scores are so close on short answers, the
+question is whether the difference between them is real or just noise.
 Table~\ref{tab:significance-vs-surface} reports paired bootstrap
 comparisons: for each task and model it asks whether a given detector
 beats the surface baseline by more than sampling noise would explain.
@@ -439,7 +452,7 @@ beats the surface baseline by more than sampling noise would explain.
 \input{includes/generated_significance.tex}
 \end{table}
 
-On the short-answer tasks the result is unambiguous: in none of the nine
+On the short-answer tasks the result is clear: in none of the nine
 cells does question-conditioned discrete semantic entropy beat the
 surface baseline. Every mean difference is negative or within noise of
 zero. The only Holm-significant cell runs \emph{against} the meaning-aware
@@ -452,19 +465,18 @@ is $-0.003$ and is nowhere near significant. Once the
 answer strings are normalized, adding an NLI clustering step therefore
 does not improve short-answer hallucination detection, and on the dataset
 where the two differ most it makes detection slightly worse. This is a
-negative result, and a clean one: on short answers the meaning-clustering
-step earns nothing over a normalized-string baseline. Whether it earns
-its keep at all is a question for the long-form setting, which the
-following sections examine.
+negative result: on short answers the meaning-clustering step gains nothing
+over a normalized-string baseline. Whether it is worth its cost anywhere is a
+question for the long-form setting, which the following sections examine.
 
-\paragraph{Why the null holds.} A negative result is more convincing with a
-mechanism attached, and here it is a simple one. AUROC depends only on the
+\paragraph{Why the null holds.} A negative result is easier to trust when the
+reason for it can be shown, and here the reason is simple. AUROC depends only on the
 \emph{order} a score imposes on prompts, so if two scores order prompts
 alike they must score alike. Table~\ref{tab:rank-agreement} measures that
 agreement directly on the locked family, where both scores are recorded for
 the same prompts. The mean Spearman correlation across the nine cells is
 $0.898$, ranging from $0.745$ (TriviaQA with the 70B model) to $0.989$
-(SVAMP with the 70B model). More striking than the correlation is what
+(SVAMP with the 70B model). More informative than the correlation is what
 drives it: on $57.6$ to $95.3\,\%$ of prompts the two scores are
 \emph{numerically identical}. Once the answer strings are normalized, the
 entailment step usually finds nothing left to merge, so the meaning-aware
@@ -519,8 +531,8 @@ after the fact.
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Precision of the confirmatory short-answer comparison, sealed
-  primary. $\Delta$ is the seed-mean AUROC difference (positive $=$ semantic
+\caption{Precision of the confirmatory short-answer comparison.
+  $\Delta$ is the seed-mean AUROC difference (positive $=$ semantic
   score ahead); the interval is the central $90\,\%$ prompt-cluster bootstrap
   range, equivalent to two one-sided tests at $\alpha = 0.05$. ``Bound'' is
   the tightest symmetric margin the cell would pass, and ``MDE'' the smallest
@@ -583,7 +595,7 @@ strings are normalized there is very little for a stronger equivalence judge
 to add. This is the same finding as
 Section~\ref{sec:significance}, seen from the other side.
 
-On biographies the choice is decisive
+On biographies the choice largely determines the result
 (Figure~\ref{fig:bio-clustering-sensitivity}). Exact-match clustering carries
 no information there, sitting at chance in all three cells ($0.500 / 0.498 /
 0.480$), because repeated paragraphs are extremely rare and nearly every
@@ -635,7 +647,7 @@ that claim-level result rather than on the numbers in this section.
 \input{includes/generated_bio_wholepara.tex}
 \end{table}
 
-The contrast with short answers is stark. The two count-based surface
+The contrast with short answers is large. The two count-based surface
 scores, naive \emph{sample} entropy and surface entropy, sit at
 $\approx 0.50$, approximately chance, as Example~\ref{sec:audit-bio}
 predicted: long paragraphs almost never repeat as identical strings, so these
@@ -643,7 +655,7 @@ scores are nearly pinned at their maximum and have little ranking information. M
 across the biography set the mean surface entropy is $2.303$ nats for
 Mistral-7B, which to three decimals \emph{is} the ceiling $\ln 10 =
 2.3026$. A score with no variance cannot rank anything, and this is the
-one unambiguous long-form result of the section.
+clearest long-form result of the section.
 
 Escaping string identity is necessary but not sufficient. KLE, which
 compares meanings softly through sentence embeddings rather than hard
@@ -871,7 +883,7 @@ the sampled diversity, so a strong movement on the entropy side alongside a
 comparatively flat P(True) curve is consistent with how the two constructions
 work.
 
-Second, the size of the effect dwarfs the seed variation on the entropy side.
+Second, the effect is far larger than the seed variation on the entropy side.
 Every point in Table~\ref{tab:temp-sweep} and Figure~\ref{fig:temp-sweep} is
 a mean over the same three seeds, and the seed standard deviation across the
 short-answer sweep cells averages $0.007$. Semantic entropy rises
@@ -880,7 +892,7 @@ AUROC, which is between $22$ and $51$ times the seed spread of the cell it
 occurs in (median $32$). A change that large, and that consistent in shape,
 cannot be an accident of which seeds were drawn.
 
-Third, and stated plainly because it qualifies the picture: the movement is
+Third, and it qualifies the picture: the movement is
 almost entirely on the entropy side. \mbox{P(True)} changes by $-0.023$ to
 $+0.076$ across the same sweep, a median of about three times its seed
 spread, and where it moves it more often rises than falls: it ends higher at
@@ -943,22 +955,23 @@ model still detects well above chance. AURAC behaves the same way and is
 almost flat ($0.847 / 0.843 / 0.838$), which is what one expects when the
 underlying claim accuracy is similar across generators.
 
-\paragraph{Does meaning-clustering earn its keep here?} The same records
+\paragraph{Does meaning-clustering help here?} The same records
 answer this directly, because the surface baseline can be recomputed on them
 by replacing entailment with normalized exact match and changing nothing
 else. It does not collapse the way it does on whole paragraphs: the
 regenerated answers are short strings, so exact-match grouping still ranks
 usefully, at AUROC $0.642 / 0.650 / 0.619$. Meaning-based clustering is
 nevertheless ahead in every cell, by $0.07$ to $0.11$ AUROC and $0.03$ to
-$0.06$ AURAC --- at least five times the seed standard deviation of either
-arm in every cell. This is the mirror image of the short-answer result of
+$0.06$ AURAC. On AUROC that gap is at least five times the seed standard
+deviation of either arm in every cell; on AURAC it is at least three times,
+the narrowest case being Llama-3.1-70B. This is the mirror image of the short-answer result of
 Section~\ref{sec:significance}, and it is the cleaner of the two long-form
 comparisons: the gain is measured against a baseline that works rather than
 against one pinned at its ceiling, and it is measured against human labels.
 The comparison is exploratory rather than preregistered
 (Section~\ref{sec:evaluation-metrics}), and three generators on one claim set
 cannot establish a general law, but within this grid the meaning-clustering
-step pays for itself at claim granularity in a way it never does on short
+step is worth its cost at claim granularity, which it never is on short
 answers.
 
 The whole-paragraph observation of Section~\ref{sec:bio-results} does not
@@ -971,48 +984,3 @@ directly measured cause. The human labels provide the measurement the method
 should be judged against, and
 against them the erosion with scale is a gentle slope rather than a collapse:
 at the largest size the signal is weaker, not absent.
-
-\section{Summary of findings}
-\label{sec:results-summary}
-
-The experiments support a single, regime-dependent picture.
-
-\begin{enumerate}
-  \item \textbf{Short answers: semantic clustering is close to
-    redundant.} The core count-based sampling detectors generally reach AUROC
-    values of roughly $0.70$--$0.90$, but the cheap surface baseline
-    is the strongest single score in most cells and no method beats it
-    by more than a practically negligible margin
-    (Section~\ref{sec:significance}).
-    Normalization, not entailment, does most of the grouping.
-  \item \textbf{Long-form: count-based string identity collapses.} The two
-    count-based surface baselines have little to measure on paragraph-length
-    text, where samples almost never repeat as identical strings. The
-    surface-only probability-weighted naive estimator remains strong. Measured at claim level against human
-    labels, semantic entropy detects at $0.748 / 0.724 / 0.701$ and beats the
-    normalized surface baseline by $0.07$ to $0.11$ AUROC in every cell ---
-    the one regime in this study where meaning-clustering earns its cost
-    against a baseline that still works
-    (Section~\ref{sec:factualbio-results}). The whole-paragraph variant is
-    reported as a diagnostic rather than a detector: its score is pinned at
-    the ceiling for a large minority of records and the samples are partly
-    truncated (Section~\ref{sec:bio-results}). The clustering backend is
-    result-determining on paragraphs and nearly irrelevant on short answers
-    (Section~\ref{sec:clustering-sensitivity}).
-  \item \textbf{Scale erodes the signal, gently.} Claim-level detection
-    falls monotonically as the generator grows, by $0.047$ AUROC across a
-    tenfold size difference, a pattern consistent with larger models
-    confabulating more consistently; the whole-paragraph numbers are
-    non-monotonic
-    (Section~\ref{sec:factualbio-results}).
-  \item \textbf{Temperature decides which detector wins, and so does model
-    scale.} Sampling-based entropy climbs steeply with decoding temperature
-    while the single-pass baseline stays flat, so their gap closes in every
-    short-answer cell and reverses in five of nine --- on the two smaller
-    generators, never on the largest
-    (Section~\ref{sec:temperature-sensitivity}).
-  \item \textbf{Two blind spots, seen by hand.} Confident systematic
-    errors and noisy gold labels (Example~\ref{sec:audit-artifact}) are
-    real limits that the aggregate scores hide; they are taken up in
-    Chapter~\ref{ch:discussion}.
-\end{enumerate}

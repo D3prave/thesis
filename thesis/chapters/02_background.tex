@@ -104,10 +104,11 @@ Rejection-accuracy curves and their AURAC summary are better aligned
 with the practical question of whether uncertain answers can be
 filtered out. Related work has also
 examined whether semantic entropy can be used as a training signal to
-encourage abstention, but the present thesis treats that line as a
-downstream mitigation rather than a primary target; Tjandra et
-al.~\cite{tjandra_abstain_semantic_entropy_2024} study
-semantic-entropy abstention directly.
+encourage abstention: Tjandra et
+al.~\cite{tjandra_abstain_semantic_entropy_2024} fine-tune models on it
+directly. That is a different use of the same quantity, and it is not what
+this thesis does. Here the score is only ever computed on a finished answer
+from a model that is left untouched; no gradient is taken through it.
 
 A number of related works have approached the same problem without
 explicit semantic clustering. P(True)~\cite{kadavath_language_models_know_2022}
@@ -125,6 +126,26 @@ model's own verdict) to purely behavioral (SelfCheckGPT compares samples).
 Semantic entropy sits between them. It adds one step none of the others
 perform --- deciding when two answers mean the same thing --- and the value
 of exactly that step is what this study measures.
+
+A third family reads the model's \emph{hidden states} rather than its words.
+The observation behind it is that a model's internal activations often carry
+information about the reliability of an answer that its output text does not
+express. Burns et al.~\cite{burns_latent_knowledge_2023} recover a
+truth-like direction in activation space without any labels; Azaria and
+Mitchell~\cite{azaria_internal_state_lying_2023} train a small classifier on
+hidden states to tell true from false statements; and
+INSIDE~\cite{chen_inside_2024} scores hallucinations from the geometry of
+sentence embeddings taken from inside the model. The practical appeal is cost:
+these methods need one forward pass, not $M$ samples and $M^2$ entailment
+comparisons. Semantic Entropy Probes~\cite{kossen_semantic_entropy_probes_2024}
+join the two families by training exactly such a probe to predict semantic
+entropy itself, so that the expensive signal is paid for once at training time
+and read cheaply thereafter. Both a probe of this kind and a
+correctness-trained variant are evaluated in
+Chapter~\ref{ch:results} as single-pass comparators; they are defined in
+Sections~\ref{sec:sep-method} and~\ref{sec:other-estimators}. Note that
+training such a probe is a separate, supervised step layered on top of a frozen
+generator, and it does not change the generator either.
 
 \section{Semantic equivalence and entailment}
 

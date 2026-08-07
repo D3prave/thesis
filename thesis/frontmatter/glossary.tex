@@ -13,9 +13,32 @@
     bidirectional Natural Language Inference entailment. Low semantic entropy
     indicates that repeated samples express the same meaning; high semantic
     entropy indicates that samples spread across incompatible meanings. The
+    score is computed after training, on a model whose weights are left
+    unchanged; it is a diagnostic applied to the model's outputs, not a
+    training objective. The
     surface-form (normalized exact-match) variant used as a baseline is not
     semantic entropy in this sense, because it groups by string identity
     rather than by meaning}
+}
+
+\newglossaryentry{surfaceentropy}{
+  name={surface entropy},
+  description={the Shannon entropy over the sampled answers after each answer
+    has been reduced to its normalized string, so that two answers count as
+    the same outcome only when those strings are identical. Together with the
+    unnormalized \emph{naive sample entropy} it forms the surface-form
+    uncertainty baseline of this thesis: a score that measures how much the
+    wording varies without asking what any answer means}
+}
+
+\newglossaryentry{ptrue}{
+  name={P(True)},
+  description={a single-pass self-evaluation baseline in which the model is
+    shown its own most-likely answer and asked how likely that answer is to be
+    true. The probability it assigns to the token ``True'' is read off, and the
+    reported uncertainty score is $1-P(\mathrm{True})$, so larger values mean
+    greater estimated risk. Unlike the entropy scores it needs no repeated
+    sampling}
 }
 
 \newglossaryentry{confabulation}{

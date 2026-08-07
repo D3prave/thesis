@@ -104,9 +104,10 @@ AURAC & area under the rejection-accuracy curve \\
 \section{The method, step by step}
 
 At a high level, the method proceeds in the following three
-computational steps. Each step is then explained in detail in the rest
-of the chapter, and a fully worked numerical example is given in
-Section~\ref{sec:worked_example}.
+computational steps. All three run on a fixed, already-trained model and
+only read what it produces; none of them updates its parameters. Each step is
+then explained in detail in the rest of the chapter, and a fully worked
+numerical example is given in Section~\ref{sec:worked_example}.
 
 \begin{enumerate}
   \item \textbf{Sampling.} For a prompt $x$, draw $M$ candidate answers

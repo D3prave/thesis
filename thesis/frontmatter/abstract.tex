@@ -30,10 +30,10 @@ record-level paired-bootstrap significance are reported separately.
 
 The answer depends on the length of the output. On short answers the core
 count-based sampling estimators generally reach AUROC values of roughly
-0.70--0.90 and reproduce the original results under the matched protocol, but entropy over
-normalized strings is the strongest single score in most cells, and no
-method beats it by a practically relevant margin: a record-level
-analysis shows that simple answer normalization, not semantic
+0.70--0.90 and reproduce the original results under the matched protocol.
+Entropy over normalized strings is nevertheless the strongest single score in
+most cells, and no method beats it by a practically relevant margin. A
+record-level analysis shows why: simple answer normalization, not semantic
 clustering, performs almost all of the grouping. On long-form biography
 the picture changes. The two count-based string-frequency baselines collapse
 to chance, but surface-only probability-weighted naive entropy remains strong
@@ -51,5 +51,8 @@ modestly as the generator scales, a pattern consistent with larger models
 repeating their confabulations more consistently and leaving less
 inconsistency to measure. Sampling-based entropy also strengthens as decoding
 temperature rises, whereas the single-pass P(True) self-evaluation baseline
-remains nearly flat. The hidden-state probes were not included in the
-temperature sweep.
+(which was swept, while the hidden-state probes were not) remains nearly flat,
+so which detector is preferable depends on the decoding settings as much as on
+the method. Taken together the results locate the value of meaning-based
+clustering precisely: it is redundant wherever answer normalization already
+groups the samples, and it is worth its cost where it does not.
