@@ -271,6 +271,7 @@ non-semantic score in front at $0.817$.
   datasets rather than five --- so the comparison is between the orderings
   the two grids produce, not between individual values.}
 \label{tab:farquhar-comparison}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Detector & Farquhar et al.\ (30 cells) & This thesis (9 cells) \\
@@ -283,7 +284,8 @@ Naive entropy (prob.-weighted)     & $0.691$                  & $0.806$ \\
 Surface entropy (normalized)       & not reported             & $0.817$ \\
 Naive sample entropy (raw strings) & not reported             & $0.785$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 The divergence is therefore in the baselines rather than in the method, and
