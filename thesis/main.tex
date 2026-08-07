@@ -35,6 +35,24 @@
 \AtBeginEnvironment{figure}{\LetLtxMacro{\caption}{\kaocaptionwrapper}}
 \AtBeginEnvironment{table}{\LetLtxMacro{\caption}{\kaocaptionwrapper}}
 
+% Captions are typeset in the margin column, which is too narrow to justify
+% cleanly: a long hyphenated compound after the bold label leaves gaps that
+% TeX has to stretch. The kaobook caption formats end in \@margin@par, which
+% issues \justifying and so overrides the caption package's justification
+% option; the formats are therefore redeclared here with \RaggedRight after
+% it. This overrides styles/kao.sty without editing it.
+\makeatletter
+\DeclareCaptionFormat{margin}{\@margin@par\RaggedRight #1#2#3}
+\DeclareCaptionFormat{llap}{%
+  \begin{lrbox}{\mycap}%
+  \begin{minipage}{\marginparwidth}%
+  \@margin@par\RaggedRight #1#2#3%
+  \end{minipage}%
+  \end{lrbox}%
+  \marginnote[0.2cm]{\usebox\mycap}%
+}
+\makeatother
+
 % Metric table generation and automated result reporting
 % \input{includes/metric_tables.tex}  % Disabled: pgfplotstable macros need fixing
 
