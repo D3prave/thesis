@@ -27,13 +27,12 @@ SVAMP provides short math word problems for which answer normalization
 and semantic equivalence matter at the level of numbers rather than
 phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
 apples does she have now?''}. The biography task prompts the model with
-\textit{``Tell me a bio of \{entity\}.''} and elicits a multi-sentence
-paragraph rather than a short answer; the person entities are drawn from
-English Wikipedia category listings (Nobel laureates, heads of state
-and government, major scientific-award winners, inventors, and
-novelists), following the FactScore setup~\cite{min_factscore_2023},
-and each entity's reference is the pinned lead section of its Wikipedia
-article. The evaluated prompt sets are fixed once and shared by every
+\textit{``Tell me a bio of \{entity\}.''} and elicits a paragraph rather
+than a short answer. Following the FactScore
+setup~\cite{min_factscore_2023}, the entities come from English Wikipedia
+category listings --- Nobel laureates, heads of state and government, major
+scientific-award winners, inventors and novelists --- and each entity's
+reference is the pinned lead section of its article. The evaluated prompt sets are fixed once and shared by every
 model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and
 the biography task, and 300 for SVAMP. The short-answer prompts are
 drawn from the datasets' validation splits; the biography prompts are
@@ -299,17 +298,20 @@ full semantic entropy (the estimator taxonomy is laid out in
 Chapter~\ref{ch:semantic_entropy}).
 
 Beyond the entropy family, the final grid records three supervised or
-self-evaluation baselines:
-P(True)~\cite{kadavath_language_models_know_2022}, in which the
-generator judges whether its own most-likely answer is true (the
-grading prompt shows a few solved examples of the true/false judgment,
-``few-shot in-context'', before the actual question, and the
-probability the model assigns to the token ``True'' is converted to the
-uncertainty score $1-P(\mathrm{True})$); embedding regression, a logistic probe on the final
-hidden state trained to predict incorrectness, evaluated both
-in-distribution and, in the out-of-distribution form, trained on the
-pooled prompts of the other two short-answer tasks and scored on the
-held-out one; and the semantic-entropy probe defined in
+self-evaluation baselines.
+
+\emph{P(True)}~\cite{kadavath_language_models_know_2022} asks the generator
+to judge its own most-likely answer. The grading prompt first shows a few
+solved true/false examples, then the actual question; the probability the
+model puts on the token ``True'' becomes the uncertainty score
+$1-P(\mathrm{True})$.
+
+\emph{Embedding regression} is a logistic probe on the final hidden state,
+trained to predict incorrectness. It is reported in-distribution, and
+out-of-distribution by training on the pooled prompts of the other two
+short-answer tasks and scoring on the held-out one.
+
+The third is the \emph{semantic-entropy probe} of
 Section~\ref{sec:sep-method}.
 SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
 sampling-based baseline but was not included in the recorded runs.
@@ -327,13 +329,12 @@ reported in Section~\ref{sec:clustering-sensitivity}.
 \section{Output schema}
 
 Each recorded run writes JSONL (one JSON object per line) with
-exactly one record per prompt. Every record stores the prompt and
-reference answers, the model and full decoding configuration (including
-the seed), the ten sampled answers with their normalized forms and
-length-normalized sequence log-probabilities, the low-temperature
-most-likely answer used for accuracy labeling, the cluster assignment
-of every sample together with one representative string per cluster,
-all entropy scores, the clustering backend, and the correctness label.
+exactly one record per prompt. Every record stores the prompt and reference answers; the model and its
+full decoding configuration, including the seed; the ten sampled answers with
+their normalized forms and length-normalized sequence log-probabilities; the
+low-temperature most-likely answer used for accuracy labeling; the cluster
+assignment of every sample with one representative string per cluster; all
+entropy scores; the clustering backend; and the correctness label.
 This makes generation, clustering, scoring, and evaluation auditable
 from a single line of JSONL, while leaving extensions free to add
 method-specific fields (KLE, probe, and P(True) scores; a greedy-response
@@ -424,14 +425,12 @@ of the nine cells: TriviaQA with Llama-3.1-8B (4 per seed), NQ-Open with
 Mistral-7B (4) and Llama-3.1-8B (2), and SVAMP with Llama-3.1-70B (1); the
 other five cells have none.
 
-Because the headline claim is a head-to-head method comparison, every method
-in the primary short-answer table is scored on the same prompts: the
-$99.72\,\%$ of evaluation prompts for which all methods yield a score. The
-confirmatory semantic-versus-surface family is the exception, and
-deliberately so
---- neither of those two scores uses the greedy feature, so both are defined
-on all $11\,700$ prompts and that comparison is already strictly paired on
-the full set.
+The headline claim is a head-to-head comparison, so every method in the
+primary short-answer table is scored on the same prompts: the $99.72\,\%$
+for which all methods yield a score. The confirmatory
+semantic-versus-surface family is a deliberate exception. Neither of those
+two scores needs the greedy feature, so both are defined on all $11\,700$
+prompts, and that comparison is already paired on the full set.
 
 One detail is worth recording because it shows the exclusion criterion is
 principled rather than noise. The greedy feature response is decoded
@@ -572,11 +571,11 @@ work used the NHR@FAU computing center (Nationales Höchstleistungsrechnen
 an der Friedrich-Alexander-Universität): its GPU cluster \emph{Alex}
 (NVIDIA A100 nodes) for all generation and GPU-heavy steps, and its CPU
 cluster \emph{Fritz} for the lighter posthoc reclustering and KLE scoring
-that needs no GPU. The exact scope of these results matters for reading
-them correctly: the entropy baselines and the NLI replication are the
-primary runs, while the larger judges, KLE, and the probes are posthoc
-checks computed on the \emph{same} saved samples, so a change in their
-scores reflects the judge or estimator, not a new set of generations.
+that needs no GPU. The scope of these results matters for reading them correctly. The entropy
+baselines and the NLI replication are the primary runs. The larger judges,
+KLE and the probes are posthoc checks computed on the \emph{same} saved
+samples, so a change in their scores reflects the judge or the estimator,
+not a new set of generations.
 
 \paragraph{Code and libraries.} All code, configuration, and batch
 scripts are in a small public Python package
@@ -605,11 +604,8 @@ large models never ran on login nodes.
 full decoding parameters, seed, backend, and input path: enough to
 reproduce or audit it later. Source code, configs, small result tables,
 and final figures are version-controlled; bulky artifacts (model caches,
-raw generations, hidden states) live in separate project storage. The
-analysis is deliberately separable from the runs: every reported number
-is recomputed from the saved per-record JSONL by a single aggregation
-step, and an independent audit recomputes the headline AUROC values
-directly from the raw records to confirm they match the reported tables.
-This separation is what makes the worked examples in
-Section~\ref{sec:hand-audits} possible: each one is a single line of
-the recorded JSONL, read back and inspected by hand.
+raw generations, hidden states) live in separate project storage. Analysis is deliberately separable from the runs: every reported number is
+recomputed from the saved per-record JSONL by a single aggregation step, and
+an independent audit checks those values against the reported tables. That
+separation is also what makes the worked examples of
+Section~\ref{sec:hand-audits} possible.

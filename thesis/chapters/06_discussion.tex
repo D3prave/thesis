@@ -1,15 +1,14 @@
 \chapter{Discussion}
 \label{ch:discussion}
 
-This chapter interprets the results from Chapter~\ref{ch:results} rather
-than restating the tables. It works through five questions: why
-meaning-based clustering adds almost nothing on short answers but recovers a
-signal on long-form text; what the clustering-backend comparison says
-about judge quality; why model scale erodes the signal; how the
-sampling methods compare with P(True) across decoding
-temperature; and how all of this relates to the original semantic
-entropy paper of Farquhar et al.~\cite{semantic_entropy_nature_2024}. It
-closes with the limitations the numbers do not show on their own.
+This chapter interprets the results of Chapter~\ref{ch:results} rather than
+restating the tables. It works through five questions. Why does meaning-based
+clustering add almost nothing on short answers, yet recover a signal on
+long-form text? What does the backend comparison say about judge quality? Why
+does model scale erode the signal? How do the sampling methods compare with
+P(True) as decoding temperature changes? And how does all of this relate to
+the original semantic entropy paper~\cite{semantic_entropy_nature_2024}? The
+chapter closes with the limitations the numbers do not show on their own.
 
 \section{The two-regime picture}
 \label{sec:two-regimes}
@@ -26,9 +25,9 @@ they are almost pinned at their ceiling. Meaning-level grouping recovers a
 signal (discrete semantic entropy: $0.734 / 0.590 / 0.648$ for Mistral-7B /
 Llama-3.1-8B / Llama-3.1-70B), as does the correctness-trained accuracy probe
 ($0.704 / 0.680 / 0.773$). A genuine SEP is not defined for this answer-only
-whole-paragraph protocol. Importantly, the surface-only probability-weighted
-naive entropy remains strong at $0.769 / 0.769 / 0.757$ and is best for the two
-smaller generators.
+whole-paragraph protocol. The surface-only probability-weighted
+naive entropy also remains strong, at $0.769 / 0.769 / 0.757$, and is best for
+the two smaller generators.
 
 The mechanism behind both halves is visible in the worked examples of
 Section~\ref{sec:hand-audits}. On short answers (Example~1,
@@ -178,19 +177,19 @@ cell and reverses in five of the nine, on Llama-3.1-8B in all three tasks
 and on Mistral-7B in two; on the third, SVAMP, semantic entropy already
 leads at the lowest temperature, so at $T{=}1.0$ it is ahead in every cell
 of both smaller generators. On Llama-3.1-70B it does not overtake at any
-temperature measured. The practical consequence is concrete: under the near-greedy
-decoding common in production, the single-pass score is both the cheaper
-and the stronger choice in eight of the nine cells; a sampling-based estimator earns its
-cost only once the decoder is warm enough for the samples to genuinely
-disagree, and how warm that is rises with the strength of the generator ---
-beyond $T{=}1.0$ for the largest model here. Three
-qualifications apply. The temperature gain is shared by the surface
+temperature measured. The practical consequence is concrete. Under the
+near-greedy decoding common in production, the single-pass score is both the
+cheaper and the stronger choice in eight of the nine cells. A sampling-based
+estimator only earns its cost once the decoder is warm enough for the samples
+to genuinely disagree, and how warm that is rises with the strength of the
+generator --- beyond $T{=}1.0$ for the largest model here.
+
+Three qualifications apply. The temperature gain is shared by the surface
 baseline, so it reflects a general need for sampling diversity rather than
-something specific to semantic clustering; P(True) is largely
-temperature-insensitive; and the sweep covers the short-answer tasks only,
-because biography was generated at the canonical temperature alone, so the
-trade-off described here is established on short answers and not on
-long-form text. One concern that would have qualified the Mistral-7B curve
+anything specific to semantic clustering. P(True) barely moves with
+temperature at all. And the sweep covers the short-answer tasks only, because
+biography was generated at the canonical temperature alone, so this
+trade-off is established on short answers and not on long-form text. One concern that would have qualified the Mistral-7B curve
 does not apply: an answer-extraction artifact that can empty a Mistral
 sample, and so add a spurious cluster, might plausibly grow with
 temperature, but it was measured directly in every sealed instance of the
@@ -350,10 +349,8 @@ the ways in which they could be wrong, ordered by how much of the thesis
 each would move.
 
 \paragraph{Construct validity.} Correctness is an operational proxy, not
-truth. On TriviaQA and NQ-Open it is SQuAD token-F1 against a reference list,
-on SVAMP it is normalized numeric exact match, and on whole-paragraph
-biography it is an LLM judge. None
-measures factuality directly, and the short-answer proxy is known to
+truth. None of the three rules above measures factuality directly, and the
+short-answer proxy is known to
 misfire on aliases (Example~\ref{sec:audit-artifact}). The one place this
 threat is largely absent is the claim-level evaluation, which uses published
 human labels --- which is why the long-form conclusion rests there. A related

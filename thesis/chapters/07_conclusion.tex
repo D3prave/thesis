@@ -15,18 +15,18 @@ the original paper's sampling and labeling protocol) plus a
 claim-level long-form extension, rather than a new semantic-entropy
 method.
 
-The answer is regime-dependent, in both directions and more sharply
-than expected. On short-answer tasks the core count-based sampling estimators
-generally reach AUROC values of roughly $0.70$--$0.90$, but entropy over
-normalized strings, the cheapest score in the family, is the strongest of
-the three count-based sampling scores in eight of nine model--dataset cells
-and the strongest of all detectors in six of them (outright in five, tied in
-one), and no semantic estimator
-beats it by a practically relevant margin anywhere: every mean difference
-for discrete semantic entropy is negative, the single exception in the whole
-family is a $0.002$ AUROC lead for the probability-weighted variant on
-SVAMP with Llama-3.1-70B, and the only Holm-significant result favors the
-surface baseline. A record-level
+The answer depends on the length of the output, and it points in opposite
+directions at the two ends.
+
+On short answers the sampling-based detectors all work: AUROC lands roughly
+between $0.70$ and $0.90$. But the cheapest score in the family wins.
+Entropy over normalized strings is the strongest of the three count-based
+scores in eight of the nine model--dataset cells, and the strongest of all
+detectors in six. No semantic estimator beats it by a margin that matters:
+every mean difference for discrete semantic entropy is negative, and the one
+Holm-significant result favours the surface baseline. The single exception
+anywhere is a $0.002$ lead for the probability-weighted variant on SVAMP
+with Llama-3.1-70B, which is noise. A record-level
 analysis explains why: dataset normalization already removes almost all
 surface variation before any semantic step runs, so clustering has little
 left to merge. On long-form text the two count-based string-frequency scores
@@ -35,34 +35,39 @@ so the scores are nearly pinned at their ceiling and sit near chance.
 Surface-only probability-weighted naive entropy remains strong, while
 meaning-level clustering and a correctness-trained probe recover signal by
 different routes.
-Measured at claim level against human factuality labels, semantic entropy
+
+Scored one claim at a time against human factuality labels, semantic entropy
 detects confabulated claims at AUROC 0.748, 0.724 and 0.701 for the three
-generators, and there it does beat the normalized surface baseline --- by
-$0.07$ to $0.11$ AUROC in every cell, against a baseline that still ranks
-usefully at $0.642 / 0.650 / 0.619$ rather than one pinned at its ceiling.
-The meaning-clustering step therefore earns its keep at claim granularity
-exactly where it fails to on short answers. On whole paragraphs the picture is weaker and, on the evidence
+generators. Here it does beat the normalized surface baseline, by $0.07$ to
+$0.11$ AUROC in every cell. What makes that comparison worth more than the
+whole-paragraph one is the baseline: at claim level it still ranks usefully,
+at $0.642 / 0.650 / 0.619$, rather than sitting at its ceiling. So the
+meaning-clustering step earns its keep at claim granularity, and fails to on
+short answers. On whole paragraphs the picture is weaker and, on the evidence
 of two independent diagnostics, partly an artifact of granularity rather
 than of the method: the score is pinned at its ceiling for a large minority
 of records, and one generator's paragraphs are frequently cut off at the
 decoding limit.
 
-Two further findings qualify the method's practical use. First, the
-clustering backend is result-determining on long-form inputs: across NLI
-cross-encoders and an LLM judge, backends span anti-predictive to
-moderately useful behavior on the same saved samples, while on short answers
-the same four backends span at most 0.057 AUROC. Backend capacity matters in
-proportion to the length of the text being compared, which makes it an
+Two further findings qualify the method's practical use.
+
+The first is that the clustering backend decides the long-form result. Across
+NLI cross-encoders and an LLM judge, the same saved samples yield anything
+from anti-predictive to moderately useful behaviour. On short answers the
+same four backends span at most 0.057 AUROC. Backend capacity seems to matter
+in proportion to the length of the text being compared. That makes it an
 implementation detail on short answers and a first-order design decision on
-long-form text. Second, the claim-level FactualBio extension shows that
-semantic entropy's discriminative power decreases monotonically with
-generator scale (AUROC 0.748 $\rightarrow$ 0.724 $\rightarrow$ 0.701 from 7B
-to 70B), a pattern consistent with larger models repeating their
-confabulations more consistently and thereby leaving less inconsistency to
-measure. The experiment does not establish that mechanism directly. The effect is a
+long-form text.
+
+The second is a scale effect. Claim-level detection falls steadily as the
+generator grows, from AUROC 0.748 through 0.724 to 0.701 between 7B and 70B.
+A larger model that has invented a detail may simply repeat it more
+consistently, leaving less disagreement to measure; the experiment does not
+establish that mechanism directly. The effect is a
 gentle slope rather than a collapse --- 0.047 AUROC across a tenfold size
 difference, with the largest model still clearly useful --- and it should not
 be extrapolated beyond the three models measured here.
+
 Hidden-state probes offer a cheaper, single-pass alternative. On short
 answers the entropy-trained SEP and correctness-trained accuracy probe land
 close together, with the correctness target ahead in eight of nine held-out

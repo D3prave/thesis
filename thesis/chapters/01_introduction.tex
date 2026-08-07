@@ -61,23 +61,25 @@ setup and to study how well it works there, and under which conditions.
 \section{Research Aim}
 \label{sec:research-aim}
 
-The main question is whether semantic entropy is a better signal for
-hallucination risk and selective abstention (letting the system
-decline to answer the questions it is most likely to get wrong) than
-surface-form uncertainty,
-and how that comparison changes when the output grows from a short answer to
-a paragraph. The study uses TriviaQA, NQ-Open, and SVAMP as short-answer
-benchmarks and a FactScore-style biography task as the long-form case,
-evaluated both for the whole paragraph and at the level of individual claims.
-It runs three open generator models, each three times under different random
-seeds, so that every headline number comes with a spread across repeated
-runs. The target is
-\emph{confabulation}-like failure, where the model's answer varies in meaning
-across samples drawn from the same prompt; the long-form task also tests the
-harder case where surface variation is almost always present. The study does
-not claim to detect every kind of hallucination. In particular, it cannot
-flag confident systematic errors, where the model is consistently wrong, a
-failure mode discussed by Kalai et
+The main question is simple to state. Is semantic entropy a better warning
+signal than surface-form uncertainty, and does the answer change when the
+output grows from a short answer to a paragraph? A good signal here also
+supports \emph{selective abstention}: letting the system decline the
+questions it is most likely to get wrong.
+
+The study uses TriviaQA, NQ-Open and SVAMP as short-answer
+benchmarks, and a FactScore-style biography task as the long-form case. The
+biography task is scored twice, once for the whole paragraph and once for
+each individual claim. Three open generator models each run three times
+under different random seeds, so every headline number comes with a spread
+across repeated runs.
+
+The target is \emph{confabulation}: the model's answer varies in meaning
+across samples drawn from the same prompt. The long-form task adds the harder
+case, where the wording varies almost every time. This study does
+not claim to catch every kind of hallucination. It cannot
+flag confident systematic errors, where the model is wrong the same way each
+time --- a failure mode discussed by Kalai et
 al.~\cite{kalai_why_language_models_hallucinate_2025} and Simhi et
 al.~\cite{simhi_choke_2025}.
 

@@ -3,20 +3,18 @@
 
 Large language models routinely produce fluent answers that are not
 supported by the facts of the task. Such failures are typically grouped
-under the broad label of ``hallucination'', although the term spans
-several distinct mechanisms: unfaithfulness to source material,
-unsupported factual claims, mistakes caused by gaps in the model's
-knowledge, systematic reasoning errors, and answers encouraged by
-evaluation incentives that reward guessing over abstention, as
-surveyed in hallucination and factuality
-work~\cite{ji_hallucination_survey_2023,huang_llm_hallucination_survey_2023,%
+under the broad label of ``hallucination''. The term covers several
+distinct mechanisms: unfaithfulness to source material, unsupported
+factual claims, gaps in the model's knowledge, faulty reasoning, and
+answers encouraged by benchmarks that reward guessing over
+admitting ignorance~\cite{ji_hallucination_survey_2023,%
+huang_llm_hallucination_survey_2023,%
 maynez_faithfulness_factuality_2020,%
 kalai_why_language_models_hallucinate_2025,%
-augenstein_factuality_challenges_2024}. Throughout this thesis the word
-``hallucination'' is used as a convenient cover term, but the
-goal is not to detect arbitrary types of hallucination; the goal is to
-detect those answers that are unreliable because the model is uncertain
-about the meaning of the answer it has produced.
+augenstein_factuality_challenges_2024}. This thesis uses the word as a
+convenient cover term, but does not try to detect every kind. The target is
+narrower: answers that are unreliable because the model is uncertain about
+what it just said.
 
 \section{Hallucinations and confabulations}
 
@@ -56,10 +54,9 @@ produces whole sentences, and the catch is that the \emph{same fact} can
 be written in many ways (``Paris'', ``Paris, France'', ``the capital is
 Paris''), while two sentences that look almost identical can mean
 different things. So counting how often the exact words differ is a poor
-guide to whether the model is really unsure about the answer: when the
-model's probability mass is split across ten paraphrases of the same
-fact, the token-level numbers look uncertain even though the model is,
-in meaning, entirely consistent. Sequence-level entropy or
+guide to whether the model is really unsure. Split the model's probability
+mass across ten paraphrases of one fact and the token-level numbers look
+uncertain, even though the model has said the same thing ten times. Sequence-level entropy or
 token-level variation can therefore be misleading for natural-language
 answers, as discussed in work on uncertainty in natural language
 generation~\cite{baan_uncertainty_nlg_2023} and semantic
@@ -92,13 +89,12 @@ head~\cite{lm_polygraph_vashurin_2025}.
 The motivation for estimating uncertainty is not only to attach a score
 to an answer, but to decide what should happen next: answer, abstain,
 defer to retrieval, request human review, or invoke a more expensive
-verification procedure. A related notion is \emph{calibration}: a model
-is well calibrated when its stated confidence matches how often it is
-actually right, so that among all answers given with 90\,\% confidence,
-roughly 90\,\% are correct. Calibration and accuracy are different
-properties --- a model can be accurate but poorly calibrated, and vice
-versa --- and the selective-prediction view used here needs only a good
-\emph{ranking} of risky answers, not calibrated probabilities. This
+verification procedure. A related notion is \emph{calibration}. A model is well calibrated when its
+stated confidence matches how often it is actually right: among all answers
+given with 90\,\% confidence, roughly 90\,\% should be correct. Calibration
+and accuracy are different properties, and a model can have one without the
+other. The view taken here needs neither. Selective prediction only requires
+that risky answers be \emph{ranked} above safe ones. This
 makes selective prediction and
 rejection-based evaluation the natural evaluation lens for the thesis.
 Accuracy alone is insufficient, because many benchmarks reward a lucky
@@ -124,11 +120,11 @@ probabilities. Semantic entropy is
 closest in spirit to these sampling-based methods, but, unlike them, it
 explicitly aggregates samples into semantic clusters before computing
 an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-These methods span a spectrum from purely internal (P(True), reading
-verbalized self-knowledge) to purely behavioral (SelfCheckGPT, sampling
-consistency); semantic entropy sits between them, adding an explicit
-meaning-equivalence step that none of the others perform, and it is the
-marginal value of this step that the present study isolates.
+These methods span a spectrum, from purely internal (P(True) reads the
+model's own verdict) to purely behavioural (SelfCheckGPT compares samples).
+Semantic entropy sits between them. It adds one step none of the others
+perform --- deciding when two answers mean the same thing --- and the value
+of exactly that step is what this study measures.
 
 \section{Semantic equivalence and entailment}
 
@@ -171,14 +167,12 @@ comparisons~\cite{shorinwa_uq_llm_survey_2024,%
 liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. It
 is therefore unclear how much of the
 reported gain over ``naive'' entropy is attributable to semantic
-clustering rather than to simple answer normalization. Second, the
-short-answer and long-form settings are typically reported together
-rather than as a controlled contrast, even though these are precisely
-the regimes in which surface-level and meaning-level uncertainty should
-diverge; recent work already reports that semantic entropy loses
-discriminative power as one-sentence outputs
-lengthen~\cite{nguyen_beyond_semantic_entropy_2025}, but does not isolate
-the short-versus-long contrast under a single controlled protocol. Third,
+clustering rather than to simple answer normalization. Second, short-answer and long-form results are usually reported together
+rather than as a controlled contrast. Yet these are exactly the two regimes
+in which surface-level and meaning-level uncertainty should come apart.
+Recent work does report that semantic entropy weakens as one-sentence outputs
+grow longer~\cite{nguyen_beyond_semantic_entropy_2025}, but it does not
+isolate the short-versus-long contrast under one protocol. Third,
 the dependence of sampling-based detection on the decoding temperature,
 the very parameter that controls sample diversity, has been
 examined only in isolated ablations (including in the same
@@ -196,10 +190,7 @@ outside the recorded study, representative records, and the exact prompt
 construction are given in Chapter~\ref{ch:experimental_design} and
 Appendix~\ref{app:prompts}.
 
-Taken together, the literature positions semantic entropy as a middle
-ground between cheap surface-level uncertainty signals and expensive
-factual verification. Its value depends on a clean separation between
-generation, semantic clustering, entropy scoring, correctness labeling,
-and selective-prediction metrics. The thesis therefore starts with a
-small, reproducible discrete semantic entropy implementation before
-considering Semantic Entropy Probes or kernel-based variants.
+Taken together, the literature places semantic entropy between cheap
+surface signals and expensive factual verification. Testing it fairly means
+keeping generation, clustering, scoring and evaluation separate, so this
+thesis builds a small, verifiable implementation first.

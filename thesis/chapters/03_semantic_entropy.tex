@@ -37,11 +37,11 @@ ordering of distributions, so the choice between $\ln$, $\log_2$ and
 $\log_{10}$ does not affect ranking metrics such as AUROC. The thesis
 uses natural log throughout.
 
-Entropy is not the only way to measure how spread out a distribution
-is; Gini impurity ($1-\sum_k p_k^2$), for example, is a common
-alternative in decision-tree learning and would rank most of the
-distributions in this thesis similarly (both are minimal when one
-outcome has all the mass and maximal for the uniform distribution).
+Entropy is not the only way to measure how spread out a distribution is.
+Gini impurity ($1-\sum_k p_k^2$) is a common alternative in decision-tree
+learning, and it would rank most of the distributions in this thesis
+similarly: both are smallest when one outcome has all the mass, and largest
+for the uniform distribution.
 Entropy is used here for three reasons. First, it has a direct
 operational meaning, the expected number of nats needed to describe
 which outcome occurred, so its values are interpretable ($\ln K$ for
@@ -145,11 +145,12 @@ confabulation.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=\textwidth]{semantic_entropy_paper_fig1.png}
-\caption{The semantic-entropy method. (a)~On a short question, counting
-  distinct wordings overstates uncertainty (labeled ``misleadingly high naive
-  entropy'' in the source figure), whereas grouping the answers by meaning first gives a low
-  semantic entropy. (b)~The same idea applied to long-form biographies at
-  the level of individual claims (FactualBio). Reproduced from Farquhar et
+\caption{The semantic entropy method. (a)~On a short question, count\-ing
+  distinct wordings makes the model look more un\-cer\-tain than it is; the
+  source figure labels this ``mis\-lead\-ing\-ly high naive entropy''.
+  Grouping the answers by meaning first gives a low semantic entropy.
+  (b)~The same idea applied to long-form bi\-og\-ra\-phies, one claim at a
+  time (Fac\-tual\-Bio). Reproduced from Farquhar et
   al.~\cite{semantic_entropy_nature_2024} (\emph{Nature}, 2024), licensed
   under CC~BY~4.0.}
 \label{fig:method-schematic}
@@ -194,13 +195,12 @@ clustering step. Two are used:
 
 \paragraph{Normalized exact match.} The simplest possible relation:
 $y_i \sim_{\mathrm{exact}} y_j$ iff their normalized strings are
-identical. ``Normalization'' here is each dataset's standard
-answer-cleaning step: for the question-answering datasets it lowercases
-the string, removes punctuation and the articles \emph{a/an/the}, and
-collapses whitespace (the TriviaQA evaluation protocol), so ``The
-Eiffel Tower!'' and ``eiffel tower'' become the same string; for the
-arithmetic dataset it extracts the final numeric value, so ``The answer
-is 7 apples'' becomes ``7''. This
+identical. ``Normalization'' here is each dataset's standard answer-cleaning step. For
+the question-answering datasets it lowercases the string, strips punctuation
+and the articles \emph{a/an/the}, and collapses whitespace, following the
+TriviaQA evaluation protocol; ``The Eiffel Tower!'' and ``eiffel tower''
+therefore become the same string. For the arithmetic dataset it extracts the
+final numeric value, so ``The answer is 7 apples'' becomes ``7''. This
 is a \emph{surface-form} grouping, not a semantic one. As emphasized in
 the introduction, the exact-match baseline is therefore not true semantic
 entropy in Farquhar et
@@ -255,15 +255,13 @@ Section~\ref{sec:clustering-sensitivity}.
 
 The grouping uses the same bidirectional-entailment criterion as Farquhar
 et al.~\cite{semantic_entropy_nature_2024}, but computes the groups in a
-slightly different (and equivalent in intent) way. Rather than scanning
-the answers one at a time and comparing each to a single cluster
-representative, the implementation here tests \emph{every} pair of
-sampled answers for mutual entailment and then forms the
-\emph{connected groups} of the resulting graph: any two answers that
-entail each other in both directions are placed together, and this
-merging is transitive: if answer~A matches answer~B and B matches~C,
-then A, B and C all end up in one group, even if A and C were never a
-direct match. Algorithm~\ref{alg:clustering} states this procedure
+slightly different (and equivalent in intent) way. Rather than scanning the answers one at a time and comparing each to a
+single cluster representative, the implementation here tests \emph{every}
+pair of sampled answers for mutual entailment. It then forms the
+\emph{connected groups} of the resulting graph: any two answers that entail
+each other in both directions are placed together. The merging is
+transitive, so if answer~A matches answer~B and B matches~C, then A, B and C
+all end up in one group even if A and C were never a direct match. Algorithm~\ref{alg:clustering} states this procedure
 exactly as implemented, and the worked example in
 Section~\ref{sec:worked_example} shows it on a small case, reading the
 groups directly off the pairwise entailment matrix.
@@ -401,10 +399,9 @@ $\widehat{H}_{\mathrm{sem}} \gets -\sum_{k=1}^{K}\hat{p}_k \log \hat{p}_k$\tcp*{
 The following example makes the pipeline concrete. Consider the factual
 question $x = $ ``What is the capital of Australia?''. The
 language model is instructed to produce $M=5$ sampled answers under temperature
-$T=0.7$. ``Sampling'' here means running the same prompt through the
-model five times with the same decoding configuration, each time
-drawing a fresh stochastic completion, yielding five different (but
-plausible) answers:
+$T=0.7$. ``Sampling'' here means running the same prompt through the model five
+times under the same decoding configuration, drawing a fresh completion each
+time. That yields five different but plausible answers:
 
 \begin{center}
 \begin{tabular}{cl}

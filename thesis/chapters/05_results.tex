@@ -442,11 +442,11 @@ beats the surface baseline by more than sampling noise would explain.
 On the short-answer tasks the result is unambiguous: in none of the nine
 cells does question-conditioned discrete semantic entropy beat the
 surface baseline. Every mean difference is negative or within noise of
-zero, and the only Holm-significant cell runs \emph{against} the
-meaning-aware score---on NQ-Open with Llama-3.1-8B the surface baseline
-leads by $0.028$ AUROC (mean over seeds, $95\%$ CI $[-0.047, -0.009]$,
-Holm $p = 0.026$), with the 70B model on the same dataset a near-miss in
-the same direction ($-0.030$, $p = 0.058$). The largest positive seed-level
+zero. The only Holm-significant cell runs \emph{against} the meaning-aware
+score: on NQ-Open with Llama-3.1-8B the surface baseline leads by $0.028$
+AUROC (mean over seeds, $95\%$ CI $[-0.047, -0.009]$, Holm $p = 0.026$). The
+70B model on the same dataset is a near-miss in the same direction
+($-0.030$, $p = 0.058$). The largest positive seed-level
 movement is $+0.002$ for SVAMP with Mistral-7B (seed 44); its three-seed mean
 is $-0.003$ and is nowhere near significant. Once the
 answer strings are normalized, adding an NLI clustering step therefore
@@ -851,12 +851,12 @@ generators --- by $T{=}0.3$ for Mistral-7B on NQ-Open, and not until between
 $0.5$ and $0.7$ for Llama-3.1-8B on TriviaQA.
 
 The practical lesson is that the right detector depends on both the decoding
-temperature and the generator: under near-greedy decoding the cheap
-single-pass score is the better choice in eight of the nine cells, and how warm the decoder
-must run before sampling-based entropy overtakes it grows with model
-strength --- past $T{=}1.0$ for the largest model tested. Biography was
-generated at the canonical temperature only, so this trade-off is established
-on the short-answer tasks alone.
+temperature and the generator. Under near-greedy decoding the cheap
+single-pass score is the better choice in eight of the nine cells. How warm
+the decoder must run before sampling-based entropy overtakes it grows with
+model strength, and for the largest model tested it never does within the
+measured range. Biography was generated at the canonical temperature only, so
+this trade-off is established on the short-answer tasks alone.
 
 \paragraph{Is this a property of the decoding temperature or of the seeds?}
 The distinction matters, because a trend that only appeared under one random
@@ -908,11 +908,11 @@ procedure shown in panel~(b) of Figure~\ref{fig:method-schematic}. It starts
 from the $150$ published biography claims and their \emph{human} factuality
 labels, so no automatic judge stands between the method and the ground
 truth. For each claim it (i)~turns the claim into questions
-(``When was this person born?''), using one hash-locked question set shared
-across all three generators so the model comparison is paired,
-(ii)~re-samples fresh answers to each question from the generator under
-test, and (iii)~groups those answers by meaning and computes the semantic
-entropy; a high value flags the claim as a likely confabulation. Because
+(``When was this person born?''), using one fixed question set shared across
+all three generators, (ii)~re-samples fresh answers to each question from the
+generator under test, and (iii)~groups those answers by meaning and computes
+the semantic entropy; a high value flags the claim as a likely
+confabulation. Because
 each regenerated answer is a short, question-conditioned string, this is the
 short-answer regime applied to long-form content, and the ceiling effects of
 Section~\ref{sec:bio-results} do not arise. Table~\ref{tab:factualbio}
