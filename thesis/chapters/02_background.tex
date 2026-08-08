@@ -1,48 +1,44 @@
 \chapter{Background}
 \label{ch:background}
 
-Large language models routinely produce fluent answers that are not
-supported by the facts of the task. Such failures are typically grouped
-under the broad label of ``hallucination''. The term covers several
-distinct mechanisms: unfaithfulness to source material, unsupported
-factual claims, gaps in the model's knowledge, faulty reasoning, and
-answers encouraged by benchmarks that reward guessing over
-admitting ignorance~\cite{ji_hallucination_survey_2023,%
-huang_llm_hallucination_survey_2023,%
-maynez_faithfulness_factuality_2020,%
-kalai_why_language_models_hallucinate_2025,%
-augenstein_factuality_challenges_2024}. This thesis uses the word as a
-convenient cover term, but does not try to detect every kind. The target is
-narrower: answers that are unreliable because the model is uncertain about
-what it just said.
+Chapter~\ref{ch:introduction} used ``hallucination'' as a cover term. This
+chapter makes it precise, then builds up the two ideas the method rests on:
+why uncertainty is hard to measure over free-form text, and how entailment
+can stand in for sameness of meaning.
 
 \section{Hallucinations and confabulations}
 
-The semantic entropy paper~\cite{semantic_entropy_nature_2024}, on which
-this thesis is based, sharpens the target to \emph{confabulations}:
-fluent answers that are both incorrect and arbitrary, where ``arbitrary''
-means that the answer is sensitive to irrelevant variation such as the
-random seed used during decoding. In addition to confabulations, several
-other types of hallucinations can occur: a model may be consistently
-wrong because its training data contains a misconception, because the
-problem requires reasoning it cannot perform, or because evaluation
-incentives discourage abstention. Semantic entropy does not address
-these cases; it specifically detects instability across sampled
-meanings.
+``Hallucination'' is an umbrella over several distinct mechanisms:
+unfaithfulness to source material, unsupported factual claims, gaps in the
+model's knowledge, faulty reasoning, and answers encouraged by benchmarks
+that reward guessing over admitting
+ignorance~\cite{ji_hallucination_survey_2023,%
+huang_llm_hallucination_survey_2023,%
+maynez_faithfulness_factuality_2020,%
+kalai_why_language_models_hallucinate_2025,%
+augenstein_factuality_challenges_2024}. These have different causes and call
+for different remedies, so no single detector addresses all of them.
 
-This narrower framing motivates the central hypothesis of the thesis,
-again taken from Farquhar et
-al.~\cite{semantic_entropy_nature_2024}: if the model knows
-the answer, stochastic samples should vary mostly in wording while
-preserving meaning. If the model is confabulating, the samples should
-split across several incompatible meanings. Measuring uncertainty over
-meanings rather than over surface strings should therefore be a more
-informative signal for free-form question answering, following
-semantic uncertainty and semantic entropy
-work~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-In particular, uncertainty-based detection is, by construction, unable
-to flag high-certainty hallucinations or systematic
-errors~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
+The semantic entropy paper~\cite{semantic_entropy_nature_2024}, on which this
+thesis is based, isolates one of them: \emph{confabulations}, fluent answers
+that are both incorrect and arbitrary, where ``arbitrary'' means the answer is
+sensitive to irrelevant variation such as the random seed used during
+decoding. That is the target throughout this thesis, and the restriction it
+imposes is strict rather than incidental. A model that is consistently wrong,
+because its training data contains a misconception, because the problem needs
+reasoning it cannot perform, or because evaluation incentives discourage
+abstention, produces stable answers; any detector built on sampling
+inconsistency is blind to it by
+construction~\cite{simhi_choke_2025,ma_semantic_energy_2025}. Every result
+below should be read against that boundary, which
+Section~\ref{sec:discussion-limitations} revisits with a worked example.
+
+The same framing supplies the hypothesis the thesis tests. If the model knows
+the answer, stochastic samples should vary mostly in wording while preserving
+meaning; if it is confabulating, they should split across several incompatible
+meanings. Measuring uncertainty over meanings rather than over surface strings
+should therefore be the more informative signal for free-form question
+answering~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
 
 \section{Uncertainty in free-form generation}
 
@@ -112,20 +108,19 @@ from a model that is left untouched; no gradient is taken through it.
 
 A number of related works have approached the same problem without
 explicit semantic clustering. P(True)~\cite{kadavath_language_models_know_2022}
-asks the model to judge whether
-its own answer is correct, probing verbalized self-knowledge rather than
-sample diversity. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023}
-instead samples multiple responses and checks them for consistency
-without relying on external databases or access to token
-probabilities. Semantic entropy is
-closest in spirit to these sampling-based methods, but, unlike them, it
-explicitly aggregates samples into semantic clusters before computing
-an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-These methods span a spectrum, from purely internal (P(True) reads the
-model's own verdict) to purely behavioral (SelfCheckGPT compares samples).
-Semantic entropy sits between them. It adds one step none of the others
-perform --- deciding when two answers mean the same thing --- and the value
+asks the model to judge whether its own answer is correct, probing verbalized
+self-knowledge rather than sample diversity. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023}
+instead samples multiple responses and checks them for consistency without
+relying on external databases or access to token probabilities. Semantic
+entropy is closest in spirit to these sampling-based methods, but, unlike
+them, it explicitly aggregates samples into semantic clusters before
+computing an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+These methods span a spectrum, from purely internal, where P(True) reads the
+model's own verdict, to purely behavioral, where SelfCheckGPT compares
+samples. Semantic entropy sits between them. It adds one step that none of
+the others perform: deciding when two answers mean the same thing. The value
 of exactly that step is what this study measures.
+
 
 A third family reads the model's \emph{hidden states} rather than its words.
 The observation behind it is that a model's internal activations often carry

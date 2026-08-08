@@ -10,6 +10,12 @@
   fontmethod=tex
 ]{kaobook}
 
+% pdfTeX separates words with kerning offsets and writes no space characters at
+% all, so a PDF viewer has to infer where the spaces are. On tightly set lines
+% it guesses wrong and copied text comes out fused ("thischoice"). This emits a
+% real space character between words instead. pdfTeX only; costs ~5% file size.
+\ifdefined\pdfinterwordspaceon\pdfinterwordspaceon\fi
+
 \usepackage[english]{babel}
 \usepackage{csquotes}
 \usepackage{graphicx}

@@ -14,41 +14,8 @@ reproducibility policy.
 
 \section{Datasets}
 
-The final evaluation grid uses four datasets:
-TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019},
-SVAMP~\cite{patel_svamp_2021}, and a FactScore-style biography
-generation task~\cite{min_factscore_2023}. TriviaQA provides
-open-domain question answering with short factual answers, e.g.\
-\textit{``What is the capital of France?''}. NQ-Open provides
-open-domain questions derived from real search queries; it shares
-TriviaQA's short free-text answer format and normalization approach
-but is markedly harder for all generators evaluated here.
-SVAMP provides short math word problems for which answer normalization
-and semantic equivalence matter at the level of numbers rather than
-phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many
-apples does she have now?''}. The biography task prompts the model with
-\textit{``Tell me a bio of \{entity\}.''} and elicits a paragraph rather
-than a short answer. Following the FactScore
-setup~\cite{min_factscore_2023}, the entities come from English Wikipedia
-category listings --- Nobel laureates, heads of state and government, major
-scientific-award winners, inventors and novelists --- and each entity's
-reference is the pinned lead section of its article. The evaluated prompt sets are fixed once and shared by every
-model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and
-the biography task, and 300 for SVAMP. The short-answer prompts are
-drawn from the datasets' validation splits; the biography prompts are
-drawn from the Wikipedia category listings described above. The three short-answer datasets are small enough to support
-repeated sampling while exercising distinct failure modes
-(trivia-style factual recall, search-query factual recall, and
-structured arithmetic reasoning), and the biography task adds a
-qualitatively different regime in which each sample is a free-form
-paragraph rather than a normalizable token string. This long-form
-regime is the setting in which surface-form and meaning-level
-uncertainty are most likely to diverge, because after normalization
-the ten samples for a biography prompt are almost always ten distinct
-strings, so exact-match clustering can no longer collapse them.
-Representative records from each dataset are shown in
-Table~\ref{tab:dataset-samples}, and further example records are
-reproduced in Appendix~\ref{app:experiment-details}.
+The final evaluation grid uses four datasets: TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019}, SVAMP~\cite{patel_svamp_2021}, and a FactScore-style biography generation task~\cite{min_factscore_2023}. TriviaQA provides open-domain question answering with short factual answers, e.g.\ \textit{``What is the capital of France?''}. NQ-Open provides open-domain questions derived from real search queries. It shares TriviaQA's short free-text answer format and normalization approach but is markedly harder for all generators evaluated here. SVAMP provides short math word problems for which answer normalization and semantic equivalence matter at the level of numbers rather than phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many apples does she have now?''}. The biography task prompts the model with \textit{``Tell me a bio of \{entity\}.''} and elicits a paragraph rather than a short answer. Following the FactScore setup~\cite{min_factscore_2023}, the entities come from English Wikipedia category listings, including Nobel laureates, heads of state and government, major scientific-award winners, inventors, and novelists. Each entity's reference is the pinned lead section of its article. The evaluated prompt sets are fixed once and shared by every model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and the biography task, and 300 for SVAMP. The short-answer prompts are drawn from the datasets' validation splits. The biography prompts are drawn from the Wikipedia category listings described above. The three short-answer datasets are small enough to support repeated sampling while exercising distinct failure modes: trivia-style factual recall, search-query factual recall, and structured arithmetic reasoning. The biography task adds a qualitatively different regime in which each sample is a free-form paragraph rather than a normalizable token string. This long-form regime is the setting in which surface-form and meaning-level uncertainty are most likely to diverge. After normalization, the ten samples for a biography prompt are almost always ten distinct strings, so exact-match clustering can no longer collapse them. Representative records from each dataset are shown in Table~\ref{tab:dataset-samples}, and further example records are reproduced in Appendix~\ref{app:experiment-details}.
+
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}
@@ -107,15 +74,20 @@ extension (FactualBio) scores individual factual claims rather than whole
 paragraphs. It starts from the $150$ published FactualBio claims together
 with their \emph{human} factuality labels, so no automatic judge stands
 between the method and the ground truth, and it generates no new
-biographies. Each claim carries six frozen questions, and three answers are
+biographies. Claims and labels come from the code release accompanying
+Farquhar et al.~\cite{semantic_entropy_nature_2024}
+(\texttt{jlko/long\_hallucinations}, release v.1.0.0, commit
+\texttt{957b806}), pinned by file hash at import time; the importer requires
+21 biographies, 150 claim annotations and the published 105 correct / 45
+false split before it writes anything. Each claim carries six frozen questions, and three answers are
 regenerated per question from the model under test. The question set is
 hash-locked and shared across all three generators, which makes the model
 comparison paired at the cost of not tailoring questions per model; that
 fixed-question adaptation is disclosed rather than treated as neutral. Two
 further deviations from the released FactualBio code are disclosed for the
-same reason: clustering here is question-conditioned
-\texttt{cross-encoder/nli-deberta-v3-large}, where the original used
-answer-only \texttt{microsoft/deberta-v2-xlarge-mnli}. This is therefore a
+same reason: the clustering here is question-conditioned rather than
+answer-only, and it uses \texttt{cross-encoder/nli-deberta-v3-large} in place
+of the original \texttt{microsoft/deberta-v2-xlarge-mnli}. This is therefore a
 fixed-claim, question-conditioned FactualBio adaptation using the released
 claim labels, not a direct replication. Results are reported in
 Section~\ref{sec:factualbio-results}.
@@ -198,12 +170,15 @@ refers to DeBERTa-v3-large; the base-backend numbers appear as one column
 of the clustering-sensitivity analysis
 (Section~\ref{sec:clustering-sensitivity}).
 
-The replication condition introduces no new research question; it tests whether the
-ranking behavior seen in the baseline survives when exact-match clustering is
-replaced by NLI-defined semantic clustering under the same evaluation
-grid. Three additional checks are run on top of the NLI outputs (a
-larger NLI backend, an LLM-as-judge backend, and Kernel Language
-Entropy); they are described next.
+The replication condition introduces no new research question; it tests whether
+the ranking behavior seen in the baseline survives when exact-match clustering
+is replaced by NLI-defined semantic clustering under the same evaluation grid.
+Its outputs are then reused rather than regenerated. The saved samples are
+re-clustered under a larger NLI backend and an LLM judge, re-scored with Kernel
+Language Entropy, and used as the training target for the semantic-entropy
+probe. Those checks, the supervised and self-evaluation baselines, and the
+sampling-temperature sweep are set out in
+Section~\ref{sec:baselines-and-analyses}.
 
 \paragraph{The biography task under the same comparison.}
 The biography task is not a separate study but a fourth dataset evaluated
@@ -287,6 +262,7 @@ Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
 configuration into the JSONL record.
 
 \section{Baselines, replication method, and additional analyses}
+\label{sec:baselines-and-analyses}
 
 The surface-form baselines are entropy over raw strings and entropy over
 distinct normalized exact-match strings. They address a single question:
@@ -442,14 +418,8 @@ per sampling temperature, so the five temperatures differ in exactly one
 declared parameter and in nothing else. No result in this thesis mixes
 protocols.
 
-The binding is mechanical rather than declarative. Before any artifact is
-accepted, every reported metric is recomputed from the per-record files and
-each artifact is fixed by content hash. A cell whose recorded metadata
-disagrees with the manifest in any field --- clustering backend, revision pin,
-split role, decoding budget --- is rejected outright rather than kept with a
-note. Every artifact behind a number in this thesis is bound this way, the
-supporting analyses no less than the headline ones. The manifest digests are
-listed in Appendix~\ref{app:reproducibility}.
+The binding is mechanical rather than declarative. Before any artifact is accepted, every reported metric is recomputed from the per-record files and each artifact is fixed by content hash. A cell whose recorded metadata disagrees with the manifest in any field, including clustering backend, revision pin, split role, or decoding budget, is rejected outright rather than kept with a note. Every artifact behind a number in this thesis is bound this way, including the supporting analyses as well as the headline ones. The manifest digests are listed in Appendix~\ref{app:reproducibility}.
+
 
 What still distinguishes the results of Chapter~\ref{ch:results} from one
 another is statistical, not procedural. The semantic-versus-surface comparison
@@ -458,14 +428,8 @@ over prompt clusters; the remaining comparisons are descriptive, and are read
 for direction and magnitude. That distinction is stated where it applies rather
 than attached to every caption.
 
-One figure (Figure~\ref{fig:regime-split}) places short-answer and biography
-results side by side, because the short-versus-long contrast is the central
-claim of this thesis. The two biography groups are shaded and separated by a
-divider there, and comparisons are made only between the two bars of one group.
-The three regimes are graded differently --- short answers against reference
-answers, whole paragraphs by an LLM judge, and individual claims against
-published human labels --- so their absolute AUROC values are not
-commensurable.
+One figure (Figure~\ref{fig:regime-split}) places short-answer and biography results side by side because the short-versus-long contrast is the central claim of this thesis. The two biography groups are shaded and separated by a divider there, and comparisons are made only between the two bars of one group. The three regimes are graded differently: short answers against reference answers, whole paragraphs by an LLM judge, and individual claims against published human labels. Their absolute AUROC values are therefore not commensurable.
+
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
@@ -482,7 +446,12 @@ expensive verification step. The thesis reports three quantities.
         the probability that a randomly chosen incorrect record
         receives a higher uncertainty score than a randomly chosen
         correct record. An AUROC of 0.5 corresponds to random ranking;
-        1.0 is perfect ranking.
+        1.0 is perfect ranking. Values around 0.7--0.9 indicate
+        moderate-to-strong ranking in this study; practical usefulness
+        depends on the operating threshold and the relative costs of
+        missed and false alerts. Because AUROC depends only on the
+        \emph{ranking} of scores, the unit of the entropy (nats
+        vs.\ bits) does not affect it.
   \item \emph{Rejection-accuracy curve}. For each rejection fraction
         $f\in[0,1]$, the curve shows the accuracy obtained on the
         remaining $1-f$ fraction of records after rejecting the $f$
@@ -490,8 +459,41 @@ expensive verification step. The thesis reports three quantities.
         signal makes the curve rise above the flat ``raw accuracy''
         baseline.
   \item \emph{AURAC} (area under the rejection-accuracy curve). A
-        single-number summary of the rejection-accuracy curve.
+        single-number summary of the rejection-accuracy curve. Unlike
+        AUROC it depends on how accurate the model was to begin with,
+        so AURAC values are comparable only within the same task and
+        model.
 \end{itemize}
+
+A small worked example makes both concrete. Suppose a detector scores five
+answers, of which three are correct (C) and two are wrong (W):
+
+\begin{center}\small
+\begin{tabular}{lccccc}
+\toprule
+Answer & \#1 & \#2 & \#3 & \#4 & \#5 \\
+\midrule
+Detector score & 0.10 & 0.20 & 0.25 & 0.30 & 0.90 \\
+Actually & C & C & W & C & W \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\emph{AUROC by hand.} Form every (wrong, correct) pair; there are
+$2 \times 3 = 6$. The wrong answer gets the higher score in five of the six
+pairs; the only failure is the pair (\#3, \#4), where the wrong answer \#3
+($0.25$) scores below the correct answer \#4 ($0.30$). So
+AUROC $= 5/6 \approx 0.83$: a good but imperfect ranking.
+\emph{AURAC by hand.} Start from the raw accuracy, $3/5 = 0.60$. Reject the
+highest-scoring answer (\#5, wrong): accuracy of the rest rises to
+$3/4 = 0.75$. Reject the next (\#4, correct): accuracy dips to
+$2/3 \approx 0.67$, because the detector discarded a good answer. Reject the
+next (\#3, wrong): accuracy reaches $2/2 = 1.00$. Rejecting \#2 leaves the
+correct answer \#1, so the final non-empty retained set also has accuracy
+$1.00$. The rejection--accuracy curve is therefore the sequence
+$0.60, 0.75, 0.67, 1.00, 1.00$, and under the implementation's stepwise
+definition AURAC is the mean over these five non-empty retention levels,
+$0.803$. For both metrics, \emph{higher is better}.
 
 Raw answer accuracy is reported only as context; it is not sufficient
 on its own, because the practical goal is to decide when a model
@@ -513,7 +515,14 @@ detectors are always scored on exactly the same records within a seed, so
 the comparison is paired and far more sensitive than comparing two
 independent averages. A difference is reported as significant when the
 resulting $95\,\%$ interval excludes zero after Holm correction across the
-family of tests.
+family of tests. Holm's step-down procedure~\cite{holm_simple_1979} is what
+makes that family-wise rather than per-cell: the nine $p$-values are ordered,
+the smallest is tested against $\alpha/9$, the next against $\alpha/8$, and so
+on until one fails, after which the remainder are retained. Nine independent
+chances at $\alpha = 0.05$ would otherwise yield at least one spurious
+``significant'' cell about a third of the time. Holm is used in preference to
+Bonferroni because it guarantees the same family-wise error rate while
+rejecting at least as often.
 
 \paragraph{What the interval is an interval over.} The resampling unit is
 the prompt, not the seed. The estimand is therefore the mean per-seed AUROC
@@ -530,13 +539,14 @@ spread stays visible.
 
 \paragraph{Confirmatory versus exploratory.} Exactly one comparison is
 preregistered and confirmatory: question-conditioned discrete semantic
-entropy against the normalized surface baseline, across the nine
-short-answer task--model cells, with Holm correction over that nine-member
-family. Every other comparison reported in this thesis --- clustering
-backends, probes, \mbox{P(True)}, KLE, temperature, and both long-form
-analyses --- is exploratory and is described as such. The distinction matters because
-it prevents the negative headline result from being read as the outcome of a
+entropy against the normalized surface baseline across the nine short-answer
+task--model cells, with Holm correction over that nine-member family. Every
+other comparison reported in this thesis, including clustering backends,
+probes, \mbox{P(True)}, KLE, temperature, and both long-form analyses, is
+exploratory and is described as such. The distinction matters because it
+prevents the negative headline result from being read as the outcome of a
 search across many comparisons for the most striking one.
+
 
 \section{Implementation and HPC execution}
 \label{sec:hpc-execution}
@@ -571,8 +581,7 @@ clustering backend chosen by a command-line flag.
 parallelism for the 70B model, with the NLI cross-encoder on CPU so the
 GPUs stayed free for generation). The DeBERTa-v3-large reclustering and
 KLE rescoring ran on Fritz; the Qwen2.5-72B judge, being itself a 72B
-model, ran on Alex. All GPU work went through the Slurm batch scheduler;
-large models never ran on login nodes.
+model, ran on Alex. All GPU work went through the Slurm batch scheduler.
 
 \paragraph{Reproducibility and auditing.} Every run writes a
 \texttt{job\_meta.json} recording the Slurm job id, host, model, dataset,

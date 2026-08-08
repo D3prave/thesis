@@ -282,29 +282,33 @@ The command preview performs no model or artifact validation. A real run
 refuses an existing output root, executes the import and every validation gate,
 and writes `aggregate/factualbio_summary.csv` plus `artifact_manifest.json`.
 
-After the SEP, primary, and FactualBio completion seals exist, generate the
-authoritative tables in one pass:
+## Regenerating the Thesis Tables
+
+The 17 generated tables in `thesis/includes/` are the published form of the
+results. Every one is script-produced; none is written by hand.
+`scripts/check_table_provenance.py` enforces this and exits 0.
+
+Table builders read the sealed `results_sep_v3_*` roots, which live in cluster
+project storage rather than in this repository, so they only run where those
+roots are present. The eight tables from the main builder regenerate with:
 
 ```sh
 PYTHONPATH=src python3 scripts/build_thesis_tables_from_summary.py \
-  --tables-dir results_authoritative_v2/tables \
-  --primary-family-csv results_authoritative_v2/tables/primary_shortform_v2_family.csv \
-  --primary-stats-json results_authoritative_v2/tables/primary_shortform_v2_fixed_seed_stats.json \
-  --primary-manifest results_authoritative_v2/tables/primary_shortform_v2_manifest.json \
-  --sep-v2-manifest "$SEP_V2_MANIFEST" \
-  --sep-v2-summary results_sep_v2_full/tables/multiseed_method_summary.csv \
-  --sep-v2-completion-manifest results_sep_v2_full/tables/sep_v2_artifact_manifest.json \
-  --factualbio-v2-summary results_factualbio_v2_full/aggregate/factualbio_summary.csv \
-  --factualbio-v2-manifest results_factualbio_v2_full/artifact_manifest.json \
-  --out-csv-dir results_authoritative_v2/tables/thesis_formatted \
-  --out-tex-dir thesis/includes
+  --sep-v2-manifest            results_sep_v3_T1/tables/sep_v2_protocol_manifest.json \
+  --sep-v2-completion-manifest results_sep_v3_T1/tables/sep_v2_artifact_manifest.json \
+  --sep-v2-summary             results_sep_v3_T1/tables/multiseed_method_summary.csv \
+  --factualbio-surface-arm     results/tables/factualbio_surface_arm.csv
 ```
 
-This authoritative mode excludes all historical non-probe summary rows. The
-old result tree remains available only through the explicitly named legacy
-mode; it cannot enter the new rankings by accident. Table generation is not a
-substitute for revising the affected prose and figures before rebuilding and
-visually checking `thesis/main.pdf`.
+All four flags are required in practice. The three manifest flags fail closed
+if omitted — the builder refuses to emit a table from an input it cannot prove
+is sealed. `--factualbio-surface-arm` fails *open*: without it the builder
+silently replaces the seven-column FactualBio table with a three-column one,
+dropping the surface arm and the deltas that carry the claim-level result.
+Only `git diff thesis/includes/` catches that, so check it after every rebuild.
+
+Regenerating tables is not a substitute for revising the affected prose and
+figures before rebuilding and visually checking `thesis/main.pdf`.
 
 ## Build the Thesis
 

@@ -45,41 +45,42 @@ mechanism.
 \section{Does meaning-based clustering help?}
 \label{sec:does-nli-help}
 
-At the level of the full grid the answer is now clear in both directions. On
-short answers, no --- and without exception. Every one of the nine cells has
-a negative mean difference, so not a single cell favors meaning-based
-clustering even before significance is considered, and the one
-Holm-significant result runs the other way, with surface entropy ahead on
-NQ-Open with Llama-3.1-8B (Table~\ref{tab:significance-vs-surface}). The
-closest any cell comes to favoring the semantic score is SVAMP with the 70B
-model, where two of three seeds are positive by $0.001$ but the mean is
-$-0.002$ with a Holm-adjusted $p$ of $1.0$: noise, not a narrow win. On
-long-form generation, yes: the NLI-clustered and probability-weighted
-entropy estimators beat the chance-level surface baseline by $+0.08$ to
-$+0.28$ AUROC on biography, while KLE, meaning-aware only in a soft,
-embedding-based sense, does not (Section~\ref{sec:bio-results}); at claim
-level, against human labels, semantic entropy detects at $0.701$ to $0.748$
-without relying on whole-paragraph string identity.
+At the level of the full grid, the answer is now clear in both directions. On
+short answers, no, and without exception. Every one of the nine cells has a
+negative mean difference, so not a single cell favors meaning-based
+clustering even before significance is considered. The one Holm-significant
+result runs the other way, with surface entropy ahead on NQ-Open with
+Llama-3.1-8B (Table~\ref{tab:significance-vs-surface}). The closest any cell
+comes to favoring the semantic score is SVAMP with the 70B model, where two
+of three seeds are positive by $0.001$, but the mean is $-0.002$ with a
+Holm-adjusted $p$ of $1.0$: noise, not a narrow win. On long-form generation,
+yes: the NLI-clustered and probability-weighted entropy estimators beat the
+chance-level surface baseline by $+0.08$ to $+0.28$ AUROC on biography, while
+KLE, meaning-aware only in a soft, embedding-based sense, does not
+(Section~\ref{sec:bio-results}). At claim level, against human labels,
+semantic entropy detects at $0.701$ to $0.748$ without relying on
+whole-paragraph string identity.
+
 
 In the terms of Section~\ref{sec:research-aim}, H1 is not supported on these
-datasets. The direction is in fact uniform in the opposite sense, all nine
-cells favoring the surface baseline, which leaves H2 --- a claim about the
-consistency of an improvement --- with no improvement to describe. H2 is
-therefore not assessable as stated, rather than confirmed or refuted. What can
-be said is that the \emph{absence} of an improvement is itself consistent
-across all three short-answer benchmarks. H3 is
-supported, and by two measurements rather than one. On whole paragraphs the
-count-based surface scores sit at chance while every meaning-aware or
-probability-weighted estimator is clearly above them; that comparison is a
-diagnostic rather than a detector benchmark
-(Section~\ref{sec:bio-results}), because a baseline pinned at its ceiling is
-easy to beat. The claim-level evaluation, which carries the long-form
-conclusions of this thesis, settles the question on its own terms: against
-human labels, and against a surface baseline that still works
-($0.642 / 0.650 / 0.619$), meaning-based clustering leads in every cell by
-$0.07$ to $0.11$ AUROC (Section~\ref{sec:factualbio-results}). That is the
-comparison H3 asks for, made where the thesis says its long-form evidence
-lies.
+datasets. The direction is in fact uniform in the opposite sense, with all
+nine cells favoring the surface baseline, which leaves H2, a claim about the
+consistency of an improvement, with no improvement to describe. H2 is
+therefore not assessable as stated, rather than confirmed or refuted. What
+can be said is that the \emph{absence of an improvement} is itself
+consistent across all three short-answer benchmarks. H3 is supported, and by
+two measurements rather than one. On whole paragraphs, the count-based
+surface scores sit at chance while every meaning-aware or probability-weighted
+estimator is clearly above them. That comparison is a diagnostic rather than
+a detector benchmark (Section~\ref{sec:bio-results}), because a baseline
+pinned at its ceiling is easy to beat. The claim-level evaluation, which
+carries the long-form conclusions of this thesis, settles the question on its
+own terms: against human labels, and against a surface baseline that still
+works ($0.642 / 0.650 / 0.619$), meaning-based clustering leads in every cell
+by $0.07$ to $0.11$ AUROC (Section~\ref{sec:factualbio-results}). That is the
+evidence H3 rests on: not the whole-paragraph contrast, where the baseline is
+degenerate, but the claim-level one, where it is not.
+
 
 The short-answer non-result deserves a plain statement, because the
 theoretical motivation for semantic entropy is that surface variation is
@@ -115,21 +116,20 @@ DeBERTa cross-encoders and lifts AUROC accordingly.
 Two cautions follow. First, ``bigger judge'' is not automatically
 ``better judge'': the relationship between backend capacity and which
 generator it helps is not monotone, and the failure mode is not a graceful
-one --- as Section~\ref{sec:clustering-sensitivity} shows, a weak backend can
-drive the score below chance rather than merely blunting it.
-Second, this is the long-form counterpart of the short-answer negative
-result: clustering quality matters exactly where clustering matters at all.
-The two ends of the study bound the effect. On short answers, where the
-strings being compared are a few words long, the four backends span at most
-$0.057$ AUROC and plain exact matching is best in seven of nine cells. On whole
-paragraphs the same swap decides whether a signal exists. The claim-level
-evaluation sits at the short-string end of that range by construction, since
-it re-samples brief answers to specific questions, which is one reason it is
-the more trustworthy long-form measurement. Backend capacity appears to
-matter in proportion to the length of the text being compared, and promoting
-clustering choice from an implementation detail to a first-order design
-decision on everything long-form is one of the study's main methodological
-points.
+one. As Section~\ref{sec:clustering-sensitivity} shows, a weak backend can
+drive the score below chance rather than merely blunting it. Second, this is
+the long-form counterpart of the short-answer negative result: clustering
+quality matters exactly where clustering matters at all. The two ends of the
+study bound the effect. On short answers, where the strings being compared are
+a few words long, the four backends span at most $0.057$ AUROC, and plain
+exact matching is best in seven of nine cells. On whole paragraphs, the same
+swap decides whether a signal exists. The claim-level evaluation sits at the
+short-string end of that range by construction, since it re-samples brief
+answers to specific questions, which is one reason it is the more trustworthy
+long-form measurement. Backend capacity appears to matter in proportion to
+the length of the text being compared, and promoting clustering choice from
+an implementation detail to a first-order design decision on everything
+long-form is one of the study's main methodological points.
 
 \section{Hidden-state probes as cheap single-pass alternatives}
 \label{sec:sep-scaling-discussion}
@@ -169,21 +169,23 @@ The temperature sweep (Section~\ref{sec:temperature-sensitivity},
 Figure~\ref{fig:temp-sweep}) gives the P(True)-versus-entropy comparison
 a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
-as temperature rises (TriviaQA/70B semantic entropy climbs from $0.52$
-at $T{=}0.1$ to $0.75$ at $T{=}1.0$). The single-pass baseline does not
-move with it: the information it reads is present regardless of how
-diverse the samples are, and \mbox{P(True)} shifts by only $+0.031$ on
+as temperature rises. For example, TriviaQA/70B semantic entropy climbs
+from $0.52$ at $T{=}0.1$ to $0.75$ at $T{=}1.0$. The single-pass baseline
+does not move with it: the information it reads is present regardless of
+how diverse the samples are, and \mbox{P(True)} shifts by only $+0.031$ on
 average across the sweep. The gap therefore closes in every short-answer
 cell and reverses in five of the nine, on Llama-3.1-8B in all three tasks
-and on Mistral-7B in two; on the third, SVAMP, semantic entropy already
+and on Mistral-7B in two. On the third, SVAMP, semantic entropy already
 leads at the lowest temperature, so at $T{=}1.0$ it is ahead in every cell
-of both smaller generators. On Llama-3.1-70B it does not overtake at any
+of both smaller generators. On Llama-3.1-70B, it does not overtake at any
 temperature measured. The practical consequence is concrete. Under the
-near-greedy decoding common in production, the single-pass score is both the
-cheaper and the stronger choice in eight of the nine cells. A sampling-based
-estimator only earns its cost once the decoder is warm enough for the samples
-to genuinely disagree, and how warm that is rises with the strength of the
-generator --- beyond $T{=}1.0$ for the largest model here.
+near-greedy decoding common in production, the single-pass score is both
+the cheaper and the stronger choice in eight of the nine cells. A
+sampling-based estimator only earns its cost once the decoder is warm
+enough for the samples to genuinely disagree, and how warm that is rises
+with the strength of the generator, beyond $T{=}1.0$ for the largest model
+here.
+
 
 Three qualifications apply. The temperature gain is shared by the surface
 baseline, so it reflects a general need for sampling diversity rather than
@@ -212,20 +214,21 @@ $0.734 / 0.590 / 0.648$ in Section~\ref{sec:bio-results}.
 
 The reason follows from what semantic entropy actually measures:
 \emph{inconsistency}. It flags an answer when regenerated samples disagree
-in meaning. A possible explanation is that a larger model which has
-confabulated a biographical detail may regenerate the \emph{same} wrong detail
-fluently and consistently, leaving less disagreement to detect; the experiment
-does not measure that mechanism directly. The size of the effect
-deserves emphasis, because it is easy to overstate: across a tenfold
-difference in parameter count the loss is $0.047$ AUROC, and the largest
+in meaning. A possible explanation is that a larger model that has
+confabulated a biographical detail may regenerate the \emph{same} wrong
+detail fluently and consistently, leaving less disagreement to detect. The
+experiment does not measure that mechanism directly. The size of the effect
+deserves emphasis because it is easy to overstate: across a tenfold
+difference in parameter count, the loss is $0.047$ AUROC, and the largest
 model is still a useful detector at $0.701$. The trend is gradual rather than
-a collapse. It is also not a uniform decay of the method with scale --- the
-whole-paragraph probe moves the other way --- but a specific erosion of the
-regime where detection depends on the model re-rolling its errors
+a collapse. It is also not a uniform decay of the method with scale: the
+whole-paragraph probe moves the other way, but rather a specific erosion of
+the regime where detection depends on the model re-rolling its errors
 differently each time. Extrapolating the slope beyond the three models
 measured here would not be warranted, but the direction is a caution worth
 recording: the detectors that look best on small models may be the ones that
 fade first as models improve.
+
 
 \section{Comparison with Farquhar et al.}
 \label{sec:comparison-farquhar}
@@ -244,32 +247,32 @@ entailment judged throughout with local NLI cross-encoders, which is one of
 the two options the original uses, plus an open Qwen judge in place of its
 GPT-3.5 alternative; and 500-record evaluation sets.
 
-Under these settings the method itself reproduces closely, while the
-comparison it was originally judged by does not.
-Table~\ref{tab:farquhar-comparison} puts the two aggregates side by side.
-Semantic entropy lands at $0.805$ here against the reported $0.790$, a
-difference of $0.015$ across a different set of generators and a third as many
-task--model cells; on the method's own terms this is a successful
-reproduction. What does not carry over is the gap to the baselines.
-\mbox{P(True)} reaches $0.771$ here rather than $0.698$, and the
-probability-weighted naive estimator $0.806$ rather than $0.691$ --- so the
-baseline that the original work reports semantic entropy as beating by about
-ten AUROC points is, in this setup, level with it. Adding the normalized
-surface baseline, which the original does not report at all, puts a
-non-semantic score in front at $0.817$.
+Under these settings, the method itself reproduces closely, while the
+comparison it was originally judged by does not. Table~\ref{tab:farquhar-comparison}
+puts the two aggregates side by side. Semantic entropy lands at $0.805$ here
+against the reported $0.790$, a difference of $0.015$ across a different set
+of generators and a third as many task--model cells; on the method's own
+terms, this is a successful reproduction. What does not carry over is the
+gap to the baselines. \mbox{P(True)} reaches $0.771$ here rather than
+$0.698$, and the probability-weighted naive estimator reaches $0.806$
+rather than $0.691$. The baseline that the original work reports semantic
+entropy as beating by about ten AUROC points is therefore, in this setup,
+level with it. Adding the normalized surface baseline, which the original
+does not report at all, puts a non-semantic score in front at $0.817$.
+
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Aggregate short-answer AUROC, as reported by Farquhar et
-  al.~\cite{semantic_entropy_nature_2024} and as measured here. Their column is
-  the average over their thirty task--model combinations; ours is the
-  unweighted mean of the nine model--dataset cells printed in
-  Tables~\ref{tab:auroc-triviaqa}--\ref{tab:auroc-svamp} (canonical backend,
-  seed means), and can be recomputed from those tables directly. The two
-  columns are not a like-for-like average --- different generators, three
-  datasets rather than five --- so the comparison is between the orderings
-  the two grids produce, not between individual values.}
+al.~\cite{semantic_entropy_nature_2024} and as measured here. Their column is
+the average over their thirty task--model combinations; ours is the
+unweighted mean of the nine model--dataset cells printed in
+Tables~\ref{tab:auroc-triviaqa}--\ref{tab:auroc-svamp} (canonical backend,
+seed means), and can be recomputed from those tables directly. The two
+columns are not a like-for-like average: different generators, three
+datasets rather than five, so the comparison is between the orderings
+the two grids produce, not between individual values.}
 \label{tab:farquhar-comparison}
 \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
 \begin{tabular}{@{}lcc@{}}
@@ -288,27 +291,28 @@ Naive sample entropy (raw strings) & not reported             & $0.785$ \\
 }
 \end{table}
 
+
 The divergence is therefore in the baselines rather than in the method, and
 that is the more informative half of the comparison: it locates the
 disagreement in what semantic entropy is being measured \emph{against}. One
-claim of the original work does not reproduce as stated --- that semantic
+claim of the original work does not reproduce as stated: that semantic
 entropy beats the naive baselines. Count-based surface entropy, which the
 paper does not report as a separate baseline, is the strongest single
 short-answer score in most cells, and no semantic estimator beats it by more
 than a practically negligible margin (Section~\ref{sec:significance}).
 Cell by cell, semantic entropy is above the raw-string naive estimator in six
 of the nine cells, so the agreement is at the level of the aggregate rather
-than a cell-for-cell match.
-Semantic clustering provides measurable value only in the long-form regime, where
-the paper's qualitative claim is confirmed for the count-based scores: they
-collapse to chance while NLI-clustered entropy recovers a clearly
-above-chance signal for every generator. That long-form comparison is
-descriptive rather than tested, since the preregistered family covers the
-short-answer cells alone
-(Section~\ref{sec:evaluation-metrics}). The grid also extends the original analysis in a
-direction it did not quantify: the entailment backend, which is
+than a cell-for-cell match. Semantic clustering provides measurable value
+only in the long-form regime, where the paper's qualitative claim is
+confirmed for the count-based scores: they collapse to chance while
+NLI-clustered entropy recovers a clearly above-chance signal for every
+generator. That long-form comparison is descriptive rather than tested,
+since the preregistered family covers the short-answer cells alone
+(Section~\ref{sec:evaluation-metrics}). The grid also extends the original
+analysis in a direction it did not quantify: the entailment backend, which is
 immaterial on short answers, is result-determining on whole paragraphs
 (Section~\ref{sec:nli-sensitivity}).
+
 
 \section{Limitations and threats to validity}
 \label{sec:discussion-limitations}
@@ -391,17 +395,6 @@ causal and the claim-level slope should not be extrapolated past this range.
 All three generators are instruction-tuned chat models; nothing here speaks to
 base models, other decoding schemes, or retrieval-augmented settings.
 
-\paragraph{What the statistics do and do not establish.} The estimand is
-conditional on seeds 42/43/44, with prompts as the resampling unit
-(Section~\ref{sec:evaluation-metrics}). One preregistered family of nine cells
-carries Holm correction; everything else is exploratory and is labeled as such.
-The negative short-answer result is a failure to reject, not a demonstration of
-equivalence, but its precision is quantified rather than left vague
-(Table~\ref{tab:equivalence-bound}, discussed in
-Section~\ref{sec:significance}). The claim those bounds support is that any
-advantage for meaning-based clustering on these datasets is small, not that it
-is exactly zero --- and in the TriviaQA/70B cell, where the interval is widest,
-not even that much can be said.
 
 \paragraph{The measured artifacts do not manufacture the null.} The primary
 comparison is paired within each cell, which removes prompt difficulty and
@@ -409,6 +402,6 @@ label noise as confounders between the two methods. Two generation artifacts
 remain, and both were measured rather than assumed: the Mistral empty-sample
 rate (Section~\ref{sec:budgets-and-exclusions}) and the whole-paragraph
 saturation (Section~\ref{sec:bio-results}). Each of them adds noise to a score,
-so each \emph{attenuates} the performance it affects rather than inflating it.
+so each \emph{weakens} the performance it affects rather than inflating it.
 Neither can therefore have produced the negative short-answer result, which is
 a finding of no difference rather than of a difference.

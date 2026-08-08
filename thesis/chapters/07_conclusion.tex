@@ -60,13 +60,14 @@ implementation detail on short answers and a first-order design decision on
 long-form text.
 
 The second is a scale effect. Claim-level detection falls steadily as the
-generator grows, from AUROC 0.748 through 0.724 to 0.701 between 7B and 70B.
-A larger model that has invented a detail may simply repeat it more
+generator grows, from AUROC $0.748$ through $0.724$ to $0.701$ between 7B and
+70B. A larger model that has invented a detail may simply repeat it more
 consistently, leaving less disagreement to measure; the experiment does not
-establish that mechanism directly. The effect is a
-gentle slope rather than a collapse --- 0.047 AUROC across a tenfold size
-difference, with the largest model still clearly useful --- and it should not
-be extrapolated beyond the three models measured here.
+establish that mechanism directly. The effect is a gentle slope rather than
+a collapse: $0.047$ AUROC across a tenfold size difference, with the largest
+model still clearly useful. It should not be extrapolated beyond the three
+models measured here.
+
 
 Hidden-state probes offer a cheaper, single-pass alternative. On short
 answers the entropy-trained SEP and correctness-trained accuracy probe land
@@ -85,82 +86,41 @@ al.~\cite{semantic_entropy_nature_2024}. The contributions promised in
 Chapter~\ref{ch:introduction} were delivered as six artifacts:
 (1)~a reproducible \texttt{semantic\_entropy} implementation
 (Chapters~\ref{ch:semantic_entropy}--\ref{ch:experimental_design});
-(2)~the complete cross-seed experiment record with paired-bootstrap
+(2)~the complete cross-seed experiment record, with paired-bootstrap
 significance kept separate from seed stability
 (Sections~\ref{sec:evaluation-metrics}--\ref{sec:hpc-execution});
-(3)~the extension baselines --- P(True), in- and out-of-distribution
-embedding regression, Kernel Language Entropy under two encoders, and
-the Semantic Entropy Probe~\cite{kossen_semantic_entropy_probes_2024},
-with the observation that correctness-trained and SE-trained probes perform
-similarly in this grid, although the correctness-trained probe is ahead in
-eight of nine cells
-(Sections~\ref{sec:related-estimators}, \ref{sec:probes-results});
-(4)~the two-granularity long-form evaluation, whole-paragraph and
-claim-level, which yields the scale trend, the clustering-artifact result,
-and evidence from this biography task that a consistency-based detector should
-be evaluated at a granularity where independent samples can plausibly agree, a
+(3)~the extension baselines, including P(True), in- and out-of-distribution
+embedding regression, Kernel Language Entropy under two encoders, and the
+Semantic Entropy Probe~\cite{kossen_semantic_entropy_probes_2024}, with the
+observation that correctness-trained and SE-trained probes perform similarly
+in this grid, although the correctness-trained probe is ahead in eight of
+nine cells (Sections~\ref{sec:related-estimators}, \ref{sec:probes-results});
+(4)~the two-granularity long-form evaluation, whole-paragraph and claim-level,
+which yields the scale trend, the clustering-artifact result, and evidence
+from this biography task that a consistency-based detector should be
+evaluated at a granularity where independent samples can plausibly agree, a
 condition that can be checked from the samples before any AUROC is computed
 (Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
-(5)~the record-level worked audits that give mechanistic rather than
-purely metric-level evidence for the main conclusions
-(Section~\ref{sec:hand-audits}); and (6)~the sampling-temperature sweep,
-which isolates the steep temperature dependence of the sampling-based
-family against a near-flat single-pass baseline, and shows the resulting
-crossing to depend on model scale
-(Section~\ref{sec:temperature-sensitivity}).
+(5)~the record-level worked audits that give mechanistic rather than purely
+metric-level evidence for the main conclusions
+(Section~\ref{sec:hand-audits}); and (6)~the sampling-temperature sweep, which
+isolates the steep temperature dependence of the sampling-based family
+against a near-flat single-pass baseline and shows the resulting crossing to
+depend on model scale (Section~\ref{sec:temperature-sensitivity}).
+
 
 The full source code, result tables, Slurm templates, and LaTeX thesis
 source are available at \url{https://github.com/D3prave/thesis}.
 The Python implementation lives in the \texttt{src/semantic\_entropy/}
 package; entry points are documented in \texttt{README.md}.
 
-\section{Future work}
-
-Four follow-ups come directly out of the results above, in rough order of how
-much they would settle.
-
-The first is granularity. The clearest finding here is that a
-consistency-based detector needs a unit at which independent samples can
-plausibly agree, and the claim-level evaluation is the only place that
-condition is met on long-form text. Testing the same claim-level protocol on
-long-form tasks other than biography --- summarization, or open-ended
-explanation --- would show whether the granularity argument generalizes or is
-specific to the biographical facts that decompose neatly into claims.
-
-The second is labels. The whole-paragraph correctness labels come from an LLM
-judge, and that is the largest single threat to the long-form numbers
-(Section~\ref{sec:discussion-limitations}). Human annotation of even a few
-hundred paragraphs would settle whether the judge introduces a systematic bias,
-and would put the whole-paragraph and claim-level measurements on the same
-footing.
-
-The third is the temperature sweep, which currently covers the entropy family
-and \mbox{P(True)} but not the hidden-state probes, because the probes are
-trained once at the canonical setting. Retraining them at each temperature
-would show whether the single-pass advantage under near-greedy decoding extends
-to probes or belongs to \mbox{P(True)} alone --- the practical question a
-deployer would ask first.
-
-The fourth is scale. The claim-level decline from $0.748$ to $0.701$ rests on
-three generators, only two of which share an architecture. A within-family
-ladder of four or five sizes would turn a suggestive slope into a measurement,
-and would test the proposed mechanism directly: if larger models really do
-repeat their confabulations more consistently, that consistency is itself
-measurable from the samples, independently of any AUROC.
-
-Two smaller items were scoped out rather than answered: the graph-kernel
-variants of Kernel Language Entropy (only the embedding-RBF variant is
-evaluated here), and the probability-weighted estimators under a clustering
-backend other than the canonical one.
-
 \section{Limitations}
 
-The thesis is deliberately narrow in scope. The detection target is the
-confabulation setting defined in Chapter~\ref{ch:background}.
-High-confidence systematic errors are by construction not detected by
-this method, a limitation the FactualBio scale trend makes concrete,
-since consistent confabulation at 70B is precisely the confident-error
-case; Simhi et al.~\cite{simhi_choke_2025} discuss this setting.
+The detection target is the confabulation setting of
+Chapter~\ref{ch:background}, so high-confidence systematic errors fall outside
+it by construction. The FactualBio scale trend makes that limit concrete:
+consistent confabulation at 70B is precisely the confident-error
+case~\cite{simhi_choke_2025}.
 
 Within the empirical results, the main residual limitations are the
 automated LLM judging behind the whole-paragraph long-form labels (the

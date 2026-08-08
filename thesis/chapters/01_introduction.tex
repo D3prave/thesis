@@ -3,11 +3,9 @@
 
 Large language models often answer open questions fluently even when the
 answer is wrong or unsupported. These confident mistakes are usually called
-\emph{hallucinations}. In this thesis the word is used as a broad label for
-several different failure modes, including plain misinformation,
-confabulation, and systematic reasoning errors; a more careful taxonomy
-follows in Chapter~\ref{ch:background}. For now the term simply means an
-answer that the input and the known facts do not support. The practical
+\emph{hallucinations}; here the word is a cover term for an answer that the
+input and the known facts do not support, made precise in
+Chapter~\ref{ch:background}. The practical
 problem is not only that some answers are wrong. It is that a useful system
 should also signal \emph{when} its answer is unreliable, so that a person or
 an automatic check downstream can decide whether to trust it.
@@ -38,9 +36,7 @@ al.~\cite{kuhn_semantic_uncertainty_2023} and Farquhar et
 al.~\cite{semantic_entropy_nature_2024}. Figure~\ref{fig:intro-schematic}
 illustrates the idea on a small example: the same five samples look very
 uncertain when distinct wordings are counted, but mostly agree once they
-are grouped by meaning. The aim of this thesis is not to
-propose the method, but to re-implement it in a smaller, locally reproducible
-setup and to study how well it works there, and under which conditions.
+are grouped by meaning.
 
 One point about the method is worth stating early, because it is easy to
 misread. Semantic entropy is not a training objective. It is not added to a
@@ -75,12 +71,12 @@ thesis modifies the generator.
 \label{sec:research-aim}
 
 The main question is simple to state. Is semantic entropy a better warning
-signal than \emph{surface-form uncertainty} --- that is, than simply counting
+signal than \emph{surface-form uncertainty}, that is, than simply counting
 how many of the sampled answers differ as strings, without asking what any of
-them means --- and does the answer change when the output grows from a short
-answer to a paragraph? A good signal here also
-supports \emph{selective abstention}: letting the system decline the
-questions it is most likely to get wrong.
+them means? Does the answer change when the output grows from a short answer
+to a paragraph? A good signal here also supports \emph{selective
+abstention}: letting the system decline the questions it is most likely to
+get wrong.
 
 The study uses TriviaQA, NQ-Open and SVAMP as short-answer
 benchmarks, and a FactScore-style biography task as the long-form case. The
@@ -89,14 +85,14 @@ each individual claim. Three open generator models each run three times
 under different random seeds, so every headline number comes with a spread
 across repeated runs.
 
-The target is \emph{confabulation}: the model's answer varies in meaning
-across samples drawn from the same prompt. The long-form task adds the harder
-case, where the wording varies almost every time. This study does
-not claim to catch every kind of hallucination. It cannot
-flag confident systematic errors, where the model is wrong the same way each
-time --- a failure mode discussed by Kalai et
-al.~\cite{kalai_why_language_models_hallucinate_2025} and Simhi et
-al.~\cite{simhi_choke_2025}.
+The target is \emph{confabulation}, defined in
+Chapter~\ref{ch:background}: an answer whose meaning varies across samples
+drawn from the same prompt. Confident systematic errors, where the model is
+wrong in the same way every time, are therefore out of
+scope~\cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}. The
+long-form task adds the harder case, where the wording varies almost every
+time.
+
 
 The starting hypothesis, from Farquhar et
 al.~\cite{semantic_entropy_nature_2024}, is that discrete semantic entropy
@@ -114,21 +110,21 @@ consistent across the three short-answer benchmarks), and H3
 (meaning-aware methods separate clearly from count-based surface scores on the
 long-form task).
 
-One result of this study qualifies the first hypothesis (H1) in a way the original
-aggregate evaluation does not show. On short answers, the value of
+One result of this study qualifies the first hypothesis (H1) in a way the
+original aggregate evaluation does not show. On short answers, the value of
 sampling-based methods such as semantic entropy depends strongly on the
-decoding temperature. At low temperature the repeated samples are nearly
-identical, so there is little diversity to measure and these methods are weak;
-at high temperature they become strong. A single-pass self-evaluation baseline
-is close to temperature-independent, so the gap between the two closes as
-temperature rises --- and on the smaller generators it reverses, while on the
-largest it does not within the range measured. At the temperature where
-sampling-based methods work best,
-semantic entropy is about as good as a much cheaper surface-form entropy on
-short answers. The clearer advantage of meaning-aware methods appears on the
-long-form task, where count-based surface scores break down. These points are stated
-carefully and with their limits in Chapters~\ref{ch:results}
-and~\ref{ch:discussion}.
+decoding temperature. At low temperature, the repeated samples are nearly
+identical, so there is little diversity to measure and these methods are
+weak. At high temperature, they become strong. A single-pass self-evaluation
+baseline is close to temperature-independent, so the gap between the two
+closes as temperature rises. On the smaller generators, the gap reverses,
+while on the largest it does not within the range measured. At the
+temperature where sampling-based methods work best, semantic entropy is about
+as good as a much cheaper surface-form entropy on short answers. The clearer
+advantage of meaning-aware methods appears on the long-form task, where
+count-based surface scores break down. These points are stated carefully and
+with their limits in Chapters~\ref{ch:results} and~\ref{ch:discussion}.
+
 
 \section{Experimental conditions at a glance}
 
@@ -204,18 +200,3 @@ meaning-level clustering helps. Concretely, it delivers:
     meaning-aware methods separate clearly from count-based surface-form
     baselines.
 \end{enumerate}
-
-\section{Thesis outline}
-
-Chapter~\ref{ch:background} reviews the forms of LLM hallucination, the role
-of uncertainty estimation, the notion of semantic equivalence, and related
-semantic uncertainty methods. Chapter~\ref{ch:semantic_entropy} defines the
-discrete semantic entropy method that the empirical work is based on,
-together with the related estimators it is compared against: Kernel
-Language Entropy, Semantic Entropy Probes, P(True), and embedding
-regression. Chapter~\ref{ch:experimental_design} turns the method into a
-reproducible experimental design and documents how it was implemented and
-executed on the computing cluster.
-Chapter~\ref{ch:results} reports the empirical results,
-Chapter~\ref{ch:discussion} discusses interpretation and limitations, and
-Chapter~\ref{ch:conclusion} states the conclusion.
