@@ -1,296 +1,133 @@
 # Detecting Hallucinations in Large Language Models Using Semantic Entropy
 
-This repository contains the LaTeX source, Python research code, experiment
-configuration, and recorded small artifacts for a bachelor's thesis on semantic
-entropy as a training-free hallucination detection and selective abstention
-method for short-answer question answering and long-form biography generation.
+Bachelor's thesis, Mathematical Institute for Machine Learning and Data Science,
+Katholische Universität Eichstätt-Ingolstadt.
 
-The central question is whether entropy over meanings separates likely
-incorrect answers from correct answers better than entropy over surface forms.
-The thesis studies this on TriviaQA, NQ-Open, SVAMP, and a FactScore-style
-biography task using sampled answers from Mistral-7B-Instruct-v0.3,
-Llama-3.1-8B-Instruct, and Llama-3.1-70B-Instruct (3 models × 3 seeds).
+This repository holds the LaTeX source, the Python implementation, the Slurm
+batch scripts, and the generated result tables for a study of **semantic
+entropy** as a training-free hallucination-detection and selective-abstention
+signal.
 
-## Thesis Status
+The question is whether entropy over *meanings* separates incorrect answers
+from correct ones better than entropy over *surface forms*. It is evaluated on
+TriviaQA, NQ-Open, SVAMP and a FactScore-style biography task, with answers
+sampled from Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct and
+Llama-3.1-70B-Instruct, three seeds each (42/43/44).
 
-The scientific-correction v2 execution pipeline is implemented as of
-2026-07-17, but the cluster runs have not yet been executed. The current
-PDF and historical result tree are not submission-ready: the paired table mixed
-incompatible summaries, the reported SEP artifacts were correctness-trained
-accuracy probes, and the biography labels were automated proxies rather than
-the published FactualBio human labels. Historical outputs are retained for
-audit but are not authoritative primary evidence.
+The method itself is due to [Farquhar et al.
+(2024)](https://doi.org/10.1038/s41586-024-07421-0); the contribution here is a
+reproducible reimplementation on a smaller local grid, plus a claim-level
+long-form extension and a decoding-temperature sweep the original does not
+report.
 
-The correction keeps the fixed seeds 42, 43, and 44. The fresh SEP-v2
-evaluation collections also supply the primary short-answer generations after
-their complete collection-to-reclustering lineage passes the v2 protocol lock.
-The correction reclusters them with question-conditioned DeBERTa-v3-large,
-reruns a genuine entropy-target, fixed-final-layer SEP adaptation on disjoint
-train/evaluation records, and uses the 150 manually labeled claims in the
-published FactualBio release in a fixed-claim, question-conditioned adaptation.
-Neither extension is presented as an exact paper replication. See
-`PLANS.md` for the locked scientific scope. The canonical execution paths are:
+## What it found
 
-- `scripts/lock_primary_shortform_v2.py` and
-  `scripts/export_primary_shortform_v2.py` for the fail-closed 27-cell
-  short-answer family;
-- `scripts/dispatch_seeded_sep.sh` for genuine SEP collection, fitting, and
-  held-out scoring; and
-- `scripts/run_published_factualbio_v2.sh` for the published-label FactualBio
-  extension.
+**On short answers, meaning-based clustering does not pay for itself.** All
+nine model–dataset cells have a negative mean difference against a normalized
+exact-match surface baseline, and the single Holm-significant result runs
+*against* semantic entropy. Dataset normalization removes most surface
+variation before any semantic step runs, leaving little for clustering to
+merge.
 
-The six complete SEP source JSONLs are intentionally not present in this local
-checkout. Authenticate to Alex and synchronize the authoritative processed
-files before creating a lock:
+**At claim level on long-form text, it does.** Scoring biographies one claim at
+a time against published human labels, semantic entropy leads the surface
+baseline in every cell:
 
-```sh
-ssh alex
-rsync -av alex:~/thesis/data/processed/ data/processed/
-```
+| Generator | AUROC (NLI) | AUROC (surface) | Δ |
+|---|---|---|---|
+| Mistral-7B | 0.748 | 0.642 | +0.105 |
+| Llama-3.1-8B | 0.724 | 0.650 | +0.073 |
+| Llama-3.1-70B | 0.701 | 0.619 | +0.082 |
 
-The manifest independently requires exactly 500/500 TriviaQA, 500/500 NQ-Open,
-and 700/300 SVAMP train/evaluation records, so a partial synchronization cannot
-become authoritative. Export the exact 40-character revisions from the cached
-model snapshots before either a command preview or a real submission:
+The whole-paragraph comparison looks more favourable still, but is a diagnostic
+rather than a fair contest: paragraphs almost never repeat as identical
+strings, so the surface baseline sits pinned at its ceiling near chance.
 
-```sh
-export CODE_COMMIT="$(git rev-parse HEAD)"
-export MISTRAL7B_MODEL_REVISION=<40-hex-sha>
-export MISTRAL7B_TOKENIZER_REVISION=<40-hex-sha>
-export LLAMA8B_MODEL_REVISION=<40-hex-sha>
-export LLAMA8B_TOKENIZER_REVISION=<40-hex-sha>
-export LLAMA70B_MODEL_REVISION=<40-hex-sha>
-export LLAMA70B_TOKENIZER_REVISION=<40-hex-sha>
-export NLI_MODEL_REVISION=<40-hex-sha>
-export NLI_TOKENIZER_REVISION="$NLI_MODEL_REVISION"
-```
+**Two effects qualify practical use.** The entailment backend is immaterial on
+short answers (four backends span ≤ 0.057 AUROC) and result-determining on
+whole paragraphs, where a weak backend can drive the score below chance. And
+sampling-based entropy strengthens with decoding temperature while the
+single-pass P(True) baseline stays nearly flat, so which detector wins depends
+on the decoding settings.
 
-Create the immutable protocol manifest from the complete sources and those
-revisions:
+## Layout
 
-```sh
-PYTHONPATH=src python3 scripts/sep_v2_manifest.py create \
-  --output results_sep_v2_protocol/sep_v2_protocol_manifest.json \
-  --code-commit "$CODE_COMMIT" \
-  --mistral7b-model-revision "$MISTRAL7B_MODEL_REVISION" \
-  --mistral7b-tokenizer-revision "$MISTRAL7B_TOKENIZER_REVISION" \
-  --llama8b-model-revision "$LLAMA8B_MODEL_REVISION" \
-  --llama8b-tokenizer-revision "$LLAMA8B_TOKENIZER_REVISION" \
-  --llama70b-model-revision "$LLAMA70B_MODEL_REVISION" \
-  --llama70b-tokenizer-revision "$LLAMA70B_TOKENIZER_REVISION" \
-  --nli-model-revision "$NLI_MODEL_REVISION" \
-  --nli-tokenizer-revision "$NLI_TOKENIZER_REVISION" \
-  --triviaqa-max-new-tokens "${TRIVIAQA_SEP_MAX_NEW_TOKENS:-64}" \
-  --nqopen-max-new-tokens "${NQOPEN_SEP_MAX_NEW_TOKENS:-64}" \
-  --svamp-max-new-tokens "${SVAMP_SEP_MAX_NEW_TOKENS:-32}" \
-  --feature-response-max-new-tokens 256
-```
+| Path | Contents |
+|---|---|
+| `thesis/` | LaTeX source: 7 chapters, appendix, bibliography, figures |
+| `thesis/includes/` | The 17 generated result tables the document `\input`s |
+| `src/semantic_entropy/` | Python package: sampling, clustering, entropy scoring, metrics, probes, plotting |
+| `scripts/` | Data preparation, aggregation, table and figure builders, verification gates |
+| `slurm/` | Batch scripts for the NHR@FAU runs |
+| `tests/` | Test suite with synthetic fixtures |
+| `data/` | Small tracked fixture datasets |
 
-The 64/64/32 values are ceilings for the ten stochastic responses used to
-calculate semantic entropy. The separately generated greedy SEP feature
-response has a fixed 256-token ceiling and must still terminate with EOS/EOT;
-reaching 256 fails the collection cell. The July 18 pilot established that a
-shared 64-token ceiling was insufficient for this response, so manifests from
-the earlier commit and partial pilot roots are diagnostic artifacts only and
-must not be reused.
+Raw generations, hidden states, model caches and the sealed result roots are
+bulky and live in cluster project storage, not in git.
 
-The command refuses to overwrite an existing manifest. Set
-`SEP_V2_MANIFEST=results_sep_v2_protocol/sep_v2_protocol_manifest.json` for any
-`DRY_RUN=0` dispatch; the dispatcher rehashes every source and rejects revision
-or configuration drift before calling `sbatch`. Collection jobs recheck their
-source hash after leaving the queue, and collection, reclustering, and probe
-sidecars retain the verified manifest hash. `DRY_RUN=1` is only a data-free
-command preview; it still requires the revision variables above.
-
-The pilot and full matrix must use different, initially empty result roots.
-Sharing a root would correctly fail the exact-grid completion seal:
+## Build the thesis
 
 ```sh
-export SEP_V2_MANIFEST=results_sep_v2_protocol/sep_v2_protocol_manifest.json
-SE_RESULTS_ROOT=results_sep_v2_pilot PILOT=1 DRY_RUN=1 \
-  bash scripts/dispatch_seeded_sep.sh
-SE_RESULTS_ROOT=results_sep_v2_pilot PILOT=1 DRY_RUN=0 \
-  bash scripts/dispatch_seeded_sep.sh
-
-PYTHONPATH=src python3 scripts/sep_v2_manifest.py pilot-complete \
-  --protocol-manifest "$SEP_V2_MANIFEST" \
-  --results-root results_sep_v2_pilot \
-  --output results_sep_v2_pilot/pilot_artifact_manifest.json
-
-SE_RESULTS_ROOT=results_sep_v2_full PILOT=0 DRY_RUN=1 \
-  bash scripts/dispatch_seeded_sep.sh
-SE_RESULTS_ROOT=results_sep_v2_full PILOT=0 DRY_RUN=0 \
-  bash scripts/dispatch_seeded_sep.sh
+cd thesis && latexmk -pdf main.tex
 ```
 
-After all full jobs finish, aggregate and seal the fresh 54-run probe grid:
+Requires a full TeX Live (the document uses `kaobook`, `newpx`, `algorithm2e`,
+`biblatex`/`biber`). Builds to 83 pages with no undefined references.
+
+## Run the tests
 
 ```sh
-PYTHONPATH=src python3 scripts/aggregate_results.py \
-  --results-dir results_sep_v2_full \
-  --output-csv results_sep_v2_full/tables/metric_summary.csv \
-  --output-json results_sep_v2_full/tables/metric_summary.json
-PYTHONPATH=src python3 scripts/summarize_multiseed_results.py \
-  --summary-csv results_sep_v2_full/tables/metric_summary.csv \
-  --tables-dir results_sep_v2_full/tables \
-  --includes-dir /tmp/sep_v2_includes
-PYTHONPATH=src python3 scripts/sep_v2_manifest.py complete \
-  --protocol-manifest "$SEP_V2_MANIFEST" \
-  --results-root results_sep_v2_full \
-  --summary-csv results_sep_v2_full/tables/multiseed_method_summary.csv \
-  --output results_sep_v2_full/tables/sep_v2_artifact_manifest.json
+uv run pytest tests/ -q
 ```
 
-The same 27 fresh evaluation collection/reclustering pairs are the only
-permitted source for the primary DSE-versus-surface analysis. Create an
-explicit `primary_shortform_v2_selection.json`; no script searches for a
-"latest" run. The selection has this shape, with exactly one cell for every
-dataset/model/seed combination:
+## Use the package
 
-```json
-{
-  "schema_version": "primary-shortform-v2-selection-v1",
-  "locked_at": "2026-07-17T18:00:00+02:00",
-  "analysis_code_commit": "<CODE_COMMIT>",
-  "derived_qcond_code_commit": "<CODE_COMMIT>",
-  "sep_v2_protocol_manifest": "results_sep_v2_protocol/sep_v2_protocol_manifest.json",
-  "sep_v2_protocol_manifest_sha256": "<SHA-256>",
-  "dataset_specs": {
-    "triviaqa": {"split": "<split>", "artifact_path": "<eval JSONL>"},
-    "svamp": {"split": "<split>", "artifact_path": "<eval JSONL>"},
-    "nqopen": {"split": "<split>", "artifact_path": "<eval JSONL>"}
-  },
-  "model_specs": {
-    "mistralai/Mistral-7B-Instruct-v0.3": {
-      "model_revision": "<40-hex-sha>",
-      "tokenizer_id": "mistralai/Mistral-7B-Instruct-v0.3",
-      "tokenizer_revision": "<40-hex-sha>"
-    },
-    "meta-llama/Llama-3.1-8B-Instruct": {"model_revision": "<40-hex-sha>", "tokenizer_id": "meta-llama/Llama-3.1-8B-Instruct", "tokenizer_revision": "<40-hex-sha>"},
-    "meta-llama/Llama-3.1-70B-Instruct": {"model_revision": "<40-hex-sha>", "tokenizer_id": "meta-llama/Llama-3.1-70B-Instruct", "tokenizer_revision": "<40-hex-sha>"}
-  },
-  "nli_spec": {
-    "model_id": "cross-encoder/nli-deberta-v3-large",
-    "model_revision": "<40-hex-sha>",
-    "tokenizer_id": "cross-encoder/nli-deberta-v3-large",
-    "tokenizer_revision": "<40-hex-sha>",
-    "question_conditioned": true,
-    "clustering_rule": "bidirectional"
-  },
-  "cells": [
-    {
-      "dataset": "triviaqa",
-      "model": "mistralai/Mistral-7B-Instruct-v0.3",
-      "seed": 42,
-      "source": {"scored_path": "<eval collection scored.jsonl>", "job_meta_path": "<eval collection job_meta.json>"},
-      "derived": {"scored_path": "<eval q-conditioned scored.jsonl>", "job_meta_path": "<eval q-conditioned job_meta.json>"}
-    }
-  ]
-}
-```
-
-The displayed `cells` array is abbreviated; the lock rejects anything other
-than the exact 27-cell grid. Every path must be repository-relative. The lock
-rehashes the protocol and all artifacts, invokes the SEP-v2 verifier on all 54
-collection/reclustering bindings, joins every source record back to the frozen
-dataset, recomputes both entropies and AUROCs, and refuses existing outputs:
+Python ≥ 3.11, managed with [`uv`](https://docs.astral.sh/uv/). Dependencies are
+grouped as optional extras so a light install stays light:
 
 ```sh
-mkdir -p results_authoritative_v2/tables
-PYTHONPATH=src python3 scripts/lock_primary_shortform_v2.py \
-  primary_shortform_v2_selection.json \
-  --repo-root . \
-  --normalized-sidecars-dir results_authoritative_v2/tables/primary_sidecars \
-  --output-manifest results_authoritative_v2/tables/primary_shortform_v2_manifest.json \
-  --output-family-csv results_authoritative_v2/tables/primary_shortform_v2_family.csv
-
-PYTHONPATH=src python3 scripts/fixed_seed_auroc_bootstrap.py \
-  results_authoritative_v2/tables/primary_shortform_v2_family.csv \
-  --source-manifest results_authoritative_v2/tables/primary_shortform_v2_manifest.json \
-  --expected-comparison-id "triviaqa::mistralai/Mistral-7B-Instruct-v0.3::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "triviaqa::meta-llama/Llama-3.1-8B-Instruct::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "triviaqa::meta-llama/Llama-3.1-70B-Instruct::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "svamp::mistralai/Mistral-7B-Instruct-v0.3::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "svamp::meta-llama/Llama-3.1-8B-Instruct::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "svamp::meta-llama/Llama-3.1-70B-Instruct::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "nqopen::mistralai/Mistral-7B-Instruct-v0.3::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "nqopen::meta-llama/Llama-3.1-8B-Instruct::question-conditioned-dse-vs-surface" \
-  --expected-comparison-id "nqopen::meta-llama/Llama-3.1-70B-Instruct::question-conditioned-dse-vs-surface" \
-  --resamples 10000 \
-  --output results_authoritative_v2/tables/primary_shortform_v2_fixed_seed_stats.json
+uv sync                 # core
+uv sync --extra test    # pytest, ruff
+uv sync --extra plot    # matplotlib
+uv sync --extra hf      # torch, transformers (generation and probes)
 ```
 
-Do not use `scripts/plan_full_rerun_jobs.py` for the correction's SEP or
-biography stages; that planner is retained only to audit the historical
-workflow.
+Entry points installed by the package:
 
-## Repository Layout
+| Command | Purpose |
+|---|---|
+| `semantic-entropy-run-pipeline` | End-to-end: sample, normalize, cluster, score |
+| `semantic-entropy-score-jsonl` | Score an existing JSONL of sampled answers |
+| `semantic-entropy-metrics-jsonl` | AUROC, AURAC and rejection-accuracy curves |
+| `semantic-entropy-aggregate-results` | Collapse run directories into summary tables |
+| `semantic-entropy-normalize-fixture` | Build normalized test fixtures |
+| `semantic-entropy-plot-curves` | Figures for the core results |
 
-- `thesis/`: LaTeX source (chapters, bibliography, figures, styles).
-- `src/semantic_entropy/`: Python package — sampling, clustering, entropy
-  scoring, metrics, plotting.
-- `scripts/`: data prep, aggregation, and post-hoc scoring helpers.
-- `slurm/`: Slurm job scripts used for NHR@FAU cluster runs.
-- `tests/`: test suite with synthetic fixtures.
-- `data/`: small tracked fixture datasets.
-
-Raw results, generated figures, and internal working notes are kept out of
-git and stay local.
-
-## Published FactualBio Labels
-
-The primary long-form correction pins release `v.1.0.0` of
-`jlko/long_hallucinations` at commit
-`957b806033d0b769db34beb7ce34316bd498f373`. Importing the source does not
-execute the upstream Python file:
+Smallest useful invocation, on the committed fixture:
 
 ```sh
-curl -fL https://raw.githubusercontent.com/jlko/long_hallucinations/957b806033d0b769db34beb7ce34316bd498f373/data.py \
-  -o data/raw/factualbio_data_v1.0.0.py
-shasum -a 256 data/raw/factualbio_data_v1.0.0.py
-# Expected: b2ae5bc7fb86bc60c2c8ec189a510edb1d553ae573b9157a8832056ecc81f543
-PYTHONPATH=src python3 scripts/import_published_factualbio.py \
-  data/raw/factualbio_data_v1.0.0.py \
-  data/processed/factualbio_published_claims.jsonl \
-  data/processed/factualbio_published_labels.jsonl
+uv run python -m semantic_entropy.cli data/raw/triviaqa_stub.jsonl /tmp/scored.jsonl
+uv run python -m semantic_entropy.metrics /tmp/scored.jsonl
 ```
 
-The importer requires exactly 21 biographies, 150 claim annotations, and the
-published 105 correct / 45 false label split before writing output.
+## Reproducibility
 
-The actual published-label run uses one new output root and 19 blocking Slurm
-jobs. The helper question model is explicit rather than silently inferred:
+Every number in the thesis traces to a named script reading a sealed artifact
+root. `thesis/includes/generated_*.tex` are script-produced; none is written by
+hand, and `scripts/check_table_provenance.py` enforces this:
 
 ```sh
-export FACTUALBIO_QUESTION_MODEL=Qwen/Qwen2.5-72B-Instruct
-export FACTUALBIO_QUESTION_REVISION=<40-hex-sha>
-bash scripts/run_published_factualbio_v2.sh \
-  --source-py data/raw/factualbio_data_v1.0.0.py \
-  --output-root results_factualbio_v2_full \
-  --code-commit "$CODE_COMMIT" \
-  --question-model "$FACTUALBIO_QUESTION_MODEL" \
-  --question-revision "$FACTUALBIO_QUESTION_REVISION" \
-  --mistral-revision "$MISTRAL7B_MODEL_REVISION" \
-  --llama8b-revision "$LLAMA8B_MODEL_REVISION" \
-  --llama70b-revision "$LLAMA70B_MODEL_REVISION" \
-  --nli-revision "$NLI_MODEL_REVISION" \
-  --dry-run
-# Remove --dry-run only after checking the 19 printed submissions.
+PYTHONPATH=src python3 scripts/check_table_provenance.py   # 17 tables, one sealed family
+PYTHONPATH=src python3 scripts/check_figure_table_freshness.py
 ```
 
-The command preview performs no model or artifact validation. A real run
-refuses an existing output root, executes the import and every validation gate,
-and writes `aggregate/factualbio_summary.csv` plus `artifact_manifest.json`.
+Appendix A.8 of the thesis lists the SHA-256 digest of every manifest binding
+those numbers to their artifacts. Each run directory records a `job_meta.json`
+with the Slurm job id, host, model and tokenizer revisions, decoding
+parameters, seed, backend and input path.
 
-## Regenerating the Thesis Tables
-
-The 17 generated tables in `thesis/includes/` are the published form of the
-results. Every one is script-produced; none is written by hand.
-`scripts/check_table_provenance.py` enforces this and exits 0.
-
-Table builders read the sealed `results_sep_v3_*` roots, which live in cluster
-project storage rather than in this repository, so they only run where those
-roots are present. The eight tables from the main builder regenerate with:
+The table builders read the sealed `results_sep_v3_*` roots, which are not in
+this repository, so they only run where those roots are present:
 
 ```sh
 PYTHONPATH=src python3 scripts/build_thesis_tables_from_summary.py \
@@ -300,24 +137,55 @@ PYTHONPATH=src python3 scripts/build_thesis_tables_from_summary.py \
   --factualbio-surface-arm     results/tables/factualbio_surface_arm.csv
 ```
 
-All four flags are required in practice. The three manifest flags fail closed
-if omitted — the builder refuses to emit a table from an input it cannot prove
-is sealed. `--factualbio-surface-arm` fails *open*: without it the builder
-silently replaces the seven-column FactualBio table with a three-column one,
-dropping the surface arm and the deltas that carry the claim-level result.
-Only `git diff thesis/includes/` catches that, so check it after every rebuild.
+All four flags are required. The three manifest flags fail closed — the builder
+refuses to emit a table from an input it cannot prove is sealed.
+`--factualbio-surface-arm` fails *open*: without it the seven-column FactualBio
+table is silently replaced by a three-column one, dropping the surface arm and
+the deltas that carry the claim-level result. Only `git diff thesis/includes/`
+catches that, so check it after every rebuild.
 
-Regenerating tables is not a substitute for revising the affected prose and
-figures before rebuilding and visually checking `thesis/main.pdf`.
+## Published FactualBio labels
 
-## Build the Thesis
-
-```sh
-cd thesis && latexmk -pdf main.tex
-```
-
-## Run the Tests
+The claim-level evaluation uses the 150 human-annotated claims from the code
+release accompanying Farquhar et al., pinned by commit and file hash:
 
 ```sh
-uv run pytest tests/ -q
+curl -fL https://raw.githubusercontent.com/jlko/long_hallucinations/957b806033d0b769db34beb7ce34316bd498f373/data.py \
+  -o data/raw/factualbio_data_v1.0.0.py
+shasum -a 256 data/raw/factualbio_data_v1.0.0.py
+# Expected: b2ae5bc7fb86bc60c2c8ec189a510edb1d553ae573b9157a8832056ecc81f543
+
+PYTHONPATH=src python3 scripts/import_published_factualbio.py \
+  data/raw/factualbio_data_v1.0.0.py \
+  data/processed/factualbio_published_claims.jsonl \
+  data/processed/factualbio_published_labels.jsonl
 ```
+
+Importing does not execute the upstream file. The importer requires exactly 21
+biographies, 150 claim annotations and the published 105 correct / 45 false
+split before writing anything. `src/semantic_entropy/label_provenance.py` keeps
+published human labels and locally generated LLM-judge labels distinct in a
+machine-checkable way, so an automated judgment cannot be mistaken for a human
+annotation.
+
+## Scope and caveats
+
+The detection target is *confabulation* — answers that are wrong and
+inconsistent across resampling. High-confidence systematic errors, where the
+model is wrong the same way every time, are outside it by construction.
+
+Exactly one comparison is preregistered and confirmatory: discrete semantic
+entropy against the normalized surface baseline across the nine short-answer
+cells, with Holm correction over that nine-member family. Everything else —
+clustering backends, probes, P(True), KLE, temperature, both long-form analyses
+— is exploratory and reported as such.
+
+Whole-paragraph biography correctness labels come from an open LLM judge
+(Qwen2.5-72B-Instruct) against pinned Wikipedia references; the claim-level
+evaluation uses human labels and is the stronger of the two.
+
+## Citation
+
+Jakub Wiśniewski, *Detecting Hallucinations in Large Language Models Using
+Semantic Entropy*. Bachelor's thesis, Katholische Universität
+Eichstätt-Ingolstadt, 2026.
