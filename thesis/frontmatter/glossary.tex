@@ -1,135 +1,117 @@
 \newglossaryentry{llm}{
   name={LLM},
-  description={large language model: a neural language model trained on
-    large text corpora and capable of generating fluent free-form text in
-    response to prompts}
+  description={large language model: a neural language model trained on large
+    text corpora and capable of generating fluent free-form text in response
+    to prompts}
 }
 
 \newglossaryentry{semanticentropy}{
   name={semantic entropy},
-  description={an uncertainty score for free-form language model outputs,
-    computed as the Shannon entropy over the empirical distribution of
-    semantic clusters obtained by grouping repeated sampled answers under
-    bidirectional Natural Language Inference entailment. Low semantic entropy
-    indicates that repeated samples express the same meaning; high semantic
-    entropy indicates that samples spread across incompatible meanings. The
-    score is computed after training, on a model whose weights are left
-    unchanged; it is a diagnostic applied to the model's outputs, not a
-    training objective. The
-    surface-form (normalized exact-match) variant used as a baseline is not
-    semantic entropy in this sense, because it groups by string identity
-    rather than by meaning}
+  description={an uncertainty score for free-form outputs: the Shannon entropy
+    over the empirical distribution of semantic clusters, obtained by grouping
+    repeated sampled answers under bidirectional NLI entailment. Low values
+    mean the samples express one meaning, high values that they spread across
+    incompatible ones. It is computed after training and never changes the
+    model's weights}
 }
 
 \newglossaryentry{surfaceentropy}{
   name={surface entropy},
-  description={the Shannon entropy over the sampled answers after each answer
-    has been reduced to its normalized string, so that two answers count as
-    the same outcome only when those strings are identical. Together with the
-    unnormalized \emph{naive sample entropy} it forms the surface-form
-    uncertainty baseline of this thesis: a score that measures how much the
-    wording varies without asking what any answer means}
+  description={the Shannon entropy over sampled answers reduced to their
+    normalized strings, so two answers coincide only when those strings are
+    identical. With the unnormalized \emph{naive sample entropy} it forms the
+    surface-form baseline: it measures how much the wording varies, not what
+    the answers mean}
 }
 
 \newglossaryentry{ptrue}{
   name={P(True)},
-  description={a single-pass self-evaluation baseline in which the model is
-    shown its own most-likely answer and asked how likely that answer is to be
-    true. The probability it assigns to the token ``True'' is read off, and the
-    reported uncertainty score is $1-P(\mathrm{True})$, so larger values mean
-    greater estimated risk. Unlike the entropy scores it needs no repeated
-    sampling}
+  description={a single-pass self-evaluation baseline: the model is shown its
+    own most-likely answer and asked how likely it is to be true. The
+    probability it assigns to ``True'' gives the uncertainty score
+    $1-P(\mathrm{True})$. Needs no repeated sampling}
 }
 
 \newglossaryentry{confabulation}{
   name={confabulation},
-  description={a hallucination subtype in which the model produces an answer
-    that is both incorrect and semantically inconsistent across repeated
-    samplings from the same prompt. Distinguished from systematic errors,
-    where the model produces the same wrong answer with high confidence}
+  description={a hallucination subtype in which the answer is both incorrect
+    and semantically inconsistent across repeated samplings of the same
+    prompt. Distinguished from systematic errors, where the model gives the
+    same wrong answer confidently every time}
 }
 
 \newglossaryentry{hallucination}{
   name={hallucination},
-  description={a broad term for language model outputs that are fluent but
-    unsupported, factually incorrect, or unfaithful to a source. In this
-    thesis the term follows the usage of the semantic entropy literature and
-    refers primarily to confabulation-type failures detectable by sampling
-    inconsistency}
+  description={a broad term for outputs that are fluent but unsupported,
+    factually incorrect, or unfaithful to a source. Here it follows the
+    semantic entropy literature and refers primarily to confabulation-type
+    failures detectable by sampling inconsistency}
 }
 
 \newglossaryentry{nli}{
   name={NLI},
-  description={Natural Language Inference: the task of determining whether
-    a hypothesis sentence is entailed by, contradicted by, or neutral with
-    respect to a premise sentence. Used in the replication condition and
-    additional reclustering analyses as
-    the backend for deciding whether two sampled answers express the same
-    meaning}
+  description={Natural Language Inference: deciding whether a hypothesis
+    sentence is entailed by, contradicted by, or neutral with respect to a
+    premise. Used here as the backend for judging whether two sampled answers
+    mean the same thing}
 }
 
 \newglossaryentry{entailment}{
   name={entailment},
-  description={an NLI label indicating that the truth of the premise sentence
-    logically implies the truth of the hypothesis sentence. In the semantic
-    entropy pipeline, bidirectional entailment (premise entails hypothesis and
-    hypothesis entails premise) is used as a proxy for semantic equivalence}
+  description={an NLI label indicating that the premise logically implies the
+    hypothesis. Bidirectional entailment, where each sentence entails the
+    other, is used as the proxy for semantic equivalence}
 }
 
 \newglossaryentry{semanticcluster}{
   name={semantic cluster},
   description={a group of sampled answers treated as semantically equivalent,
-    either by exact-match normalization in the surface-form baseline or by
-    bidirectional entailment in the NLI-clustered runs. Each cluster represents one distinct
-    semantic answer among the sampled outputs}
+    either by exact-match normalization in the baseline or by bidirectional
+    entailment in the NLI-clustered runs. Each cluster is one distinct
+    meaning among the samples}
 }
 
 \newglossaryentry{auroc}{
   name={AUROC},
   description={area under the receiver operating characteristic curve: a
-    threshold-free measure of ranking quality. In this thesis, incorrect
-    answers are the positive class; a higher AUROC indicates that the
-    uncertainty estimator ranks incorrect answers above correct ones more
-    reliably}
+    threshold-free measure of ranking quality. Incorrect answers are the
+    positive class, so a higher AUROC means the estimator ranks incorrect
+    answers above correct ones more reliably}
 }
 
 \newglossaryentry{aurac}{
   name={AURAC},
   description={area under the rejection-accuracy curve: a selective-prediction
     metric computed by progressively withholding the highest-uncertainty
-    answers and measuring accuracy on the remaining set. Higher AURAC
-    indicates that rejecting uncertain answers improves accuracy more
-    efficiently}
+    answers and measuring accuracy on the rest. Higher is better, but values
+    are comparable only within one task and model}
 }
 
 \newglossaryentry{selectiveprediction}{
   name={selective prediction},
-  description={a prediction setting in which the model may abstain from
-    answering a prompt rather than always producing a response. An uncertainty
-    estimator is used to decide which prompts to answer and which to abstain
-    on, with the goal of achieving higher accuracy on answered prompts}
+  description={a setting in which the model may abstain rather than always
+    answer. An uncertainty estimator decides which prompts to answer, the
+    goal being higher accuracy on those it does}
 }
 
 \newglossaryentry{deberta}{
   name={DeBERTa},
   description={Decoding-enhanced BERT with disentangled attention: a
-    Transformer-based language model that achieves strong performance on NLI
-    benchmarks. Used in this thesis as the local NLI backend for bidirectional
-    entailment-based semantic clustering}
+    Transformer model with strong NLI benchmark performance, used here as the
+    local backend for entailment-based clustering}
 }
 
 \newglossaryentry{sep}{
   name={SEP},
-  description={Semantic Entropy Probe: a lightweight linear classifier trained
-    on frozen hidden states of the generation model to predict high semantic
-    entropy without requiring multi-sample generation at inference time}
+  description={Semantic Entropy Probe: a lightweight linear classifier on the
+    generator's frozen hidden states, trained to predict high semantic entropy
+    without multi-sample generation at inference time}
 }
 
 \newglossaryentry{kle}{
   name={KLE},
-  description={Kernel Language Entropy: an uncertainty score computed as the
-    von Neumann entropy of a normalized kernel matrix constructed from
-    sentence embeddings of sampled answers. The recorded thesis runs use the
-    pipeline default RBF kernel. Replaces hard NLI clustering with a continuous
-    soft measure of semantic spread}
+  description={Kernel Language Entropy: the von Neumann entropy of a
+    normalized kernel matrix built from sentence embeddings of the sampled
+    answers. Replaces hard NLI clustering with a continuous, soft measure of
+    semantic spread}
 }

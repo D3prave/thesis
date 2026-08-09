@@ -10,11 +10,10 @@
   fontmethod=tex
 ]{kaobook}
 
-% pdfTeX separates words with kerning offsets and writes no space characters at
-% all, so a PDF viewer has to infer where the spaces are. On tightly set lines
-% it guesses wrong and copied text comes out fused ("thischoice"). This emits a
-% real space character between words instead. pdfTeX only; costs ~5% file size.
-\ifdefined\pdfinterwordspaceon\pdfinterwordspaceon\fi
+% NOTE: do not enable \pdfinterwordspaceon here. It makes copied text keep its
+% spaces, but it emits character 32 of the *current* font, and in math mode that
+% font is a math font whose slot 32 is \leftarrow -- every formula in the thesis
+% then renders with stray arrows and colliding glyphs. Tried and reverted.
 
 \usepackage[english]{babel}
 \usepackage{csquotes}
