@@ -236,8 +236,8 @@ figure.
 
 This section begins with the three short-answer tasks (TriviaQA, NQ-Open, SVAMP).
 Table~\ref{tab:auroc-overview} gives the overall view: the two
-meaning-aware estimators, with discrete semantic entropy --- the method at
-the center of the thesis --- in the upper block, for all three models across
+meaning-aware estimators, with discrete semantic entropy (the method at
+the center of the thesis) in the upper block, for all three models across
 the three short-answer tasks. The remaining detectors follow task by task
 below.
 
@@ -327,22 +327,23 @@ the three count-based scores that carry the comparison stay above $0.69$,
 consistent with the original semantic entropy paper under the matched
 protocol. Second, the normalized \emph{surface} baseline is the
 strongest of the three count-based scores in eight of the nine
-cells---every NQ-Open and SVAMP cell and both larger TriviaQA
-models---and discrete semantic entropy matches it closely but never
-exceeds it. On NQ-Open, for instance, surface reaches $0.799$, $0.827$
-and $0.755$ against the meaning-aware $0.794$, $0.799$ and $0.725$; only
-with Mistral-7B on TriviaQA does either of the other two count-based
+cells: every NQ-Open and SVAMP cell and both larger TriviaQA
+models. Discrete semantic entropy matches it closely but never
+exceeds it. On NQ-Open, for instance, surface reaches $0.799$, $0.827$,
+and $0.755$ against the meaning-aware $0.794$, $0.799$, and $0.755$.
+Only with Mistral-7B on TriviaQA does either of the other two count-based
 scores edge past surface, and there it is the raw-string naive estimator
 ($0.784$ versus $0.781$), not the meaning-aware one. The
 probability-weighted naive estimator is higher still in that cell
 ($0.821$), which is the long-form pattern of
-Section~\ref{sec:bio-results} showing up early. Third, discrete semantic entropy tracks the surface
-baseline throughout: normalizing the answer strings already performs
-almost all of the useful grouping, so adding an NLI-based
-meaning-clustering step changes the ranking little. The reason, made
-concrete in Example~\ref{sec:audit-merge}, is that on short answers most
-equivalent answers are already identical once normalized; meaning-based
-entailment then has little left to add.
+Section~\ref{sec:bio-results} appearing early. Third, discrete semantic
+entropy tracks the surface baseline throughout: normalizing the answer
+strings already performs almost all of the useful grouping, so adding an
+NLI-based meaning-clustering step changes the ranking little. The reason,
+made concrete in Example~\ref{sec:audit-merge}, is that on short answers
+most equivalent answers are already identical once normalized;
+meaning-based entailment then has little left to add.
+
 
 \section{Significance: does meaning-based clustering beat the surface
 baseline?}
@@ -849,11 +850,12 @@ not arise. Table~\ref{tab:factualbio} reports the result.
 Claim-level detection works for every generator, and it degrades with model
 size: AUROC falls monotonically from $0.748$ (Mistral-7B) through $0.724$
 (Llama-3.1-8B) to $0.701$ (Llama-3.1-70B), with seed standard deviations of
-$0.017$ or less. The decline is real and monotonic but modest --- $0.047$
-AUROC across a tenfold difference in parameter count --- and the largest
-model still detects well above chance. AURAC behaves the same way and is
-almost flat ($0.847 / 0.843 / 0.838$), which is what one expects when the
+$0.017$ or less. The decline is real and monotonic but modest: $0.047$
+AUROC across a tenfold difference in parameter count, and the largest model
+still detects well above chance. AURAC behaves the same way and is almost
+flat ($0.847 / 0.843 / 0.838$), which is what one expects when the
 underlying claim accuracy is similar across generators.
+
 
 \paragraph{Does meaning-clustering help here?} The same records
 answer this directly, because the surface baseline can be recomputed on them

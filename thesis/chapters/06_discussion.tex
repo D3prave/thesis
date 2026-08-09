@@ -233,59 +233,85 @@ fade first as models improve.
 \section{Comparison with Farquhar et al.}
 \label{sec:comparison-farquhar}
 
-Farquhar et al.~\cite{semantic_entropy_nature_2024} report an average
-AUROC of $0.790$ for semantic entropy across thirty task--model
-combinations, against $0.691$ for naive entropy and $0.698$ for P(True).
-The grid here was deliberately moved toward their protocol: matched
+Farquhar et al.~\cite{semantic_entropy_nature_2024} report two aggregates.
+In their headline \emph{sentence-length} setting, semantic entropy averages
+AUROC $0.790$ across thirty task--model combinations, against $0.691$ for
+naive entropy and $0.698$ for P(True). Their supplement adds a
+\emph{short-phrase} setting, in which the model is prompted to answer as
+briefly as possible; there, across sixty task--model combinations, semantic
+entropy and its discrete variant reach $0.792$ and $0.790$, naive entropy
+$0.760$ and P(True) $0.683$. The short-phrase aggregate is the comparator
+that matches this thesis, whose grid elicits short answers and follows the
+configuration the original pairs with them: correctness scored by SQuAD
+token-F1 and entailment by a local cross-encoder, rather than the GPT-4
+judge and GPT-3.5 entailment used for the sentence-length runs.
+The grid was deliberately moved toward that protocol: matched
 sampling ($M=10$, $T=1.0$, top-$p=0.9$, top-$k=50$, with a low-temperature
 most-likely answer for accuracy labeling via SQuAD token-F1), three
 shared datasets (TriviaQA, NQ-Open, SVAMP), and both probability-weighted
 estimators computed alongside the discrete approximation. The remaining
-differences are deliberate and disclosed: a narrower set of generators,
-mostly newer, with Mistral 7B Instruct the one model family common to both;
-entailment judged throughout with local NLI cross-encoders, which is one of
-the two options the original uses, plus an open Qwen judge in place of its
-GPT-3.5 alternative; and 500-record evaluation sets.
+differences are deliberate
+and disclosed: a narrower set of generators, mostly newer, sharing the
+Mistral and Llama families with the original but no exact checkpoint
+(Mistral 7B Instruct v0.3 here against their v0.1, Llama-3.1 against
+LLaMA~2 Chat); entailment judged throughout with local NLI cross-encoders,
+the backend the original uses for short-phrase answers, plus an open Qwen
+judge in place of GPT-3.5; and 500-record evaluation sets, 300 for SVAMP.
 
-Under these settings, the method itself reproduces closely, while the
-comparison it was originally judged by does not. Table~\ref{tab:farquhar-comparison}
-puts the two aggregates side by side. Semantic entropy lands at $0.805$ here
-against the reported $0.790$, a difference of $0.015$ across a different set
-of generators and a third as many task--model cells; on the method's own
-terms, this is a successful reproduction. What does not carry over is the
-gap to the baselines. \mbox{P(True)} reaches $0.771$ here rather than
-$0.698$, and the probability-weighted naive estimator reaches $0.806$
-rather than $0.691$. The baseline that the original work reports semantic
-entropy as beating by about ten AUROC points is therefore, in this setup,
-level with it. Adding the normalized surface baseline, which the original
-does not report at all, puts a non-semantic score in front at $0.817$.
+Against that comparator the method reproduces closely, and one of its three
+baseline orderings survives with it. Table~\ref{tab:farquhar-comparison}
+puts the aggregates side by side. Discrete semantic entropy lands at $0.805$
+here against their short-phrase $0.790$, a difference of $0.015$ across a
+different set of generators and a fraction of the task--model cells; on the
+method's own terms, this is a successful reproduction. \mbox{P(True)}
+behaves as the original describes, at $0.771$ here against $0.683$ there, a
+gap of similar size in the same direction, and it is the only baseline that
+stays behind. The other two close. The original already reports the naive
+gap shrinking in the short-phrase setting, to a margin of $0.03$, and
+explains why: constraining answers to be brief reduces the syntactic
+variation that makes naive entropy fail. Here it closes entirely, the
+probability-weighted naive estimator reaching $0.806$ and the supervised
+probe $0.807$ against semantic entropy's $0.805$, separations well inside
+the seed spread of a single cell. Adding the normalized surface baseline,
+which neither of their settings reports, puts a non-semantic score in front
+at $0.817$.
 
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Aggregate short-answer AUROC, as reported by Farquhar et
-al.~\cite{semantic_entropy_nature_2024} and as measured here. Their column is
-the average over their thirty task--model combinations; ours is the
-unweighted mean of the nine model--dataset cells printed in
-Tables~\ref{tab:auroc-triviaqa}--\ref{tab:auroc-svamp} (canonical backend,
-seed means), and can be recomputed from those tables directly. The two
-columns are not a like-for-like average: different generators, three
-datasets rather than five, so the comparison is between the orderings
-the two grids produce, not between individual values.}
+al.~\cite{semantic_entropy_nature_2024} and as measured here. Their two
+columns are the averages over the thirty task--model combinations of their
+sentence-length setting and the sixty of their short-phrase setting; the
+latter is the comparator for this thesis, whose answers and labeling
+protocol match it. Ours is the unweighted mean of the nine model--dataset
+cells printed in Tables~\ref{tab:auroc-triviaqa}--\ref{tab:auroc-svamp}
+(canonical backend, seed means), and can be recomputed from those tables
+directly. No column is a like-for-like average of another: the generators
+differ, three datasets rather than five, so the comparison is between the
+orderings the grids produce, not between individual values. The
+sentence-length setting reports no separate aggregate for the discrete
+variant, describing it only as performing similarly to the standard
+estimator. Their embedding regression baseline corresponds to the accuracy
+probe here; that entry is the mean of the accuracy-probe column of
+Table~\ref{tab:probes}, formed the same way as the rest of the column.}
 \label{tab:farquhar-comparison}
 \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
-\begin{tabular}{@{}lcc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-Detector & Farquhar et al.\ (30 cells) & This thesis (9 cells) \\
+& \multicolumn{2}{c}{Farquhar et al.} & \\
+\cmidrule(lr){2-3}
+Detector & Sentence-length (30) & Short-phrase (60) & This thesis (9) \\
 \midrule
-Semantic entropy (discrete)        & \multirow{2}{*}{$0.790$} & $0.805$ \\
-Semantic entropy (full, prob.-w.)  &                          & $0.805$ \\
-Naive entropy (prob.-weighted)     & $0.691$                  & $0.806$ \\
-\mbox{P(True)}                     & $0.698$                  & $0.771$ \\
+Semantic entropy (discrete)        & not reported & $0.790$ & $0.805$ \\
+Semantic entropy (full, prob.-w.)  & $0.790$      & $0.792$ & $0.805$ \\
+Naive entropy (prob.-weighted)     & $0.691$      & $0.760$ & $0.806$ \\
+\mbox{P(True)}                     & $0.698$      & $0.683$ & $0.771$ \\
+Embedding regression               & $0.687$      & $0.708$ & $0.807$ \\
 \midrule
-Surface entropy (normalized)       & not reported             & $0.817$ \\
-Naive sample entropy (raw strings) & not reported             & $0.785$ \\
+Surface entropy (normalized)       & not reported & not reported & $0.817$ \\
+Naive sample entropy (raw strings) & not reported & not reported & $0.785$ \\
 \bottomrule
 \end{tabular}%
 }
@@ -294,15 +320,26 @@ Naive sample entropy (raw strings) & not reported             & $0.785$ \\
 
 The divergence is therefore in the baselines rather than in the method, and
 that is the more informative half of the comparison: it locates the
-disagreement in what semantic entropy is being measured \emph{against}. One
-claim of the original work does not reproduce as stated: that semantic
-entropy beats the naive baselines. Count-based surface entropy, which the
+disagreement in what semantic entropy is being measured \emph{against}. The
+result here is not that the original fails to reproduce, but that a trend it
+identified continues past the point at which it stopped measuring. Farquhar
+et al.\ observe their margin over naive entropy fall from roughly ten AUROC
+points to three when answers are constrained to be brief, and attribute the
+fall to the reduced syntactic variation of short answers. On these three
+datasets, against a normalized surface baseline they do not report, it
+reaches zero. Count-based surface entropy, which the
 paper does not report as a separate baseline, is the strongest single
 short-answer score in most cells, and no semantic estimator beats it by more
 than a practically negligible margin (Section~\ref{sec:significance}).
 Cell by cell, semantic entropy is above the raw-string naive estimator in six
-of the nine cells, so the agreement is at the level of the aggregate rather
-than a cell-for-cell match. Semantic clustering provides measurable value
+of the nine cells but above the probability-weighted one in only two, both on
+SVAMP, with per-cell differences running from $-0.056$ to $+0.053$. The
+$0.001$ separating those two aggregates is therefore a cancellation across
+tasks rather than a consensus among them. Probability weighting appears to
+help on knowledge recall and to hurt on arithmetic, where the answers are
+integers, while meaning-based clustering does the reverse. With three tasks
+that is an observation rather than a result, but it bounds how far an
+aggregate of this kind should be read. Semantic clustering provides measurable value
 only in the long-form regime, where the paper's qualitative claim is
 confirmed for the count-based scores: they collapse to chance while
 NLI-clustered entropy recovers a clearly above-chance signal for every

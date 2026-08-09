@@ -20,8 +20,8 @@ directions at the two ends.
 On short answers the sampling-based detectors all work: AUROC lands roughly
 between $0.70$ and $0.90$. But the cheapest score in the family wins.
 Entropy over normalized strings is the strongest of the three count-based
-scores in eight of the nine model--dataset cells, and the strongest of all
-detectors in six. No semantic estimator beats it by a margin that matters:
+scores in eight of the nine model--dataset cells, and the best or joint-best
+of all detectors in six. No semantic estimator beats it by a margin that matters:
 every mean difference for discrete semantic entropy is negative, and the one
 Holm-significant result favors the surface baseline. The single exception
 anywhere is a $0.002$ lead for the probability-weighted variant on SVAMP
@@ -44,9 +44,9 @@ at $0.642 / 0.650 / 0.619$, rather than sitting at its ceiling. So the
 meaning-clustering step is worth its cost at claim granularity, and is not on
 short answers. On whole paragraphs the picture is weaker and, on the evidence
 of two independent diagnostics, partly an artifact of granularity rather
-than of the method: the score is pinned at its ceiling for a large minority
-of records, and one generator's paragraphs are frequently cut off at the
-decoding limit.
+than of the method: the score is pinned at its ceiling for between $9\,\%$
+and $32\,\%$ of records depending on the generator, and one generator's
+paragraphs are frequently cut off at the decoding limit.
 
 Two further findings qualify the method's practical use.
 
