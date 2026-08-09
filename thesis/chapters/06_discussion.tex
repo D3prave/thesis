@@ -345,7 +345,18 @@ confirmed for the count-based scores: they collapse to chance while
 NLI-clustered entropy recovers a clearly above-chance signal for every
 generator. That long-form comparison is descriptive rather than tested,
 since the preregistered family covers the short-answer cells alone
-(Section~\ref{sec:evaluation-metrics}). The grid also extends the original
+(Section~\ref{sec:evaluation-metrics}). A numeric long-form comparison is in
+any case unavailable: the original reports FactualBio graphically, with no
+AUROC or AURAC values in the text or the supplement, and evaluates a single
+generator whose output probabilities were inaccessible, so its
+paragraph-length arm uses discrete semantic entropy against a self-check
+baseline and an adapted \mbox{P(True)} rather than the estimators compared
+here. What does correspond exactly is the claim set: the claim-level
+evaluation of Section~\ref{sec:factualbio-results} scores the same $150$
+published claims under the same human labels, which makes it the closest
+correspondence to the original anywhere in this thesis, and a further reason
+its conclusions are weighted above the whole-paragraph ones. The grid also
+extends the original
 analysis in a direction it did not quantify: the entailment backend, which is
 immaterial on short answers, is result-determining on whole paragraphs
 (Section~\ref{sec:nli-sensitivity}).
