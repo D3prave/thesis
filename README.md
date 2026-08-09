@@ -92,23 +92,24 @@ uv sync --extra plot    # matplotlib
 uv sync --extra hf      # torch, transformers (generation and probes)
 ```
 
-Entry points installed by the package:
-
-| Command | Purpose |
-|---|---|
-| `semantic-entropy-run-pipeline` | End-to-end: sample, normalize, cluster, score |
-| `semantic-entropy-score-jsonl` | Score an existing JSONL of sampled answers |
-| `semantic-entropy-metrics-jsonl` | AUROC, AURAC and rejection-accuracy curves |
-| `semantic-entropy-aggregate-results` | Collapse run directories into summary tables |
-| `semantic-entropy-normalize-fixture` | Build normalized test fixtures |
-| `semantic-entropy-plot-curves` | Figures for the core results |
-
-Smallest useful invocation, on the committed fixture:
+The full pipeline (`semantic-entropy-run-pipeline`) needs a GPU and model
+weights, but the scoring and metrics path runs on the committed synthetic
+fixture with no models at all:
 
 ```sh
-uv run python -m semantic_entropy.cli data/raw/triviaqa_stub.jsonl /tmp/scored.jsonl
-uv run python -m semantic_entropy.metrics /tmp/scored.jsonl
+export PYTHONPATH=src
+python3 -m semantic_entropy.fixtures tests/fixtures/synthetic_sampled_only.jsonl norm.jsonl
+python3 -m semantic_entropy.cli     norm.jsonl scored.jsonl
+python3 -m semantic_entropy.metrics scored.jsonl
 ```
+
+That normalizes the sampled answers, clusters them by exact match, computes the
+entropy scores, and prints AUROC/AURAC — the same code path the cluster runs
+use, with the NLI backend left at its default.
+
+`pyproject.toml` also installs these as console scripts
+(`semantic-entropy-score-jsonl`, `-metrics-jsonl`, `-normalize-fixture`,
+`-run-pipeline`, `-aggregate-results`, `-plot-curves`).
 
 ## Reproducibility
 
