@@ -148,10 +148,30 @@ python -m semantic_entropy.pipeline_cli \
     --model-tier "${MODEL_TIER}" \
     --model-with-states-module semantic_entropy.replication_adapter:make_model_with_states \
     --num-samples 10 \
+    --temperature 1.0 \
+    --top-p 0.9 \
+    --top-k 50 \
+    --max-new-tokens "${SE_MAX_NEW_TOKENS}" \
+    --seed "${SEED}" \
+    --entailment-backend exact-match \
+    --paper-accuracy \
     --data-path "${DATA_PATH}" \
-    --output "${OUT_DIR}/scored.jsonl" \
     ${LIMIT:+--limit "${LIMIT}"} \
-    ${PIPELINE_EXTRA_ARGS:-}
+    ${PIPELINE_EXTRA_ARGS:-} \
+    "${OUT_DIR}/scored.jsonl"
+
+# Notes on the flags above, which mirror the sealed collect:
+#   --paper-accuracy       SQuAD token-F1 > 0.5, the rule the original's
+#                          released code applies by default (`--metric squad`,
+#                          `f1 >= 50`). Omitting it would silently grade by a
+#                          different rule.
+#   --entailment-backend   Collection clusters by exact match; real entailment
+#     exact-match          is applied afterwards by the ladder, so a single set
+#                          of samples serves every backend and the backend is
+#                          the only variable across rungs.
+#   --temperature/--top-*  Passed explicitly as well as through SE_* env vars:
+#                          the env vars configure the adapter, these configure
+#                          the pipeline, and they must agree.
 
 # --- answer-length gate ------------------------------------------------------
 # The only external check that the intended brief instruction reached the model.
