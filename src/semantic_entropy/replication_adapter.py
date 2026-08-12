@@ -109,20 +109,15 @@ def build_context_index(records: Sequence[dict[str, Any]]) -> dict[str, tuple[st
     return index
 
 
-def make_model(
-    inner_factory: Callable[..., Callable[[str, int], Any]] | None = None,
-    **inner_kwargs: Any,
-) -> Callable[[str, int], Any]:
-    """Return a ``ModelFn`` that prompts the way the original does.
+def _build_prompt_rewriter() -> tuple[
+    Callable[[str], str], str, list[dict[str, str]]
+]:
+    """Return ``(rewrite, regime, demonstrations)`` from the environment.
 
-    Args:
-        inner_factory: Factory for the underlying model function. Defaults to
-            :func:`semantic_entropy.adapters.make_model`. Injectable for tests.
-        **inner_kwargs: Forwarded to *inner_factory*.
-
-    Raises:
-        ValueError: If required environment variables are missing or the regime
-            is unknown.
+    Shared by both factories below so the two entry points cannot drift: the
+    plain :func:`make_model` path and the ``ModelFnWithStates`` path used when
+    SEP features are collected must build byte-identical prompts, or the probe
+    feature would be read from a different string than the entropy samples.
     """
     regime = _require_env("SE_REPLICATION_REGIME")
     if regime not in BRIEF_PROMPTS:
@@ -147,25 +142,116 @@ def make_model(
     if eval_path:
         context_index = build_context_index(_load_jsonl(Path(eval_path)))
 
-    if inner_factory is None:
-        from semantic_entropy.adapters import make_model as _default_factory
-
-        inner_factory = _default_factory
-    # The original sends plain text, so any system message must be suppressed.
-    inner_kwargs.setdefault("system_prompt", None)
-    inner = inner_factory(**inner_kwargs)
-
-    def replication_model_fn(prompt: str, num_samples: int) -> Any:
+    def rewrite(prompt: str) -> str:
         context, question = context_index.get(prompt, ("", prompt))
-        full_prompt = build_prompt(
+        return build_prompt(
             question or prompt,
             demonstrations,
             regime=regime,
             context=context or None,
         )
-        return inner(full_prompt, num_samples)
 
-    replication_model_fn.replication_regime = regime  # type: ignore[attr-defined]
-    replication_model_fn.replication_demonstrations = demonstrations  # type: ignore[attr-defined]
-    replication_model_fn.replication_brief = BRIEF_PROMPTS[regime]  # type: ignore[attr-defined]
-    return replication_model_fn
+    return rewrite, regime, demonstrations
+
+
+def _require_system_prompt_disabled() -> None:
+    """Fail unless ``SE_SYSTEM_PROMPT`` is explicitly disabled.
+
+    The underlying adapters read this variable through
+    ``adapters._env_system_prompt``, which treats an *absent* variable as
+    "keep the factory default" -- and that default is the terse QA system
+    message, "Answer the following question as briefly as possible. Give only
+    the answer...". Leaving it unset would therefore wrap the faithful
+    completion prompt in a chat template carrying a second, contradictory
+    instruction, and the run would look plausible while being neither regime.
+
+    Only ``""`` or ``"none"`` disable it. ``unset`` does not.
+    """
+    raw = os.environ.get("SE_SYSTEM_PROMPT")
+    if raw is None or raw.strip().lower() not in {"", "none"}:
+        raise ValueError(
+            "SE_SYSTEM_PROMPT must be set to 'none' (or empty) for replication "
+            "runs: the original sends plain text with no system message, and "
+            "leaving this variable unset silently keeps the terse QA default. "
+            f"Currently: {raw!r}"
+        )
+
+
+def _annotate(fn: Any, regime: str, demonstrations: list[dict[str, str]]) -> Any:
+    fn.replication_regime = regime
+    fn.replication_demonstrations = demonstrations
+    fn.replication_brief = BRIEF_PROMPTS[regime]
+    return fn
+
+
+def make_model(
+    inner_factory: Callable[..., Callable[[str, int], Any]] | None = None,
+    **inner_kwargs: Any,
+) -> Callable[[str, int], Any]:
+    """Return a ``ModelFn`` that prompts the way the original does.
+
+    Use with ``--model-module``. This path draws the sampled answers but
+    collects no hidden-state feature; for runs that also train or score the
+    probes, use :func:`make_model_with_states` instead.
+
+    Args:
+        inner_factory: Factory for the underlying model function. Defaults to
+            :func:`semantic_entropy.adapters.make_model`. Injectable for tests.
+        **inner_kwargs: Forwarded to *inner_factory*.
+
+    Raises:
+        ValueError: If required environment variables are missing or the regime
+            is unknown.
+    """
+    rewrite, regime, demonstrations = _build_prompt_rewriter()
+    _require_system_prompt_disabled()
+
+    if inner_factory is None:
+        from semantic_entropy.adapters import (
+            make_phase1_model as _default_factory,
+        )
+
+        inner_factory = _default_factory
+    inner = inner_factory(**inner_kwargs)
+
+    def replication_model_fn(prompt: str, num_samples: int) -> Any:
+        return inner(rewrite(prompt), num_samples)
+
+    return _annotate(replication_model_fn, regime, demonstrations)
+
+
+def make_model_with_states(
+    inner_factory: Callable[..., Callable[[str, int], Any]] | None = None,
+    **inner_kwargs: Any,
+) -> Callable[[str, int], Any]:
+    """Return a ``ModelFnWithStates`` that prompts the way the original does.
+
+    Use with ``--model-with-states-module``, which is mutually exclusive with
+    ``--model-module`` and is the only path that writes ``sep_hidden_state``.
+    The prompt is rewritten identically to :func:`make_model`, so the probe
+    feature is read from the same string the entropy samples were drawn under.
+
+    ``SE_FEATURE_TEMPERATURE`` should be ``0.1`` for faithful runs: Farquhar et
+    al. sample the most-likely response rather than decoding it greedily, and
+    that same response supplies the graded answer, the P(True) prompt and the
+    probe feature.
+
+    Raises:
+        ValueError: If required environment variables are missing or the regime
+            is unknown.
+    """
+    rewrite, regime, demonstrations = _build_prompt_rewriter()
+    _require_system_prompt_disabled()
+
+    if inner_factory is None:
+        from semantic_entropy.adapters import (
+            make_phase1_model_with_states as _default_factory,
+        )
+
+        inner_factory = _default_factory
+    inner = inner_factory(**inner_kwargs)
+
+    def replication_states_fn(prompt: str, num_samples: int) -> Any:
+        return inner(rewrite(prompt), num_samples)
+
+    return _annotate(replication_states_fn, regime, demonstrations)

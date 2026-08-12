@@ -296,6 +296,14 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
             "SE_SEP_FEATURE_MAX_NEW_TOKENS",
             CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
         ),
+        # None (the default) decodes the most-likely response greedily, which
+        # is the sealed v2/v3 behaviour. Farquhar et al. instead *sample* it at
+        # temperature 0.1, so replication runs set SE_FEATURE_TEMPERATURE=0.1.
+        feature_temperature=(
+            float(os.environ["SE_FEATURE_TEMPERATURE"])
+            if os.environ.get("SE_FEATURE_TEMPERATURE", "").strip()
+            else None
+        ),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",
         hidden_layer=_env_int("SE_SEP_HIDDEN_LAYER", -1),

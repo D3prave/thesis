@@ -87,7 +87,12 @@ export SE_REPLICATION_REGIME="${REGIME}"
 export SE_REPLICATION_FEWSHOT_DATA="${FEWSHOT_DATA}"
 export SE_REPLICATION_EVAL_DATA="${DATA_PATH}"
 export SE_REPLICATION_NUM_FEW_SHOT="${NUM_FEW_SHOT:-5}"
-unset SE_SYSTEM_PROMPT   # the adapter suppresses it; make that explicit here
+# Must be "none", not unset. adapters._env_system_prompt treats an absent
+# variable as "keep the factory default", and that default is the terse QA
+# instruction -- which would wrap the faithful completion prompt in a chat
+# template carrying a second, contradictory instruction. The adapter refuses
+# to start unless this is explicitly disabled.
+export SE_SYSTEM_PROMPT=none
 
 se_require_cached_model "${MODEL_NAME}"
 se_require_data_path "${DATA_PATH}"
@@ -136,11 +141,11 @@ echo "--- collecting regime=${REGIME} dataset=${DATASET} seed=${SEED} ---"
 python -m semantic_entropy.pipeline_cli \
     --dataset "${DATASET}" \
     --run-id "${RUN_ID}" \
-    --phase replication \
+    --phase phase2 \
     --cluster alex \
     --model "${MODEL_NAME}" \
     --model-tier "${MODEL_TIER}" \
-    --model-module semantic_entropy.replication_adapter:make_model \
+    --model-with-states-module semantic_entropy.replication_adapter:make_model_with_states \
     --num-samples 10 \
     --data-path "${DATA_PATH}" \
     --output "${OUT_DIR}/scored.jsonl" \
