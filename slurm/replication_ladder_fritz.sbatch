@@ -1,11 +1,10 @@
 #!/bin/bash -l
 #SBATCH --job-name=se-repl-ladder
-#SBATCH --partition=a100
+#SBATCH --partition=singlenode
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --gres=gpu:a100:1
-#SBATCH --time=03:00:00
+#SBATCH --cpus-per-task=72
+#SBATCH --time=12:00:00
 #SBATCH --output=logs/repl_ladder_%j.out
 #SBATCH --error=logs/repl_ladder_%j.err
 #SBATCH --export=NONE
@@ -58,6 +57,11 @@ done
 
 REPO_ROOT="${SLURM_SUBMIT_DIR}"
 SE_CLUSTER="fritz"
+# Fritz has no GPUs: every job here runs on `singlenode` and the entailment
+# model is scored on CPU. Requesting a GPU partition leaves the job queued
+# indefinitely.
+export SE_SKIP_CUDA_MODULES=1
+SE_NLI_DEVICE="${SE_NLI_DEVICE:-cpu}"
 # shellcheck disable=SC1091
 source "${REPO_ROOT}/slurm/_common.sh"
 

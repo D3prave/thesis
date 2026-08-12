@@ -49,10 +49,23 @@ if [ -z "${REPO_ROOT:-}" ]; then
     return 1 2>/dev/null || exit 1
 fi
 if [ -z "${SE_VENV_DIR:-}" ] && [ "${SE_CLUSTER:-}" = "fritz" ]; then
-    _SE_FRITZ_VENV="${WORK:-}/venvs/thesis_fritz_py312"
-    if [ -f "${_SE_FRITZ_VENV}/bin/activate" ]; then
-        SE_VENV_DIR="${_SE_FRITZ_VENV}"
-    fi
+    # Newest first. NHR retires interpreter modules on OS upgrades, which
+    # orphans any venv built against them: the venv's bin/python is a symlink
+    # into /apps/python/<version>/ and simply stops resolving. A venv whose
+    # interpreter has vanished still activates and still sets PATH, so the
+    # failure surfaces later as a syntax error from a fallback Python 3.9
+    # rather than as a missing environment. Probe for a usable interpreter,
+    # not merely for bin/activate.
+    for _SE_FRITZ_VENV in \
+        "${WORK:-}/venvs/thesis_fritz_py313" \
+        "${WORK:-}/venvs/thesis_fritz_py312"
+    do
+        if [ -x "${_SE_FRITZ_VENV}/bin/python" ] \
+           && "${_SE_FRITZ_VENV}/bin/python" -c "" 2>/dev/null; then
+            SE_VENV_DIR="${_SE_FRITZ_VENV}"
+            break
+        fi
+    done
     unset _SE_FRITZ_VENV
 fi
 SE_VENV_DIR="${SE_VENV_DIR:-${REPO_ROOT}/.venv}"
@@ -69,6 +82,9 @@ fi
 # back to the site default only when no versioned module exists.
 for _loaded_py_module in \
     python/3.9-anaconda \
+    python/3.13-miniforge \
+    python/3.13-conda \
+    python/3.13 \
     python/3.12-conda \
     python/3.12-miniforge \
     python/3.12 \
@@ -80,7 +96,16 @@ do
 done
 unset _loaded_py_module
 _SE_PY_MODULE_LOADED=0
+# NHR retires module versions on OS upgrades. As of 2026-08 Fritz offers only
+# python/3.13-miniforge; the 3.12 and 3.11 entries below are kept so an older
+# node that still carries them keeps working. If none match, the loop falls
+# through to bare `python`, which on Fritz is 3.9 and fails this project's
+# >=3.11 check -- the warning below is then the only signal, so it must not be
+# ignored.
 for _py_module in \
+    python/3.13-miniforge \
+    python/3.13-conda \
+    python/3.13 \
     python/3.12-miniforge \
     python/3.12-conda \
     python/3.12 \
@@ -133,6 +158,38 @@ if [ "${SE_SKIP_CUDA_MODULES:-0}" != "1" ] && [ -z "${CUDA_HOME:-}" ]; then
 fi
 # shellcheck disable=SC1090
 source "${SE_VENV_DIR}/bin/activate"
+
+# Activation alone proves nothing, and both failure modes below have happened
+# on this project:
+#   * a venv whose base interpreter was retired by a module upgrade still
+#     sources cleanly and still edits PATH, but leaves `python` resolving to
+#     the system 3.9, which fails on `X | Y` type syntax deep inside an import;
+#   * if activation silently does not take, `pip install` falls back to a
+#     *user* install under ~/.local, which a venv cannot see -- that one cost
+#     11 GB against a 100 GB home quota before it was noticed.
+# Assert the interpreter is the venv's own and new enough, before any
+# expensive work starts.
+_SE_PREFIX="$(python -c 'import sys; print(sys.prefix)' 2>/dev/null || true)"
+if [ "${_SE_PREFIX}" != "${SE_VENV_DIR}" ]; then
+    echo "ERROR: python resolves to prefix '${_SE_PREFIX}', expected '${SE_VENV_DIR}'." >&2
+    echo "       The venv did not activate, or its base interpreter is gone." >&2
+    echo "       Rebuild it on a login node:" >&2
+    echo "         module load python/3.13-miniforge" >&2
+    echo "         python -m venv ${SE_VENV_DIR}" >&2
+    echo "         source ${SE_VENV_DIR}/bin/activate" >&2
+    echo "         python -c 'import sys; print(sys.prefix)'   # must be the venv" >&2
+    echo "         # Fritz is CPU-only: install CPU torch first or pip pulls ~11 GB of CUDA" >&2
+    echo "         pip install --index-url https://download.pytorch.org/whl/cpu torch" >&2
+    echo "         pip install -e '.[test,prep,plot,hf,kle,sep]'" >&2
+    unset _SE_PREFIX
+    return 1 2>/dev/null || exit 1
+fi
+unset _SE_PREFIX
+if ! python -c 'import sys; raise SystemExit(0 if sys.version_info[:2] >= (3, 11) else 1)'; then
+    echo "ERROR: venv python is $(python -V 2>&1); this project needs >= 3.11." >&2
+    return 1 2>/dev/null || exit 1
+fi
+
 # Add CUDA to PATH *after* venv activation so activate's PATH reset
 # doesn't clobber the CUDA bin directory.
 if [ -n "${CUDA_HOME:-}" ]; then
