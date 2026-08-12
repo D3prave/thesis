@@ -133,6 +133,7 @@ cat > "${OUT_DIR}/job_meta.json" <<META
   "data_artifact_sha256": "${DATA_SHA256}",
   "fewshot_data_path": "${FEWSHOT_DATA}",
   "fewshot_artifact_sha256": "${FEWSHOT_SHA256}",
+  "prompt_limit": ${LIMIT:-null},
   "start_time": "$(date --iso-8601=seconds)"
 }
 META
@@ -149,6 +150,7 @@ python -m semantic_entropy.pipeline_cli \
     --num-samples 10 \
     --data-path "${DATA_PATH}" \
     --output "${OUT_DIR}/scored.jsonl" \
+    ${LIMIT:+--limit "${LIMIT}"} \
     ${PIPELINE_EXTRA_ARGS:-}
 
 # --- answer-length gate ------------------------------------------------------
