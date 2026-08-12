@@ -22,12 +22,13 @@ cells, with no method beating it by a margin of practical size anywhere
 (Table~\ref{tab:significance-vs-surface}). On long-form
 biography the two count-based string-frequency scores sit near chance because
 they are almost pinned at their ceiling. Meaning-level grouping recovers a
-signal (discrete semantic entropy: $0.734 / 0.590 / 0.648$ for Mistral-7B /
-Llama-3.1-8B / Llama-3.1-70B), as does the correctness-trained accuracy probe
-($0.704 / 0.680 / 0.773$). A genuine SEP is not defined for this answer-only
+signal (discrete semantic entropy: AUROC $0.734 / 0.590 / 0.648$ for
+Mistral-7B / Llama-3.1-8B / Llama-3.1-70B), as does the correctness-trained
+accuracy probe (AUROC $0.704 / 0.680 / 0.773$, same model order). A genuine SEP
+is not defined for this answer-only
 whole-paragraph protocol. The surface-only probability-weighted
-naive entropy also remains strong, at $0.769 / 0.769 / 0.757$, and is best for
-the two smaller generators.
+naive entropy also remains strong, at AUROC $0.769 / 0.769 / 0.757$, and is
+best for the two smaller generators.
 
 The mechanism behind both halves is visible in the worked examples of
 Section~\ref{sec:hand-audits}. On short answers (Example~1,
@@ -76,7 +77,8 @@ a detector benchmark (Section~\ref{sec:bio-results}), because a baseline
 pinned at its ceiling is easy to beat. The claim-level evaluation, which
 carries the long-form conclusions of this thesis, settles the question on its
 own terms: against human labels, and against a surface baseline that still
-works ($0.642 / 0.650 / 0.619$), meaning-based clustering leads in every cell
+works (AUROC $0.642 / 0.650 / 0.619$, same model order), meaning-based
+clustering leads in every cell
 by $0.07$ to $0.11$ AUROC (Section~\ref{sec:factualbio-results}). That is the
 evidence H3 rests on: not the whole-paragraph contrast, where the baseline is
 degenerate, but the claim-level one, where it is not.
@@ -110,7 +112,8 @@ Table~\ref{tab:clustering-sensitivity} established that the
 equivalence backend barely matters on short answers but is
 \emph{result-determining} on biography
 (Figure~\ref{fig:bio-clustering-sensitivity}), where the Qwen-72B judge
-($0.755 / 0.678 / 0.695$) clusters meanings more reliably than the
+(AUROC $0.755 / 0.678 / 0.695$ for Mistral-7B / Llama-3.1-8B / Llama-3.1-70B)
+clusters meanings more reliably than the
 DeBERTa cross-encoders and lifts AUROC accordingly.
 
 Two cautions follow. First, ``bigger judge'' is not automatically
@@ -138,8 +141,8 @@ The single-pass hidden-state probe (SEP) and correctness-trained accuracy
 probe read the model's internal state once, without drawing ten samples. On
 short answers this thrift can cost accuracy. The probes are trained on a
 disjoint set of prompts and scored on the same evaluation records as the
-entropy tables earlier in this chapter, so the two are directly comparable:
-SEP lands between
+entropy tables of Chapter~\ref{ch:results}, so the two are directly comparable:
+SEP lands between AUROC
 $0.726$ and $0.900$ across the nine cells
 (Table~\ref{tab:probes}) against a surface baseline running
 from $0.755$ to $0.901$. The held-out comparisons do not show a uniform loss,
@@ -169,8 +172,12 @@ The temperature sweep (Section~\ref{sec:temperature-sensitivity},
 Figure~\ref{fig:temp-sweep}) gives the P(True)-versus-entropy comparison
 a practical form. Sampling-based entropy depends on the samples
 disagreeing, so it is weak when decoding is near-greedy and strengthens
-as temperature rises. For example, TriviaQA/70B semantic entropy climbs
-from $0.52$ at $T{=}0.1$ to $0.75$ at $T{=}1.0$. The single-pass baseline
+as temperature rises. For example, the AUROC of semantic entropy on
+TriviaQA with Llama-3.1-70B climbs from $0.522$ at $T{=}0.1$ to $0.748$ at
+$T{=}1.0$. Table~\ref{tab:temp-sweep} reports the Llama-3.1-70B cells;
+the corresponding curves for Mistral-7B and Llama-3.1-8B are in
+Figure~\ref{fig:temp-sweep}, and the per-cell statements below are read
+from both. The single-pass baseline
 does not move with it: the information it reads is present regardless of
 how diverse the samples are, and \mbox{P(True)} shifts by only $+0.031$ on
 average across the sweep. The gap therefore closes in every short-answer
@@ -200,7 +207,7 @@ measured directly in every instance of the sweep, and stays at or below one
 sample in five thousand throughout
 (Section~\ref{sec:budgets-and-exclusions}).
 
-\section{Model scale erodes the signal}
+\section{Model scale weakens the claim-level signal}
 \label{sec:scale-factualbio}
 
 The FactualBio claim-level extension
@@ -210,7 +217,9 @@ claim-level semantic entropy weakens monotonically as the generator grows,
 from AUROC $0.748$ (Mistral-7B) through $0.724$ (Llama-3.1-8B) to $0.701$
 (Llama-3.1-70B), with seed standard deviations of $0.017$ or less. The
 whole-paragraph biography numbers do not follow the same monotonic order:
-$0.734 / 0.590 / 0.648$ in Section~\ref{sec:bio-results}.
+AUROC $0.734 / 0.590 / 0.648$ in the same model order
+(Section~\ref{sec:bio-results}). The title of this section therefore states
+what holds at claim level, not a general erosion with scale.
 
 The reason follows from what semantic entropy actually measures:
 \emph{inconsistency}. It flags an answer when regenerated samples disagree
@@ -242,21 +251,47 @@ briefly as possible; there, across sixty task--model combinations, semantic
 entropy and its discrete variant reach $0.792$ and $0.790$, naive entropy
 $0.760$ and P(True) $0.683$. The short-phrase aggregate is the comparator
 that matches this thesis, whose grid elicits short answers and follows the
-configuration the original pairs with them: correctness scored by SQuAD
-token-F1 and entailment by a local cross-encoder, rather than the GPT-4
-judge and GPT-3.5 entailment used for the sentence-length runs.
-The grid was deliberately moved toward that protocol: matched
-sampling ($M=10$, $T=1.0$, top-$p=0.9$, top-$k=50$, with a low-temperature
-most-likely answer for accuracy labeling via SQuAD token-F1), three
-shared datasets (TriviaQA, NQ-Open, SVAMP), and both probability-weighted
-estimators computed alongside the discrete approximation. The remaining
-differences are deliberate
-and disclosed: a narrower set of generators, mostly newer, sharing the
-Mistral and Llama families with the original but no exact checkpoint
-(Mistral 7B Instruct v0.3 here against their v0.1, Llama-3.1 against
-LLaMA~2 Chat); entailment judged throughout with local NLI cross-encoders,
-the backend the original uses for short-phrase answers, plus an open Qwen
-judge in place of GPT-3.5; and 500-record evaluation sets, 300 for SVAMP.
+configuration the original pairs with them: a local DeBERTa cross-encoder
+checking strict bidirectional entailment, and correctness scored by SQuAD
+token-F1 at the same threshold their released code applies by default,
+rather than the GPT-4 judge and GPT-3.5 entailment used for the
+sentence-length runs. One caveat travels with that choice. The original
+validates its accuracy measures against human raters and reports token-F1
+agreeing with them on $0.47$ of cases against $0.93$ for the GPT-4 judge,
+so the labels underlying every short-answer AUROC here are the noisier of
+the two. This is one reason the comparison below is read as a comparison
+of orderings rather than of absolute values.
+Table~\ref{tab:protocol-comparison} sets the two protocols side by side.
+The sampling parameters, correctness metric and entailment backend were
+matched; the generators, dataset count and evaluation size differ, and those
+differences are deliberate and disclosed.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Protocol of the Farquhar et al.\ short-phrase setting against the
+protocol used here. Rows above the rule were matched deliberately; rows below
+it differ.}
+\label{tab:protocol-comparison}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & Farquhar et al.\ (short-phrase) & This thesis \\
+\midrule
+Sampling            & $M=10$, $T=1.0$, top-$p=0.9$, top-$k=50$ & identical \\
+Entailment backend  & DeBERTa cross-encoder, strict bidirectional & identical (v3-large), plus an open Qwen judge \\
+Estimators          & discrete and probability-weighted & identical \\
+Accuracy label      & SQuAD token-F1, threshold $0.5$ & identical \\
+\midrule
+Prompting           & five-shot demonstrations & zero-shot \\
+Generators          & twelve: six instruction-tuned, six base & three, all instruction-tuned \\
+Datasets            & five & three shared (TriviaQA, NQ-Open, SVAMP) \\
+Task--model cells   & 60 & 9 \\
+Evaluation records  & 400 test per task & 500 per task, 300 for SVAMP \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
 Against that comparator the method reproduces closely, and one of its three
 baseline orderings survives with it. Table~\ref{tab:farquhar-comparison}
@@ -284,8 +319,15 @@ at $0.817$.
 al.~\cite{semantic_entropy_nature_2024} and as measured here. Their two
 columns are the averages over the thirty task--model combinations of their
 sentence-length setting and the sixty of their short-phrase setting; the
-latter is the comparator for this thesis, whose answers and labeling
-protocol match it. Ours is the unweighted mean of the nine model--dataset
+latter is the comparator for this thesis, whose answer length and
+entailment backend match it. Two differences bear on the reading. Half of
+those sixty cells come from base rather than instruction-tuned models,
+a population excluded here; and the original grades correctness with a
+GPT-4 judge throughout, while this thesis uses token-F1, so the two
+columns rest on different definitions of a correct answer. Their own
+entailment ablation further puts a local DeBERTa backend $0.05$ AUROC
+below the GPT-3.5 entailment used for their sentence-length column,
+which is the backend used throughout this thesis. Ours is the unweighted mean of the nine model--dataset
 cells printed in Tables~\ref{tab:auroc-triviaqa}--\ref{tab:auroc-svamp}
 (canonical backend, seed means), and can be recomputed from those tables
 directly. No column is a like-for-like average of another: the generators
@@ -331,9 +373,10 @@ reaches zero. Count-based surface entropy, which the
 paper does not report as a separate baseline, is the strongest single
 short-answer score in most cells, and no semantic estimator beats it by more
 than a practically negligible margin (Section~\ref{sec:significance}).
-Cell by cell, semantic entropy is above the raw-string naive estimator in six
-of the nine cells but above the probability-weighted one in only two, both on
-SVAMP, with per-cell differences running from $-0.056$ to $+0.053$. The
+Cell by cell, \emph{discrete} semantic entropy is above the raw-string naive
+estimator in six of the nine cells but above the probability-weighted one in
+only two, both on SVAMP, with per-cell differences running from $-0.056$ to
+$+0.053$. The
 $0.001$ separating those two aggregates is therefore a cancellation across
 tasks rather than a consensus among them. Probability weighting appears to
 help on knowledge recall and to hurt on arithmetic, where the answers are

@@ -327,6 +327,7 @@ def make_hf_model_with_states(
     ),
     return_logprobs: bool = False,
     collect_features: bool = True,
+    feature_temperature: float | None = None,
 ) -> Callable[[str, int], SEPGeneration]:
     """Return a Kossen-style SEP collection function backed by HuggingFace.
 
@@ -389,6 +390,14 @@ def make_hf_model_with_states(
             temperature collections (the probe feature is greedy and hence
             temperature-independent; it is captured only at the canonical
             temperature).
+        feature_temperature: Decoding temperature for the single most-likely
+            response. ``None`` (default) decodes greedily by argmax, which is
+            the sealed behaviour. Pass ``0.1`` for the paper-faithful runs:
+            Farquhar et al. sample this response at temperature 0.1 rather
+            than taking an argmax, and the same response supplies the graded
+            answer, the P(True) prompt and the probe feature. Note that a
+            sampled response is no longer identical across seeds, so the probe
+            feature acquires a seed spread it does not have under argmax.
 
     Returns:
         A callable returning :class:`SEPGeneration`.
@@ -484,7 +493,21 @@ def make_hf_model_with_states(
         _sample_config.output_logits = True
 
     _greedy_config = copy.deepcopy(_model.generation_config)
-    _greedy_config.do_sample = False
+    if feature_temperature is None:
+        # Deterministic argmax. This is the sealed v2/v3 behaviour and keeps the
+        # most-likely answer reproducible across seeds.
+        _greedy_config.do_sample = False
+    else:
+        # Farquhar et al. do not decode greedily. Their generate_answers.py
+        # draws the "most likely" answer as a *sample* at temperature 0.1
+        # (`temperature = 0.1 if i == 0 else args.temperature`, with
+        # `do_sample=True` throughout), so the graded answer, the P(True)
+        # input and the probe feature all come from a low-temperature draw
+        # rather than an argmax. Setting this reproduces that.
+        if feature_temperature <= 0.0:
+            raise ValueError("feature_temperature must be positive, or None for argmax")
+        _greedy_config.do_sample = True
+        _greedy_config.temperature = float(feature_temperature)
     _greedy_config.max_new_tokens = feature_response_max_new_tokens
     _greedy_config.pad_token_id = _tokenizer.pad_token_id
     _greedy_config.return_dict_in_generate = True

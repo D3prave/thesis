@@ -1501,6 +1501,12 @@ def train_probe(
             "records with both correct and incorrect labels"
         )
 
+    # Farquhar et al.'s get_p_ik fits a bare LogisticRegression(), i.e. the
+    # same l2 penalty, C=1.0 and lbfgs solver used here, but leaves max_iter at
+    # the scikit-learn default of 100 and records whether the fit converged
+    # rather than raising the cap. The higher cap here only removes the
+    # possibility of reporting an unconverged fit; convergence is recorded the
+    # same way so the difference is visible instead of assumed.
     model = LogisticRegression(
         penalty="l2",
         C=C,
@@ -1510,6 +1516,28 @@ def train_probe(
     )
     model.fit(x_train, y_train)
 
+    # Test doubles for the estimator need not expose solver diagnostics.
+    raw_n_iter = getattr(model, "n_iter_", None)
+    max_iter = int(getattr(model, "max_iter", 0) or 0)
+    if raw_n_iter is None or not max_iter:
+        convergence: dict[str, int | bool | None] = {
+            "n_iter": None,
+            "converged": None,
+            "converged_within_paper_max_iter": None,
+            "max_iter": max_iter or None,
+        }
+    else:
+        n_iter = int(raw_n_iter[0])
+        convergence = {
+            "n_iter": n_iter,
+            "converged": bool(n_iter < max_iter),
+            # Their get_p_ik leaves max_iter at the scikit-learn default of 100
+            # and reports convergence against it. Recorded so a fit that would
+            # not have converged under their configuration is visible.
+            "converged_within_paper_max_iter": bool(n_iter < 100),
+            "max_iter": max_iter,
+        }
+
     coef = model.coef_[0].astype(float).tolist()
     intercept = float(model.intercept_[0])
 
@@ -1518,6 +1546,7 @@ def train_probe(
         artifact_metadata["entropy_target_provenance"] = target_provenance
     artifact_metadata.update(
         {
+            "solver_convergence": convergence,
             "artifact_schema": CANONICAL_SEP_ARTIFACT_SCHEMA,
             "target_definition": (
                 "high_semantic_entropy"

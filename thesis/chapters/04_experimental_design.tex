@@ -24,8 +24,9 @@ The final evaluation grid uses four datasets: TriviaQA~\cite{joshi_triviaqa_2017
 \caption{Illustrative records from TriviaQA, NQ-Open, SVAMP, and the
   biography task. TriviaQA and NQ-Open
   prompts are the raw question string (NQ-Open questions are real
-  search queries, kept in their original lowercase form without a
-  question mark); SVAMP prompts concatenate the
+  search queries and keep their original lowercase form; a question mark
+  is appended, as in the original study's data loader); SVAMP prompts
+  concatenate the
   \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open reference
   answers include accepted aliases separated by semicolons; SVAMP
   reference answers are the single numeric value; biography references
@@ -41,9 +42,9 @@ TriviaQA & What is the capital city of France?                        & Paris; P
 TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
 TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
 \midrule
-NQ-Open  & when was the last time anyone was on the moon              & 14 December 1972 UTC; December 1972 \\[4pt]
-NQ-Open  & how many seasons of the bastard executioner are there      & one; one season \\[4pt]
-NQ-Open  & when did the eagles win last super bowl                    & 2017 \\
+NQ-Open  & when was the last time anyone was on the moon?             & 14 December 1972 UTC; December 1972 \\[4pt]
+NQ-Open  & how many seasons of the bastard executioner are there?     & one; one season \\[4pt]
+NQ-Open  & when did the eagles win last super bowl?                   & 2017 \\
 \midrule
 SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
 SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
@@ -430,6 +431,84 @@ than attached to every caption.
 
 One figure (Figure~\ref{fig:regime-split}) places short-answer and biography results side by side because the short-versus-long contrast is the central claim of this thesis. The two biography groups are shaded and separated by a divider there, and comparisons are made only between the two bars of one group. The three regimes are graded differently: short answers against reference answers, whole paragraphs by an LLM judge, and individual claims against published human labels. Their absolute AUROC values are therefore not commensurable.
 
+
+\section{Where this study differs from the original}
+\label{sec:deviation-register}
+
+A replication is only as useful as its account of what it changed.
+Table~\ref{tab:deviation-register} lists every difference between this study
+and Farquhar et al.~\cite{semantic_entropy_nature_2024}, together with the
+reason for it. Everything not listed follows the original: the number of
+samples per question, the decoding settings, the low-temperature answer used
+for grading, the way answers are grouped by meaning, the four entropy scores,
+the two comparison methods, and the way correctness is decided.
+
+\begin{table}[ht]
+\thisfloatsetup{capposition=above}
+\centering
+\caption{Every difference between this study and the original, with its
+reason. The first group was forced by cost or access; the second was chosen
+to make the comparison across models cleaner; the third is what this study
+adds.}
+\label{tab:deviation-register}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}p{4.4cm}p{4.4cm}p{5.0cm}@{}}
+\toprule
+Original & This study & Reason \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Forced by cost or access}}\\
+GPT-3.5 decides whether two long answers mean the same thing &
+  a local entailment model does &
+  no paid or closed service; the original's own comparison puts the local
+  model about $0.05$ AUROC behind \\
+\addlinespace[3pt]
+GPT-4 decides which answers count as correct in the longer setting &
+  automatic string matching, with an open judge reported alongside &
+  same reason; the original measures this trade-off and it is reported here \\
+\addlinespace[3pt]
+Six models, and six more without instruction tuning &
+  three models, all instruction-tuned &
+  compute; the families overlap and the size range is comparable \\
+\addlinespace[3pt]
+Five question sets &
+  the three shared with this study &
+  one of theirs withholds its own reading passages artificially, and another
+  differs from the two kept here mainly in subject matter \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Chosen for a cleaner comparison}}\\
+Question sets resampled per run &
+  one fixed set of questions, shared by every model and repeat &
+  every model answers the same questions, so the comparison between them is
+  paired \\
+\addlinespace[3pt]
+$400$ questions per task &
+  $500$, or $300$ for the arithmetic task &
+  a slightly larger sample at no extra cost \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Added here}}\\
+No baseline that counts answer strings &
+  two: one over raw strings, one after light clean-up &
+  tests whether grouping by meaning beats simply tidying the strings \\
+\addlinespace[3pt]
+Long text handled only by splitting it into single claims &
+  whole paragraphs scored directly as well &
+  isolates what changes when the scored unit grows \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+One further difference concerns the biography experiment and cannot be
+removed. In the original, one model writes a biography, its claims are checked
+by hand, and that same model's repeated answers supply the uncertainty score.
+Here the claims and the hand-checked labels are taken from the original, so
+they describe a model this study does not run, while the repeated answers come
+from the three generators evaluated here. The measurement is therefore of one
+model's uncertainty about another model's claims. Rebuilding the closed loop
+would mean generating fresh biographies and checking their claims by hand,
+which would give up the only human-checked labels available. The trend with
+model size reported in Section~\ref{sec:factualbio-results} should be read
+with this in mind.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}

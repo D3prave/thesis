@@ -71,11 +71,36 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--clustering",
-        choices=["strict", "nondefeating"],
+        choices=["strict", "nondefeating", "anchor"],
         default="strict",
-        help="Bidirectional-entailment rule. 'strict' requires entailment in "
-        "both directions (default); 'nondefeating' matches Farquhar et al.'s "
-            "strict_entailment=False (no contradiction either way, >=1 entailment).",
+        help="Bidirectional-entailment rule and closure. 'strict' requires "
+        "entailment in both directions and takes a transitive "
+        "connected-components closure (default); 'nondefeating' matches "
+        "Farquhar et al.'s strict_entailment=False (no contradiction either "
+        "way, >=1 entailment); 'anchor' requires entailment in both "
+        "directions but assigns clusters with the order-dependent anchor scan "
+        "of the Farquhar et al. main text, comparing each answer only against "
+        "the first member of each open cluster.",
+    )
+    parser.add_argument(
+        "--question-format",
+        choices=["labelled", "paper"],
+        default="labelled",
+        help="How the question is attached to each answer for "
+        "question-conditioned entailment. 'labelled' (default) uses "
+        "'Question: ...\\nAnswer: ...' and reproduces this study's earlier "
+        "runs; 'paper' joins them with a single space and no labels, matching "
+        "the released compute_uncertainty_measures.py.",
+    )
+    parser.add_argument(
+        "--cluster-source",
+        choices=["normalized", "raw"],
+        default="normalized",
+        help="Which strings are fed to the entailment model. 'normalized' "
+        "(default) uses normalized_answers; 'raw' uses sampled_answers, "
+        "matching Farquhar et al., who cluster the generations as produced. "
+        "The surface-entropy baseline is scored over normalized_answers "
+        "either way, so this flag does not disturb it.",
     )
     parser.add_argument(
         "--question-conditioned",
@@ -152,7 +177,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args.output_jsonl.parent.mkdir(parents=True, exist_ok=True)
 
     if args.exact_match:
-        clustered = _cluster_exact(records)
+        clustered = _cluster_exact(records, args.cluster_source)
     else:
         clustered = _cluster_batched(records, args)
 
@@ -161,8 +186,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             source_run_id = str(record.get("run_id", ""))
             record["entailment_backend"] = backend
             record["question_conditioned_entailment"] = args.question_conditioned
+            # "question_answer_v1" is the historical label for the labelled
+            # format and is recorded in already-sealed artifacts, so it is kept
+            # rather than renamed.
             record["entailment_input_format"] = (
-                "question_answer_v1" if args.question_conditioned else "answer_only"
+                ("question_answer_v1" if args.question_format == "labelled"
+                 else "question_answer_paper")
+                if args.question_conditioned
+                else "answer_only"
             )
             record["source_run_id"] = source_run_id
             record["source_artifact_sha256"] = source_sha256
@@ -176,7 +207,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                         args.protocol_manifest_sha256
                     )
             record["clustering_rule"] = (
-                "bidirectional" if args.clustering == "strict" else "nondefeating"
+                "nondefeating" if args.clustering == "nondefeating" else "bidirectional"
+            )
+            record["clustering_closure"] = (
+                "anchor_scan" if args.clustering == "anchor" else "connected_components"
+            )
+            record["cluster_input"] = (
+                "sampled_answers"
+                if args.cluster_source == "raw"
+                else "normalized_answers"
             )
             if not args.exact_match:
                 nli_model = _nli_model_name(args)
@@ -226,12 +265,52 @@ def _load_records(input_jsonl: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _cluster_exact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _representatives_from_normalized(
+    record: dict[str, Any], cluster_ids: list[int]
+) -> list[str]:
+    """Cluster representatives taken from ``normalized_answers``.
+
+    Clusters may be induced over raw generations, but the schema invariant
+    checked by :func:`check_cluster_consistency` requires each representative to
+    appear among the normalized answers. Taking the first member of each cluster
+    by index keeps that invariant regardless of the clustering input.
+    """
+    normalized = record["normalized_answers"]
+    representatives = [""] * (max(cluster_ids) + 1)
+    seen: set[int] = set()
+    for index, cid in enumerate(cluster_ids):
+        if cid not in seen:
+            representatives[cid] = normalized[index]
+            seen.add(cid)
+    return representatives
+
+
+def _cluster_answers(
+    record: dict[str, Any], cluster_source: str = "normalized"
+) -> list[str]:
+    """Strings fed to the entailment model for this record.
+
+    ``raw`` selects the generations as produced, matching Farquhar et al.
+    The surface-entropy baseline is scored separately over
+    ``normalized_answers`` and is unaffected by this choice.
+    """
+    field = "sampled_answers" if cluster_source == "raw" else "normalized_answers"
+    answers = record.get(field)
+    if not isinstance(answers, list) or not answers:
+        raise ValueError(f"record is missing a non-empty {field}")
+    return answers
+
+
+def _cluster_exact(
+    records: list[dict[str, Any]], cluster_source: str = "normalized"
+) -> list[dict[str, Any]]:
     print("using exact-match reclustering", flush=True)
     return [
         _with_updated_clusters(
             record,
-            *nli_cluster(record["normalized_answers"], exact_match_entailment_fn),
+            *nli_cluster(
+                _cluster_answers(record, cluster_source), exact_match_entailment_fn
+            ),
         )
         for record in records
     ]
@@ -240,8 +319,13 @@ def _cluster_exact(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _cluster_batched(
     records: list[dict[str, Any]], args: argparse.Namespace
 ) -> list[dict[str, Any]]:
+    cluster_source = getattr(args, "cluster_source", "normalized")
+    print(f"clustering over {cluster_source} answers", flush=True)
     pair_maps, pending_pairs, labels = _collect_pair_tasks(
-        records, question_conditioned=args.question_conditioned
+        records,
+        question_conditioned=args.question_conditioned,
+        cluster_source=cluster_source,
+        question_format=getattr(args, "question_format", "labelled"),
     )
     print(
         f"prepared {len(pending_pairs)} unique ordered NLI pairs "
@@ -260,14 +344,22 @@ def _cluster_batched(
         predicted = entailer.predict(pending_pairs)
         labels.update(predicted)
 
+    mode = getattr(args, "clustering", "strict")
     clustered: list[dict[str, Any]] = []
     for index, (record, pair_map) in enumerate(zip(records, pair_maps), start=1):
-        clusters, representatives = _clusters_from_pair_labels(
-            record["normalized_answers"],
-            pair_map,
-            labels,
-            strict=(getattr(args, "clustering", "strict") == "strict"),
-        )
+        answers = _cluster_answers(record, cluster_source)
+        if mode == "anchor":
+            clusters, representatives = _clusters_by_anchor_scan(
+                answers, pair_map, labels
+            )
+        else:
+            clusters, representatives = _clusters_from_pair_labels(
+                answers,
+                pair_map,
+                labels,
+                strict=(mode == "strict"),
+            )
+        representatives = _representatives_from_normalized(record, clusters)
         clustered.append(_with_updated_clusters(record, clusters, representatives))
         if index == 1 or index % 25 == 0:
             print(f"  clustered {index}/{len(records)} records", flush=True)
@@ -278,6 +370,8 @@ def _collect_pair_tasks(
     records: list[dict[str, Any]],
     *,
     question_conditioned: bool = False,
+    cluster_source: str = "normalized",
+    question_format: str = "labelled",
 ) -> tuple[list[PairMap], list[OrderedPair], dict[OrderedPair, str]]:
     labels: dict[OrderedPair, str] = {}
     pending_seen: set[OrderedPair] = set()
@@ -285,9 +379,12 @@ def _collect_pair_tasks(
     pair_maps: list[PairMap] = []
 
     for record in records:
-        answers = record["normalized_answers"]
+        answers = _cluster_answers(record, cluster_source)
         entailment_inputs = (
-            [_question_answer_input(record["prompt"], answer) for answer in answers]
+            [
+                _question_answer_input(record["prompt"], answer, question_format)
+                for answer in answers
+            ]
             if question_conditioned
             else answers
         )
@@ -370,6 +467,57 @@ class _BatchedNli:
         return labels
 
 
+def _merges(
+    pair_labels: tuple[str, str],
+    mode: str,
+) -> bool:
+    """Whether two answers are equivalent under the configured relation."""
+    forward, backward = pair_labels
+    if mode == "nondefeating":
+        both = {forward, backward}
+        return NLI_CONTRADICTION not in both and NLI_ENTAILMENT in both
+    return forward == NLI_ENTAILMENT and backward == NLI_ENTAILMENT
+
+
+def _clusters_by_anchor_scan(
+    answers: list[str],
+    pair_map: PairMap,
+    labels: dict[OrderedPair, str],
+) -> tuple[list[int], list[str]]:
+    """Order-dependent anchor scan of the Farquhar et al. main text.
+
+    Each unassigned answer opens a cluster and every later unassigned answer is
+    compared against that anchor alone. This is the published algorithm: "it is
+    sufficient to check if the sequence bidirectionally entails any of the
+    existing sequences in that cluster (we arbitrarily pick the first one),
+    given the transitivity of semantic equivalence."
+
+    Supplementary Note 3 concedes transitivity fails in practice, so this
+    returns at least as many clusters as the connected-components closure.
+    """
+    if not answers:
+        raise ValueError("cluster source must not be empty")
+
+    cluster_ids = [-1] * len(answers)
+    next_id = 0
+    for i in range(len(answers)):
+        if cluster_ids[i] != -1:
+            continue
+        cluster_ids[i] = next_id
+        for j in range(i + 1, len(answers)):
+            # No guard on cluster_ids[j]: the released get_semantic_ids
+            # overwrites an existing assignment, so a later anchor can take a
+            # member from an earlier cluster. Reproduced deliberately.
+            key = (i, j) if (i, j) in pair_map else (j, i)
+            forward, backward = pair_map[key]
+            if _merges((labels[forward], labels[backward]), "strict"):
+                cluster_ids[j] = next_id
+        next_id += 1
+
+    representatives = [answers[cluster_ids.index(cid)] for cid in range(next_id)]
+    return cluster_ids, representatives
+
+
 def _clusters_from_pair_labels(
     answers: list[str],
     pair_map: PairMap,
@@ -383,9 +531,12 @@ def _clusters_from_pair_labels(
     :func:`semantic_entropy.clustering.nli_cluster`). ``strict=False`` matches
     their default ``strict_entailment=False``: merge when neither direction is a
     contradiction and at least one is entailment (the "non-defeating" rule).
+
+    Both settings take a transitive connected-components closure. For the
+    published anchor scan see :func:`_clusters_by_anchor_scan`.
     """
     if not answers:
-        raise ValueError("normalized_answers must not be empty")
+        raise ValueError("cluster source must not be empty")
 
     parent = list(range(len(answers)))
 
@@ -476,11 +627,32 @@ def _pipeline_device(device: str) -> str | int:
     return -1 if device == "cpu" else device
 
 
-def _question_answer_input(question: str, answer: str) -> str:
+def _question_answer_input(
+    question: str, answer: str, question_format: str = "labelled"
+) -> str:
+    """Build the string handed to the entailment model.
+
+    Two formats. ``paper`` reproduces the released
+    ``compute_uncertainty_measures.py``, which conditions a DeBERTa backend by
+    joining question and answer with a single space and no labels::
+
+        if args.condition_on_question and args.entailment_model == 'deberta':
+            responses = [f'{question} {r}' for r in responses]
+
+    ``labelled`` is this study's earlier format, which adds ``Question:`` and
+    ``Answer:`` markers on separate lines. It is retained as the default so
+    that previously recorded runs reproduce exactly; the faithful runs pass
+    ``paper``. The choice is not cosmetic: the entailment model scores the
+    literal string, so it moves cluster boundaries on every record.
+    """
     question_text = str(question).strip()
     if not question_text:
         raise ValueError("question-conditioned entailment requires a non-empty prompt")
-    return f"Question: {question_text}\nAnswer: {answer}"
+    if question_format == "paper":
+        return f"{question_text} {answer}"
+    if question_format == "labelled":
+        return f"Question: {question_text}\nAnswer: {answer}"
+    raise ValueError(f"unknown question format {question_format!r}")
 
 
 def _nli_model_name(args: argparse.Namespace) -> str:

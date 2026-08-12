@@ -75,6 +75,15 @@ class PromptItem:
         split: Dataset split, e.g. ``"validation"`` or ``"train"``.
         prompt: The full question text fed to the model.
         reference_answers: One or more acceptable answer strings.
+        context: Passage text supplied separately from the question, or
+            ``None`` when the dataset has none. Only SVAMP uses this: Farquhar
+            et al. force ``use_context=True`` for that dataset, so its ``Body``
+            becomes its own ``Context:`` line ahead of the ``Question:`` line
+            rather than being concatenated into the question. ``prompt``
+            retains the concatenated form so that existing callers, and the
+            recorded runs that used it, are unaffected.
+        question: The question alone, without any context. Equal to ``prompt``
+            unless ``context`` is set.
     """
 
     prompt_id: str
@@ -82,6 +91,12 @@ class PromptItem:
     split: str
     prompt: str
     reference_answers: list[str]
+    context: str | None = None
+    question: str | None = None
+
+    def question_text(self) -> str:
+        """Return the question without context, falling back to the prompt."""
+        return self.question if self.question is not None else self.prompt
 
 
 # ---------------------------------------------------------------------------
@@ -225,6 +240,11 @@ def load_svamp_records(
         else:
             answer_str = str(raw_answer)
 
+        # ``prompt`` keeps the concatenated form used by the recorded runs.
+        # ``context`` and ``question`` are carried separately so that a
+        # paper-faithful prompt can place ``Body`` on its own ``Context:`` line,
+        # which is what Farquhar et al. do: their generate_answers.py forces
+        # ``use_context=True`` for SVAMP alone.
         prompt = f"{body} {question}"
 
         yield PromptItem(
@@ -233,6 +253,8 @@ def load_svamp_records(
             split=split,
             prompt=prompt,
             reference_answers=[answer_str],
+            context=body,
+            question=question,
         )
 
 

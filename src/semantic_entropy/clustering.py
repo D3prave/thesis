@@ -297,6 +297,78 @@ def nli_nondefeating_cluster(
     return cluster_ids, representatives
 
 
+def nli_anchor_scan_cluster(
+    normalized_answers: list[str],
+    entailment_fn: NliFn,
+) -> tuple[list[int], list[str]]:
+    """Assign IDs with strict bidirectional entailment over an anchor scan.
+
+    This is the algorithm of the Farquhar et al. (2024) main text, which the
+    other two clustering functions in this module each match only halfway:
+
+    * :func:`nli_cluster` uses the same strict bidirectional relation but takes
+      a transitive connected-components closure over all pairs.
+    * :func:`nli_nondefeating_cluster` uses the same order-dependent anchor scan
+      but the weaker non-defeating relation of the released FactualBio code.
+
+    The paper's Methods state the rule and its justification directly: "to check
+    if a sequence should be added to an existing cluster, it is sufficient to
+    check if the sequence bidirectionally entails any of the existing sequences
+    in that cluster (we arbitrarily pick the first one), given the transitivity
+    of semantic equivalence."
+
+    Supplementary Note 3 concedes that transitivity does not hold in practice,
+    which is why the two closure strategies can disagree. Connected components
+    merges at least as much as the anchor scan and therefore returns no more
+    clusters, biasing entropy downwards; the anchor scan can leave two mutually
+    entailing answers in separate clusters when neither is the other's anchor.
+
+    Order dependence is inherited from the published algorithm and is
+    deliberate: answers are scanned in sampling order. So is reassignment. The
+    released ``get_semantic_ids`` does not check whether a later answer already
+    carries an identifier before overwriting it, so a subsequent anchor can
+    take a member away from an earlier cluster. With ``A ~ C``, ``B ~ C`` and
+    ``A !~ B`` the result is ``[0, 1, 1]``: ``A`` is left alone despite
+    matching ``C``. This is reproduced rather than corrected.
+
+    Args:
+        normalized_answers: A non-empty list of answer strings. For a
+            paper-faithful run these are the raw generations.
+        entailment_fn: NLI function satisfying the :data:`NliFn` contract.
+
+    Returns:
+        A 2-tuple ``(semantic_clusters, cluster_representatives)`` with the
+        same invariants as :func:`exact_match_cluster`.
+
+    Raises:
+        ValueError: If *normalized_answers* is empty.
+    """
+    if not normalized_answers:
+        raise ValueError("normalized_answers must not be empty")
+
+    cluster_ids = [-1] * len(normalized_answers)
+    next_id = 0
+    for i in range(len(normalized_answers)):
+        if cluster_ids[i] != -1:
+            continue
+        cluster_ids[i] = next_id
+        for j in range(i + 1, len(normalized_answers)):
+            # No guard on cluster_ids[j]: the released get_semantic_ids
+            # overwrites an existing assignment, so a later anchor can take a
+            # member away from an earlier cluster.
+            forward = entailment_fn(normalized_answers[i], normalized_answers[j])
+            backward = entailment_fn(normalized_answers[j], normalized_answers[i])
+            if forward == NLI_ENTAILMENT and backward == NLI_ENTAILMENT:
+                cluster_ids[j] = next_id
+        next_id += 1
+
+    representatives = [
+        normalized_answers[cluster_ids.index(cluster_id)]
+        for cluster_id in range(next_id)
+    ]
+    return cluster_ids, representatives
+
+
 def _cluster_output_from_parent(
     normalized_answers: list[str],
     find: Callable[[int], int],

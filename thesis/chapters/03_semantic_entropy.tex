@@ -223,18 +223,18 @@ the same semantic answer:
   e(y_i,y_j)=1 \ \text{and}\ e(y_j,y_i)=1.
 \]
 Farquhar et al.~\cite{semantic_entropy_nature_2024} define meaning
-equivalence \emph{in the context of the question} $x$. The backends in
-this thesis realize that context differently. The DeBERTa
-cross-encoders judge the bare answer pair: each entailment query sees
-only the two normalized answer strings, not the question. For the short
-answers studied here this is usually harmless, since a normalized short
-answer carries little meaning outside the question anyway, but it is a
-deliberate simplification relative to the question-conditioned
-definition, and it is stated here so the algorithm below can be read
-literally. The LLM judge, in contrast, receives the question together
-with both answers, and the claim-level biography clustering in
-Chapter~\ref{ch:experimental_design} prefixes each answer with its
-question before the NLI call, matching the paper's definition.
+equivalence \emph{in the context of the question} $x$, and give the
+reason: ``Paris'' does not entail ``The capital of France is Paris''
+without context, but in the context of the question it does. The
+short-answer results in this thesis follow that definition. Every
+entailment query in the canonical configuration is prefixed with the
+record's question, so both answers are judged in context; the LLM judge
+receives the question alongside both answers for the same reason, and the
+claim-level biography clustering of
+Chapter~\ref{ch:experimental_design} does likewise. The one place where
+this thesis departs from the question-conditioned definition is the
+whole-paragraph biography protocol, which is answer-only because a
+generated paragraph is not a response to a single question.
 
 The bidirectional-entailment rule is in any case an approximation
 rather than a definition of meaning equivalence, because NLI judgments

@@ -112,6 +112,78 @@ def aurac(correctness_labels: Sequence[bool], uncertainty_scores: Sequence[float
     return sum(point["accuracy"] for point in curve) / len(curve)
 
 
+def aurac_paper(
+    correctness_labels: Sequence[bool],
+    uncertainty_scores: Sequence[float],
+    *,
+    n_quantiles: int = 20,
+    lowest_retained: float = 0.1,
+) -> float:
+    """Return AURAC exactly as Farquhar et al. (2024) compute it.
+
+    Their ``area_under_thresholded_accuracy`` in ``uncertainty/utils/eval_utils.py``::
+
+        quantiles = np.linspace(0.1, 1, 20)
+        select_accuracies = [accuracy_at_quantile(a, u, q) for q in quantiles]
+        dx = quantiles[1] - quantiles[0]
+        area = (select_accuracies * dx).sum()
+
+    Three properties differ from :func:`aurac` and make the two incomparable:
+
+    * the curve is sampled at 20 quantiles, not once per record;
+    * it starts at 10 per cent retained, so the extreme tail is excluded;
+    * it is a left Riemann sum weighted by ``dx = 0.9 / 19``, and is *not*
+      normalised. A perfect detector scores ``20 * 0.9 / 19 = 0.947``, not 1.0,
+      even though the paper describes the measure as increasing towards 1.
+
+    Both are reported so that values in this thesis can be read against the
+    original without rescaling.
+
+    Args:
+        correctness_labels: ``True`` where the answer is correct.
+        uncertainty_scores: Higher means more likely wrong.
+        n_quantiles: Number of retention levels sampled.
+        lowest_retained: Smallest retained fraction.
+
+    Returns:
+        The unnormalised area, whose maximum is
+        ``n_quantiles * (1 - lowest_retained) / (n_quantiles - 1)``.
+    """
+    _validate_labels_and_scores(correctness_labels, uncertainty_scores)
+    if n_quantiles < 2:
+        raise ValueError("n_quantiles must be at least 2")
+    if not 0.0 < lowest_retained <= 1.0:
+        raise ValueError("lowest_retained must lie in (0, 1]")
+
+    accuracies = [bool(label) for label in correctness_labels]
+    scores = list(uncertainty_scores)
+    step = (1.0 - lowest_retained) / (n_quantiles - 1)
+    quantiles = [lowest_retained + index * step for index in range(n_quantiles)]
+
+    total = 0.0
+    for quantile in quantiles:
+        cutoff = _quantile(scores, quantile)
+        retained = [
+            accuracies[i] for i, score in enumerate(scores) if score <= cutoff
+        ]
+        if not retained:
+            continue
+        total += (sum(retained) / len(retained)) * step
+    return total
+
+
+def _quantile(values: Sequence[float], quantile: float) -> float:
+    """Linear-interpolation quantile, matching ``numpy.quantile`` defaults."""
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = quantile * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = position - lower
+    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+
+
 def summarize_records(
     records: Sequence[Mapping[str, Any]], score_fields: Sequence[str] | None = None
 ) -> dict[str, Any]:
@@ -133,6 +205,10 @@ def summarize_records(
         score_metrics[field] = {
             "auroc": auroc_value,
             "aurac": aurac(labels, values),
+            # Reported alongside so that any value quoted against Farquhar et
+            # al. uses their definition. The two are not interchangeable: see
+            # aurac_paper.
+            "aurac_paper": aurac_paper(labels, values),
         }
         coverage[field] = {
             "scored": len(values),
