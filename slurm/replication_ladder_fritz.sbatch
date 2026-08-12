@@ -71,8 +71,20 @@ source "${REPO_ROOT}/slurm/_common.sh"
 BACKEND_LABEL="$(printf '%s' "${NLI_MODEL}" | tr '/' '_')"
 mkdir -p "$(dirname "${OUTPUT_JSONL}")"
 
+# Same preflight contract as posthoc_recluster_fritz.sbatch: fail before the
+# model loads if an extra is missing, the NLI weights are not cached, or the
+# input artifact is absent. HF_HUB_OFFLINE is set by _common.sh, so an
+# uncached model would otherwise fail deep inside transformers.
+export SE_NLI_MODEL="${NLI_MODEL}"
+export SE_NLI_DEVICE
+se_require_data_path "${INPUT_JSONL}"
+se_require_cached_model "${NLI_MODEL}"
+se_preflight \
+    --features hf \
+    --model "${NLI_MODEL}" \
+    --data-path "${INPUT_JSONL}"
+
 echo "--- reclustering with ${NLI_MODEL} ---"
-python -m pip show torch >/dev/null 2>&1 || echo "note: torch not visible to pip; relying on the venv"
 
 python "${REPO_ROOT}/scripts/posthoc_recluster_jsonl.py" \
     "${INPUT_JSONL}" \
