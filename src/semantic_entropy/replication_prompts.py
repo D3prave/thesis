@@ -274,20 +274,34 @@ def assert_answer_length(
 
     observed = statistics.fmean(len(answer) for answer in answers)
     expected, sd = EXPECTED_ANSWER_CHARS[regime]
+    other = "default" if regime == "chat" else "chat"
+    other_expected = EXPECTED_ANSWER_CHARS[other][0]
+
+    # Nearest-regime test, not a tolerance band. The published standard
+    # deviation for the sentence-length setting is 69.6 characters, so a
+    # +/- 1 SD window spans 26 to 165 and admits almost anything: a run
+    # observed at 27 characters -- 11 away from the short-phrase mean and 69
+    # from the sentence-length one -- passed a band check while plainly sitting
+    # in the wrong regime. Whichever published mean is closer is the regime the
+    # run is actually in, and that must be the regime it claims.
+    if abs(observed - other_expected) < abs(observed - expected):
+        raise AssertionError(
+            f"mean answer length {observed:.1f} chars is closer to the "
+            f"{other!r} regime (~{other_expected} chars) than to the declared "
+            f"{regime!r} regime (~{expected} chars). Either the brief "
+            "instruction did not reach the model, or this generator does not "
+            "produce the declared answer length for this prompt."
+        )
+
+    # Having established the right side, keep a generous band as a second,
+    # weaker check against a run that matches neither published figure.
     low = expected - tolerance_sds * sd
     high = expected + tolerance_sds * sd
     if not low <= observed <= high:
-        other = "default" if regime == "chat" else "chat"
-        other_expected = EXPECTED_ANSWER_CHARS[other][0]
-        hint = (
-            f" This is closer to the {other!r} regime (~{other_expected:.0f} "
-            "chars); check that the brief instruction reached the model."
-            if abs(observed - other_expected) < abs(observed - expected)
-            else ""
-        )
         raise AssertionError(
             f"mean answer length {observed:.1f} chars is outside "
             f"[{low:.1f}, {high:.1f}] for regime {regime!r} "
-            f"(published {expected} +/- {sd})." + hint
+            f"(published {expected} +/- {sd}), though nearer to it than to "
+            f"the {other!r} regime."
         )
     return observed
