@@ -84,6 +84,7 @@ import re
 
 from semantic_entropy.models import (
     CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS,
+    PAPER_STOP_SEQUENCES,
     ModelFn,
     ModelFnWithStates,
     make_hf_model,
@@ -303,6 +304,18 @@ def make_phase1_model_with_states() -> ModelFnWithStates:
             float(os.environ["SE_FEATURE_TEMPERATURE"])
             if os.environ.get("SE_FEATURE_TEMPERATURE", "").strip()
             else None
+        ),
+        # SE_USE_CHAT_TEMPLATE=0 selects raw completion, as Farquhar et al.
+        # run it: no chat template, no role markers, terminated by their
+        # textual stop sequences instead of an end-of-turn token. Templating a
+        # few-shot sentence-length prompt makes an instruction-tuned model
+        # answer as a chat turn and collapses it back to short phrases, so the
+        # two settings must travel together.
+        use_chat_template=_env_bool("SE_USE_CHAT_TEMPLATE", True),
+        stop_sequences=(
+            None
+            if _env_bool("SE_USE_CHAT_TEMPLATE", True)
+            else PAPER_STOP_SEQUENCES
         ),
         device_map=os.environ.get("SE_DEVICE_MAP", "auto"),
         torch_dtype="auto",

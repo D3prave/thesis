@@ -55,6 +55,46 @@ from semantic_entropy.clustering import NLI_ENTAILMENT, NLI_NEUTRAL, NliFn
 
 CANONICAL_SEP_FEATURE_MAX_NEW_TOKENS = 256
 
+#: Verbatim from ``uncertainty/models/base_model.py`` in the released
+#: Farquhar et al. code. Generation stops at the first of these, which is what
+#: actually bounds answer length in their runs: ``max_new_tokens`` is a ceiling
+#: that a single newline almost always beats. Ordered longest-first so that a
+#: run of blank lines is cut at its start rather than leaving stray newlines.
+PAPER_STOP_SEQUENCES: tuple[str, ...] = (
+    "\n\n\n\n",
+    "\n\n\n",
+    "\n\n",
+    "\n",
+    "Question:",
+    "Context:",
+)
+
+
+def truncate_at_stop_sequence(
+    answer: str, stop_sequences: Sequence[str] | None
+) -> str:
+    """Cut *answer* at the earliest occurrence of any stop sequence.
+
+    Returns *answer* unchanged when *stop_sequences* is falsy, which is the
+    chat-template path: there the template's own end-of-turn token terminates
+    generation and no textual stop is needed.
+
+    In raw-completion mode this is not optional. A prompt carrying five
+    ``Question:``/``Answer:`` demonstrations invites the model to continue the
+    pattern, so without truncation an "answer" runs on into invented follow-up
+    questions and the entropy is computed over the wrong text.
+    """
+    if not stop_sequences:
+        return answer
+    cut = len(answer)
+    for stop in stop_sequences:
+        if not stop:
+            continue
+        index = answer.find(stop)
+        if index != -1:
+            cut = min(cut, index)
+    return answer[:cut]
+
 #: Type alias for the sampling model function.
 #:
 #: A ``ModelFn`` takes a prompt string and an integer sample count ``n`` and
@@ -328,6 +368,8 @@ def make_hf_model_with_states(
     return_logprobs: bool = False,
     collect_features: bool = True,
     feature_temperature: float | None = None,
+    use_chat_template: bool = True,
+    stop_sequences: Sequence[str] | None = None,
 ) -> Callable[[str, int], SEPGeneration]:
     """Return a Kossen-style SEP collection function backed by HuggingFace.
 
@@ -398,6 +440,22 @@ def make_hf_model_with_states(
             answer, the P(True) prompt and the probe feature. Note that a
             sampled response is no longer identical across seeds, so the probe
             feature acquires a seed spread it does not have under argmax.
+        use_chat_template: ``True`` (default) wraps the prompt in the model's
+            chat template, which is right for the deployment-style runs this
+            project reports. Pass ``False`` for the paper-faithful runs:
+            Farquhar et al. tokenize the prompt directly, with no template and
+            no role markers, even for instruction-tuned models. The difference
+            is not cosmetic. An instruction-tuned model given a chat turn
+            answers tersely whatever the embedded text says, so templating a
+            few-shot sentence-length prompt collapses it towards short phrases.
+        stop_sequences: Strings that terminate a generation, truncating the
+            answer at the first occurrence. Required in raw-completion mode:
+            with few-shot demonstrations in the prompt the model will otherwise
+            continue inventing further ``Question:``/``Answer:`` pairs. Their
+            ``base_model.STOP_SEQUENCES`` is
+            ``['\\n\\n\\n\\n', '\\n\\n\\n', '\\n\\n', '\\n', 'Question:', 'Context:']``
+            -- note a single newline, which is what actually bounds answer
+            length in their runs rather than ``max_new_tokens``.
 
     Returns:
         A callable returning :class:`SEPGeneration`.
@@ -529,14 +587,25 @@ def make_hf_model_with_states(
     _pad_ids = _token_id_set(_greedy_config.pad_token_id)
 
     def _model_fn(prompt: str, n: int) -> SEPGeneration:
-        messages: list[dict[str, str]] = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        if use_chat_template:
+            messages: list[dict[str, str]] = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
 
-        formatted = _tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True,
-        )
+            formatted = _tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True,
+            )
+        else:
+            # Raw completion, as Farquhar et al. run it. Their
+            # HuggingfaceModel.predict tokenizes the prompt directly, with no
+            # chat template and no role markers, even for instruction-tuned
+            # models. This matters: wrapping a few-shot completion prompt in
+            # [INST]...[/INST] makes an instruction-tuned model answer as a
+            # chat turn, tersely, regardless of the instruction embedded in the
+            # text -- which collapses the sentence-length regime back towards
+            # short phrases.
+            formatted = prompt
         inputs = _tokenizer(
             formatted,
             return_tensors="pt",
@@ -563,9 +632,12 @@ def make_hf_model_with_states(
 
         sampled_sequences = getattr(sampled_out, "sequences", sampled_out)
         sampled_ids = sampled_sequences[:, prompt_len:]
-        sampled_answers = _tokenizer.batch_decode(
-            sampled_ids, skip_special_tokens=True,
-        )
+        sampled_answers = [
+            truncate_at_stop_sequence(answer, stop_sequences)
+            for answer in _tokenizer.batch_decode(
+                sampled_ids, skip_special_tokens=True,
+            )
+        ]
 
         sequence_logprobs: list[float] | None = None
         if return_logprobs:
@@ -625,8 +697,11 @@ def make_hf_model_with_states(
             # SEP feature is extracted and no feature metadata is fabricated.
             # The record therefore carries no sep_* fields and remains valid
             # at any sampling temperature.
-            greedy_answer = _tokenizer.decode(
-                generated_ids.tolist(), skip_special_tokens=True
+            greedy_answer = truncate_at_stop_sequence(
+                _tokenizer.decode(
+                    generated_ids.tolist(), skip_special_tokens=True
+                ),
+                stop_sequences,
             )
             return SEPGeneration(
                 sampled_answers=[answer.strip() for answer in sampled_answers],
@@ -674,8 +749,11 @@ def make_hf_model_with_states(
             greedy_degenerate = True
 
         if greedy_degenerate:
-            greedy_answer = _tokenizer.decode(
-                generated_ids.tolist(), skip_special_tokens=True
+            greedy_answer = truncate_at_stop_sequence(
+                _tokenizer.decode(
+                    generated_ids.tolist(), skip_special_tokens=True
+                ),
+                stop_sequences,
             )
         else:
             special_ids = set(_tokenizer.all_special_ids) | _termination_ids | _pad_ids
@@ -707,7 +785,10 @@ def make_hf_model_with_states(
                 )
             feature = forward_out.hidden_states[layer_idx][0, feature_position, :]
             content_ids = generated_ids[:content_length]
-            greedy_answer = _tokenizer.decode(content_ids, skip_special_tokens=True)
+            greedy_answer = truncate_at_stop_sequence(
+                _tokenizer.decode(content_ids, skip_special_tokens=True),
+                stop_sequences,
+            )
 
         return SEPGeneration(
             sampled_answers=[answer.strip() for answer in sampled_answers],

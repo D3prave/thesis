@@ -105,6 +105,14 @@ export SE_REPLICATION_NUM_FEW_SHOT="${NUM_FEW_SHOT:-5}"
 # template carrying a second, contradictory instruction. The adapter refuses
 # to start unless this is explicitly disabled.
 export SE_SYSTEM_PROMPT=none
+# Raw completion, not a chat turn. Disabling the system message is not enough:
+# the adapter would still wrap the prompt in the model's chat template, and an
+# instruction-tuned model answers a chat turn tersely whatever the embedded
+# text asks for -- which silently collapses the sentence-length regime back to
+# short phrases. Selecting raw completion also enables their textual stop
+# sequences, which is what terminates generation in the absence of an
+# end-of-turn token.
+export SE_USE_CHAT_TEMPLATE=0
 
 se_require_cached_model "${MODEL_NAME}"
 se_require_data_path "${DATA_PATH}"
