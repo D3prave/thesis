@@ -74,7 +74,19 @@ export SE_TOP_P=0.9
 export SE_TOP_K=50
 export SE_SEED="${SEED}"
 export SE_MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-50}"
-export SE_SEP_FEATURE_MAX_NEW_TOKENS="${SE_MAX_NEW_TOKENS}"
+# The sampled answers use the original's cap of 50. The single most-likely
+# response keeps this project's canonical SEP budget of 256, which the
+# Kossen-style contract in harness.py requires so that the response can
+# terminate at EOS rather than being cut off mid-sentence -- a truncated final
+# token is not a valid final-content-token feature.
+#
+# The difference is close to inert here: STOP_SEQUENCES includes a single
+# newline, so short-answer generation stops at the first line break well before
+# either cap. Sentence-length answers run about 96 characters, roughly 25
+# tokens. The cap therefore binds only on a runaway generation, which is
+# exactly the case the 256 exists to let terminate. Truncation is measured per
+# run rather than assumed; see the budgets section of Chapter 4.
+export SE_SEP_FEATURE_MAX_NEW_TOKENS=256
 export SE_FEATURE_TEMPERATURE=0.1
 export SE_SEP_HIDDEN_LAYER=-1
 export SE_SEP_HIDDEN_TOKEN=-1
