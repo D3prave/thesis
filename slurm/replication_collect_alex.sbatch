@@ -57,6 +57,28 @@ for sha in "${MODEL_REVISION}" "${TOKENIZER_REVISION}" "${CODE_COMMIT}"; do
     [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || { echo "ERROR: revisions/commit must be 40-hex" >&2; exit 2; }
 done
 
+# Resource guard. The #SBATCH block above requests a single A100-40GB, which
+# suits the 7B/8B generators. Llama-3.1-70B needs roughly 140 GB in fp16, so on
+# one 40 GB card device_map="auto" spills most of the model to CPU and the job
+# crawls: two such jobs reached only 20 of 100 prompts before hitting the
+# four-hour wall. Override the resources at submit time for 70B:
+#
+#   sbatch --constraint=a100_80 --gres=gpu:a100:4 --time=12:00:00 \
+#          --export=ALL,MODEL_TIER=70b_plus,... slurm/replication_collect_alex.sbatch
+#
+# Failing here costs seconds; discovering it from a timeout costs four hours.
+_SE_GPU_COUNT="${SLURM_GPUS_ON_NODE:-}"
+if [ -z "${_SE_GPU_COUNT}" ] && [ -n "${CUDA_VISIBLE_DEVICES:-}" ]; then
+    _SE_GPU_COUNT="$(printf '%s' "${CUDA_VISIBLE_DEVICES}" | awk -F, '{print NF}')"
+fi
+if [ "${MODEL_TIER}" = "70b_plus" ] && [ "${_SE_GPU_COUNT:-1}" -lt 4 ]; then
+    echo "ERROR: MODEL_TIER=70b_plus needs 4 GPUs; this allocation has ${_SE_GPU_COUNT:-unknown}." >&2
+    echo "       Resubmit with:" >&2
+    echo "         sbatch --constraint=a100_80 --gres=gpu:a100:4 --time=12:00:00 ..." >&2
+    exit 2
+fi
+unset _SE_GPU_COUNT
+
 REPO_ROOT="${SLURM_SUBMIT_DIR}"
 SE_CLUSTER="alex"
 # shellcheck disable=SC1091
