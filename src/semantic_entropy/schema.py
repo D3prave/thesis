@@ -253,6 +253,62 @@ def _validate_hidden_states(value: Any, num_samples: int) -> None:
                 )
 
 
+def _validate_sep_feature_backfill(
+    record: Mapping[str, Any],
+    backfill: Any,
+) -> None:
+    """Validate a probe feature recovered after the EOS guard excluded it.
+
+    Under few-shot raw completion the model has no reason to emit EOS: it just
+    continues inventing further demonstrations until the feature budget runs
+    out. The guard then refuses to read a "final content token before EOS"
+    from a truncation, which is correct but removes the feature from most
+    records -- and it removes them non-randomly, because a prompt the model
+    rambled on is disproportionately one it got wrong.
+
+    A backfilled record therefore keeps ``greedy_degenerate_excluded`` true --
+    greedy decoding really did fail to terminate -- and additionally declares
+    where the replacement feature came from. It never claims a terminator it
+    does not have. Consumers can select on this field to report the two
+    populations separately.
+    """
+    if not isinstance(backfill, Mapping):
+        raise SchemaError("sep_feature_metadata.feature_backfill must be a mapping")
+    hidden = record.get("sep_hidden_state")
+    if not isinstance(hidden, list) or not hidden:
+        raise SchemaError(
+            "a record declaring feature_backfill must carry a non-empty "
+            "sep_hidden_state"
+        )
+    for index, entry in enumerate(hidden):
+        if not isinstance(entry, (int, float)) or isinstance(entry, bool):
+            raise SchemaError(f"sep_hidden_state[{index}] must be a number")
+        if not math.isfinite(entry):
+            raise SchemaError(f"sep_hidden_state[{index}] must be finite")
+    for field in ("method", "token_selection"):
+        value = backfill.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise SchemaError(
+                f"sep_feature_metadata.feature_backfill.{field} must be non-empty"
+            )
+    model_id = backfill.get("model_id")
+    if not isinstance(model_id, str) or not model_id.strip():
+        raise SchemaError(
+            "sep_feature_metadata.feature_backfill.model_id must be non-empty"
+        )
+    revision = backfill.get("model_revision")
+    if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", revision):
+        raise SchemaError(
+            "sep_feature_metadata.feature_backfill.model_revision must be a "
+            "full 40-character Hugging Face commit SHA"
+        )
+    hidden_layer = backfill.get("hidden_layer")
+    if not isinstance(hidden_layer, int) or isinstance(hidden_layer, bool):
+        raise SchemaError(
+            "sep_feature_metadata.feature_backfill.hidden_layer must be an integer"
+        )
+
+
 def _validate_sep_feature_excluded(
     record: Mapping[str, Any],
     metadata: Mapping[str, Any],
@@ -266,10 +322,15 @@ def _validate_sep_feature_excluded(
     probe feature: ``sep_hidden_state`` is null and the feature-position fields
     are null. Everything else must still be canonical and consistent.
     """
-    if record["sep_hidden_state"] is not None:
-        raise SchemaError(
-            "sep_hidden_state must be null when greedy_degenerate_excluded is true"
-        )
+    backfill = metadata.get("feature_backfill")
+    if backfill is None:
+        if record["sep_hidden_state"] is not None:
+            raise SchemaError(
+                "sep_hidden_state must be null when greedy_degenerate_excluded "
+                "is true and no feature_backfill is declared"
+            )
+    else:
+        _validate_sep_feature_backfill(record, backfill)
     required_metadata = {
         "protocol": "kossen_sep_2024",
         "feature_response_decoding": "greedy",
@@ -305,12 +366,23 @@ def _validate_sep_feature_excluded(
         metadata.get("hidden_layer"), bool
     ):
         raise SchemaError("sep_feature_metadata.hidden_layer must be an integer")
-    for field in (
+    position_fields = [
         "terminating_special_token_id",
         "generated_content_token_index",
         "full_sequence_token_index",
-        "hidden_dimension",
-    ):
+    ]
+    # hidden_dimension describes the recovered vector, so a backfilled record
+    # carries it; the three position fields describe where the EOS-terminated
+    # rule found the token, and that rule did not apply here, so they stay null
+    # whether or not a feature was recovered.
+    if metadata.get("feature_backfill") is None:
+        position_fields.append("hidden_dimension")
+    elif metadata.get("hidden_dimension") != len(record["sep_hidden_state"]):
+        raise SchemaError(
+            "sep_feature_metadata.hidden_dimension must equal the length of "
+            "the backfilled sep_hidden_state"
+        )
+    for field in position_fields:
         if metadata.get(field) is not None:
             raise SchemaError(
                 f"sep_feature_metadata.{field} must be null when "

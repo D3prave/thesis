@@ -1009,16 +1009,33 @@ def _validate_scoring_record_features(
             )
 
 
+def sep_feature_unavailable(record: Mapping[str, Any]) -> bool:
+    """True when a record carries no usable probe feature.
+
+    ``greedy_degenerate_excluded`` alone no longer answers this. Under few-shot
+    raw completion greedy decoding almost never emits EOS, so the flag is set on
+    most records; where a feature was later recovered the record declares
+    ``feature_backfill`` and keeps a usable ``sep_hidden_state``. Only records
+    that are degenerate *and* carry no backfill are genuinely featureless.
+    """
+
+    metadata = record.get("sep_feature_metadata")
+    if not isinstance(metadata, Mapping):
+        return False
+    if metadata.get("greedy_degenerate_excluded") is not True:
+        return False
+    return metadata.get("feature_backfill") is None
+
+
 def _partition_feature_present(
     records: Sequence[Mapping[str, Any]],
 ) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
-    """Split records into feature-present and degenerate-greedy-excluded."""
+    """Split records into feature-present and genuinely feature-less."""
 
     present: list[Mapping[str, Any]] = []
     excluded: list[Mapping[str, Any]] = []
     for record in records:
-        metadata = record.get("sep_feature_metadata") or {}
-        if metadata.get("greedy_degenerate_excluded") is True:
+        if sep_feature_unavailable(record):
             excluded.append(record)
         else:
             present.append(record)
@@ -1348,14 +1365,12 @@ def train_probe(
     sep_feature_identity: dict[str, Any] | None = None
     accuracy_uses_singular_feature: bool | None = None
     for index, record in enumerate(records):
-        _excluded_meta = record.get("sep_feature_metadata")
-        if (
-            isinstance(_excluded_meta, Mapping)
-            and _excluded_meta.get("greedy_degenerate_excluded") is True
-        ):
-            # Greedy feature excluded (degeneration / looping): this prompt has
-            # no probe feature and cannot be a training example. It still
-            # contributes its stochastic samples to the entropy analysis.
+        if sep_feature_unavailable(record):
+            # No probe feature at all: greedy decoding never terminated and no
+            # feature was recovered, so this prompt cannot be a training
+            # example. It still contributes its stochastic samples to the
+            # entropy analysis. Records carrying a declared feature_backfill do
+            # have a usable feature and are kept.
             continue
         if label_source == "semantic_entropy_threshold":
             hidden = record.get("sep_hidden_state")
@@ -1699,14 +1714,10 @@ def score_probe_for_record(
             "SEP scoring requires numpy. Install with: pip install -e '.[sep]'"
         ) from exc
 
-    excluded_metadata = record.get("sep_feature_metadata")
-    if (
-        isinstance(excluded_metadata, Mapping)
-        and excluded_metadata.get("greedy_degenerate_excluded") is True
-    ):
-        # Greedy feature excluded (degeneration): no feature to score. The
-        # record drops out of the probe evaluation (reported by the completion
-        # seal) while remaining in the entropy analysis.
+    if sep_feature_unavailable(record):
+        # No feature to score. The record drops out of the probe evaluation
+        # while remaining in the entropy analysis. A record whose feature was
+        # recovered declares feature_backfill and is scored normally.
         return None
 
     probe_kind = probe.effective_probe_kind
