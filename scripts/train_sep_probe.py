@@ -330,6 +330,7 @@ def main() -> None:
 
     try:
         from semantic_entropy.probes import (
+            sep_feature_unavailable,
             train_probe,
             validate_canonical_accuracy_scoring_records,
             validate_canonical_sep_scoring_records,
@@ -385,8 +386,11 @@ def main() -> None:
         # exclusion happens where it belongs and is reported as an explicit
         # count in the split audit metadata.
         def _feature_present(record):
-            metadata = record.get("sep_feature_metadata") or {}
-            return metadata.get("greedy_degenerate_excluded") is not True
+            # Delegate rather than re-test greedy_degenerate_excluded here: a
+            # record whose feature was recovered keeps that flag true and
+            # declares feature_backfill, so testing the flag alone would throw
+            # away every backfilled feature.
+            return not sep_feature_unavailable(record)
 
         n_train_excluded = sum(1 for r in records if not _feature_present(r))
         n_eval_excluded = sum(1 for r in eval_records if not _feature_present(r))
