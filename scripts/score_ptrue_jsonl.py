@@ -191,24 +191,44 @@ def _make_vllm_true_false_judge(
         dtype=os.environ.get("SE_VLLM_DTYPE", "auto"),
         enforce_eager=True,
     )
-    params = SamplingParams(temperature=0.0, max_tokens=1, logprobs=20)
+    # Their get_p_true appends " A" to the prompt and returns the *raw* log
+    # probability of that token:
+    #
+    #     input_data += ' A'
+    #     target_ids_true[0, :-1] = -100
+    #     model_output_true = self.model(tokenized_prompt_true, labels=target_ids_true)
+    #     return -loss_true.item()
+    #
+    # and compute_uncertainty_measures then reports p_false_fixed = 1 - exp(p).
+    # There is no renormalisation against "B". Renormalising is not a monotone
+    # transform of log p(A) unless p(B) is constant, so it ranks prompts
+    # differently -- which changes P(True)'s AUROC.
+    #
+    # prompt_logprobs is used rather than the top-k of a generated token because
+    # "A" need not appear in the top-k, and silently scoring it as absent would
+    # bias exactly the confident-wrong cases this baseline exists to catch.
+    params = SamplingParams(temperature=0.0, max_tokens=1, prompt_logprobs=0)
 
     def judge(prompt: str) -> float:
-        # Authors' format: P(True) = renormalized mass on the "A" continuation
-        # ("A) True") versus "B" ("B) False").
-        out = llm.generate([prompt], params)[0].outputs[0]
-        logprobs = out.logprobs[0] if out.logprobs else {}
-        a_lp, b_lp = -math.inf, -math.inf
-        for entry in logprobs.values():
-            token = entry.decoded_token.strip().lower()
-            if token == "a" or token.startswith("true"):
-                a_lp = max(a_lp, entry.logprob)
-            elif token == "b" or token.startswith("false"):
-                b_lp = max(b_lp, entry.logprob)
-        if a_lp == -math.inf and b_lp == -math.inf:
-            return 0.5
-        a, b = math.exp(a_lp), math.exp(b_lp)
-        return a / (a + b) if (a + b) > 0 else 0.5
+        output = llm.generate([prompt + " A"], params)[0]
+        prompt_logprobs = getattr(output, "prompt_logprobs", None)
+        if not prompt_logprobs:
+            raise RuntimeError(
+                "vLLM returned no prompt_logprobs; cannot reproduce their "
+                "raw log p(' A') (fail-closed)"
+            )
+        final = prompt_logprobs[-1]
+        if not final:
+            raise RuntimeError("no logprob for the appended ' A' token")
+        # prompt_logprobs[i] maps token id -> Logprob for position i; with
+        # prompt_logprobs=0 the only entry is the token actually present.
+        entry = next(iter(final.values()))
+        logprob = float(getattr(entry, "logprob", entry))
+        if not math.isfinite(logprob):
+            raise RuntimeError("non-finite log p(' A')")
+        # Returned as a probability so downstream uncertainty stays 1 - P(True),
+        # matching their p_false_fixed.
+        return math.exp(logprob)
 
     return judge
 

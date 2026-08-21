@@ -87,7 +87,11 @@ def best_answer_correct(
             for ref in reference_answers
         )
     best_f1 = max(squad_f1(best_answer, ref, dataset) for ref in reference_answers)
-    return best_f1 > f1_threshold
+    # Their utils.get_metric compares `results['f1'] >= 50.0` on a 0-100 scale,
+    # so the boundary is inclusive. Using a strict `>` disagrees only on an
+    # exact tie, but a tie is not rare for short answers where a single token
+    # decides the score.
+    return best_f1 >= f1_threshold
 
 
 def modal_answer(sampled_answers: Sequence[str]) -> str:

@@ -70,6 +70,73 @@ PAPER_STOP_SEQUENCES: tuple[str, ...] = (
 )
 
 
+def answer_token_count(
+    generated_ids: Sequence[int],
+    tokenizer: Any,
+    stop_sequences: Sequence[str] | None,
+    termination_ids: set[int] | None = None,
+) -> int:
+    """Number of generated tokens belonging to the answer itself.
+
+    Reproduces the slicing in their ``HuggingfaceModel.predict``: the answer is
+    the generation cut at the first stop sequence, and the per-token
+    log-likelihoods are sliced to that length before being averaged::
+
+        token_stop_index = self.tokenizer(
+            full_answer[:input_data_offset + stop_at], ...)['input_ids'].shape[1]
+        n_generated = token_stop_index - n_input_token
+        ...
+        log_likelihoods = log_likelihoods[:n_generated]
+
+    This matters under raw completion, where the model answers and then keeps
+    going into a fabricated ``Question:``. Averaging log-probabilities over the
+    whole generation measures mostly that continuation: with a 50-token budget,
+    answers average 19.1 tokens in the sentence-length setting and 3.4 in the
+    short-phrase one, so 62% and 93% of the tokens respectively are not the
+    answer.
+
+    Rather than re-tokenizing the decoded text -- whose token boundaries need
+    not match the original ids -- this searches for the shortest prefix of the
+    generated ids that already spells out the whole answer. Monotonicity of
+    decoded length in prefix length makes a binary search safe.
+
+    Their guard for an answer that is entirely stop sequence is reproduced too:
+    ``if n_generated == 0: n_generated = 1``.
+    """
+    ids = list(generated_ids)
+    if not ids:
+        return 1
+
+    limit = len(ids)
+    if termination_ids:
+        for index, token_id in enumerate(ids):
+            if int(token_id) in termination_ids:
+                limit = index + 1
+                break
+    ids = ids[:limit]
+
+    full = tokenizer.decode(ids, skip_special_tokens=True)
+    answer = truncate_at_stop_sequence(full, stop_sequences)
+    if answer.strip() == full.strip():
+        return max(1, limit)
+
+    target = len(answer.strip())
+    if target == 0:
+        # Only a stop sequence was generated; they keep one token so the
+        # record still carries a likelihood rather than being dropped.
+        return 1
+
+    low, high = 1, limit
+    while low < high:
+        mid = (low + high) // 2
+        piece = tokenizer.decode(ids[:mid], skip_special_tokens=True)
+        if len(piece.strip()) >= target:
+            high = mid
+        else:
+            low = mid + 1
+    return max(1, low)
+
+
 def truncate_at_stop_sequence(
     answer: str, stop_sequences: Sequence[str] | None
 ) -> str:
@@ -657,18 +724,12 @@ def make_hf_model_with_states(
             token_logprobs = _torch.stack(step_logprob_rows, dim=1).tolist()
             sequence_logprobs = []
             for row_ids, row_logprobs in zip(sampled_ids.tolist(), token_logprobs):
-                # Content length: tokens up to and including the first
-                # EOS/EOT; padding after termination is excluded. A row with
-                # no terminator ran to the cap and counts in full.
-                length = len(row_ids)
-                for index, token_id in enumerate(row_ids):
-                    if int(token_id) in _termination_ids:
-                        length = index + 1
-                        break
-                if length == 0:
-                    raise RuntimeError(
-                        "sampled sequence contains no generated tokens"
-                    )
+                length = answer_token_count(
+                    row_ids,
+                    _tokenizer,
+                    stop_sequences,
+                    _termination_ids,
+                )
                 value = math.fsum(row_logprobs[:length]) / length
                 if not math.isfinite(value):
                     raise RuntimeError(
@@ -801,7 +862,18 @@ def make_hf_model_with_states(
             sequence_logprobs=sequence_logprobs,
             metadata={
                 "protocol": "kossen_sep_2024",
+                # Kept as the constant "greedy": schema.py and probes.py both
+                # pin this value, and the sealed v3/bio artifacts carry it.
                 "feature_response_decoding": "greedy",
+                # ...which is why the actual setting is recorded separately.
+                # The label above is a protocol name, not an observation, and
+                # reading it as one is misleading: with
+                # SE_FEATURE_TEMPERATURE=0.1 the feature response is a
+                # temperature 0.1 sample, matching Farquhar et al., whose
+                # "most likely" answer is drawn at 0.1 rather than by argmax.
+                "feature_response_temperature": (
+                    None if feature_temperature is None else float(feature_temperature)
+                ),
                 "token_selection": "final_content_token_before_eos_or_eot",
                 "layer_selection": "preregistered_final_layer",
                 "generation_termination": "eos_or_eot",

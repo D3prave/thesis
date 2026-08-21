@@ -125,17 +125,37 @@ def _build_prompt_rewriter() -> tuple[
             f"SE_REPLICATION_REGIME must be one of {sorted(BRIEF_PROMPTS)}, "
             f"got {regime!r}"
         )
-    seed = int(_require_env("SE_SEED"))
     num_few_shot = int(
         os.environ.get("SE_REPLICATION_NUM_FEW_SHOT", DEFAULT_NUM_FEW_SHOT)
     )
 
-    train_records = _load_jsonl(Path(_require_env("SE_REPLICATION_FEWSHOT_DATA")))
-    candidates = [_as_candidate(record) for record in train_records]
-    few_shot_indices, _, _ = select_demonstrations(
-        candidates, seed=seed, num_few_shot=num_few_shot, num_p_true=num_few_shot
-    )
-    demonstrations = demonstrations_from_items(candidates, few_shot_indices)
+    fixed = os.environ.get("SE_REPLICATION_FEWSHOT_JSON", "").strip()
+    if fixed:
+        # Preferred path. Their demonstrations are drawn once from
+        # random_seed=10 and never vary; the multiple seeds in this study are
+        # an addition for estimating sampling variance, so they must not also
+        # move the prompt prefix. prepare_replication_data.py writes the same
+        # five their generate_answers.py would select.
+        raw = json.loads(Path(fixed).read_text(encoding="utf-8"))
+        demonstrations = [
+            {"question": str(item["question"]).strip(),
+             "answer": str(item["answer"]).strip()}
+            for item in raw[:num_few_shot]
+        ]
+        if len(demonstrations) != num_few_shot:
+            raise ValueError(
+                f"{fixed} holds {len(raw)} demonstrations, need {num_few_shot}"
+            )
+    else:
+        # Legacy path: select from a pool with the run seed. Retained so older
+        # launchers keep working, but it makes the prefix seed-dependent.
+        seed = int(_require_env("SE_SEED"))
+        train_records = _load_jsonl(Path(_require_env("SE_REPLICATION_FEWSHOT_DATA")))
+        candidates = [_as_candidate(record) for record in train_records]
+        few_shot_indices, _, _ = select_demonstrations(
+            candidates, seed=seed, num_few_shot=num_few_shot, num_p_true=num_few_shot
+        )
+        demonstrations = demonstrations_from_items(candidates, few_shot_indices)
 
     eval_path = os.environ.get("SE_REPLICATION_EVAL_DATA", "").strip()
     context_index: dict[str, tuple[str, str]] = {}
