@@ -74,6 +74,7 @@ def main() -> None:
         canonical_accuracy_probe_provenance,
         canonical_sep_provenance,
         score_probe_for_record,
+        sep_feature_unavailable,
         validate_canonical_accuracy_scoring_records,
         validate_canonical_sep_scoring_records,
     )
@@ -105,14 +106,11 @@ def main() -> None:
         # both use that subset. The excluded prompts remain in the collection
         # and q-conditioned artifacts and in the entropy analysis; the
         # completion seal reconstructs the locked split as present + excluded.
-        n_excluded = sum(
-            1
-            for record in records
-            if (record.get("sep_feature_metadata") or {}).get(
-                "greedy_degenerate_excluded"
-            )
-            is True
-        )
+        # A record whose feature was recovered declares feature_backfill and
+        # is scorable; only records that are degenerate AND unbackfilled have
+        # nothing to score. The probe audit counts them the same way, so any
+        # divergence here shows up as a held-out count mismatch.
+        n_excluded = sum(1 for record in records if sep_feature_unavailable(record))
         if n_excluded >= len(records):
             raise ValueError(
                 f"all records in {input_path} had excluded greedy features"
@@ -123,12 +121,7 @@ def main() -> None:
                 "feature from probe scoring"
             )
         records = [
-            record
-            for record in records
-            if (record.get("sep_feature_metadata") or {}).get(
-                "greedy_degenerate_excluded"
-            )
-            is not True
+            record for record in records if not sep_feature_unavailable(record)
         ]
         if args.expected_probe_kind == "semantic_entropy_probe":
             validate_canonical_sep_scoring_records(records, probe)
@@ -169,9 +162,7 @@ def main() -> None:
                 # artifacts and in the entropy analysis. A scoreless prompt
                 # must be attributable to the declared degeneration exclusion
                 # and nothing else.
-                excluded = (
-                    record.get("sep_feature_metadata") or {}
-                ).get("greedy_degenerate_excluded") is True
+                excluded = sep_feature_unavailable(record)
                 if not excluded:
                     print(
                         "ERROR: record "

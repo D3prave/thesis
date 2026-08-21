@@ -446,8 +446,12 @@ def _score_pairs(
     for record in records:
         scores = record["scores"]
         if field not in scores:
-            metadata = record.get("sep_feature_metadata") or {}
-            if metadata.get("greedy_degenerate_excluded") is True:
+            # Only a record with no usable feature at all may lack a probe
+            # score. One whose feature was recovered declares feature_backfill
+            # and must carry one, so a missing score there is a real error.
+            from semantic_entropy.probes import sep_feature_unavailable
+
+            if sep_feature_unavailable(record):
                 skipped += 1
                 continue
             prompt_id = record.get("prompt_id", "<unknown>")
