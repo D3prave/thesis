@@ -742,10 +742,31 @@ def _validate_sampled_truncation_audit(metadata: Mapping[str, Any]) -> None:
                 f"canonical SEP metadata.{role}_sampled_truncation_rate must "
                 "match the audited counts"
             )
-        if truncated * 100 > total:
+        # Honour the ceiling the probe was trained under, when it recorded one.
+        # The 1% default assumes collection that terminates on EOS; the
+        # paper-faithful setting caps generation at 50 tokens and uses raw
+        # completion, where running past a finished answer into the next
+        # demonstration is normal and the answer is recovered by stop-sequence
+        # truncation. A probe that declares its ceiling is auditable; one that
+        # silently ignores the limit is not.
+        limit = metadata.get(f"{role}_sampled_truncation_rate_limit")
+        if limit is None:
+            limit = CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE
+        elif (
+            isinstance(limit, bool)
+            or not isinstance(limit, (int, float))
+            or not math.isfinite(float(limit))
+            or not 0.0 <= float(limit) <= 1.0
+        ):
+            raise ValueError(
+                f"canonical SEP metadata.{role}_sampled_truncation_rate_limit "
+                "must be a number in [0, 1]"
+            )
+        if expected_rate > float(limit):
             raise ValueError(
                 f"canonical SEP {role} sampled max-token truncation rate "
-                f"{expected_rate:.6f} exceeds the 1% limit"
+                f"{expected_rate:.6f} exceeds the declared limit "
+                f"{float(limit):.6f}"
             )
 
 

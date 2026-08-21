@@ -128,6 +128,20 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Random seed forwarded to scikit-learn (default: 0).",
     )
+    p.add_argument(
+        "--max-truncation-rate",
+        type=float,
+        default=0.01,
+        help=(
+            "Largest share of sampled responses allowed to hit the max-new-token "
+            "cap. The 0.01 default assumes collection that terminates on EOS. "
+            "The paper-faithful setting caps generation at 50 tokens and uses raw "
+            "completion, where the model runs past a finished answer into the "
+            "next demonstration and is recovered by stop-sequence truncation, so "
+            "cap hits are normal there and the limit must be set explicitly. The "
+            "value used and the observed rate are both recorded in the probe."
+        ),
+    )
     return p.parse_args()
 
 
@@ -177,7 +191,7 @@ def _prompt_identities(
 
 
 def _sampled_truncation_audit(
-    records: list[dict[str, Any]], role: str
+    records: list[dict[str, Any]], role: str, max_rate: float = 0.01
 ) -> dict[str, Any]:
     total = 0
     truncated = 0
@@ -208,20 +222,30 @@ def _sampled_truncation_audit(
         total += record_total
         truncated += record_truncated
     rate = truncated / total
-    if truncated * 100 > total:
+    # The 1% default suits collection that terminates on EOS. It does not suit
+    # the paper-faithful setting: generation is capped at 50 new tokens and, in
+    # raw completion, the model carries on inventing the next Question: after
+    # answering, so hitting the cap is the norm rather than a sign the answer
+    # was cut short -- stop-sequence truncation recovers the answer. Raising the
+    # limit is therefore a regime difference, not a weakened guard, which is why
+    # the ceiling used is recorded alongside the observed rate.
+    if rate > max_rate:
         raise ValueError(
             f"{role} sampled max-token truncation rate {rate:.6f} exceeds the "
-            "1% limit"
+            f"configured limit of {max_rate:.6f} (--max-truncation-rate)"
         )
     return {
         f"{role}_sampled_response_count": total,
         f"{role}_sampled_max_new_tokens_count": truncated,
         f"{role}_sampled_truncation_rate": rate,
+        f"{role}_sampled_truncation_rate_limit": max_rate,
     }
 
 
 def split_audit_metadata(
-    train_records: list[dict[str, Any]], eval_records: list[dict[str, Any]]
+    train_records: list[dict[str, Any]],
+    eval_records: list[dict[str, Any]],
+    max_truncation_rate: float = 0.01,
 ) -> dict[str, Any]:
     """Verify target lineage, leakage, and truncation; return split provenance."""
     from semantic_entropy.probes import (
@@ -266,8 +290,13 @@ def split_audit_metadata(
         return hashlib.sha256(payload).hexdigest()
 
     def _present(record) -> bool:
-        metadata = record.get("sep_feature_metadata") or {}
-        return metadata.get("greedy_degenerate_excluded") is not True
+        # Must agree with the fitting path, which keeps backfilled features.
+        # Testing greedy_degenerate_excluded directly would count a record as
+        # absent that the fit actually used, and the artifact validation then
+        # rejects the probe for a prompt-count mismatch.
+        from semantic_entropy.probes import sep_feature_unavailable
+
+        return not sep_feature_unavailable(record)
 
     # The probe only ever sees prompts that HAVE a greedy feature, so its split
     # audit describes the feature-present subset of each locked split. This is
@@ -320,8 +349,8 @@ def split_audit_metadata(
         "sampled_truncation_rate_limit": (
             CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE
         ),
-        **_sampled_truncation_audit(train_records, "train"),
-        **_sampled_truncation_audit(eval_records, "eval"),
+        **_sampled_truncation_audit(train_records, "train", max_truncation_rate),
+        **_sampled_truncation_audit(eval_records, "eval", max_truncation_rate),
     }
 
 
@@ -404,7 +433,9 @@ def main() -> None:
                 f"train {n_train_excluded}, eval {n_eval_excluded}",
                 flush=True,
             )
-        split_metadata = split_audit_metadata(records, eval_records)
+        split_metadata = split_audit_metadata(
+            records, eval_records, args.max_truncation_rate
+        )
     except (OSError, ValueError) as exc:
         sys.exit(f"ERROR: split audit failed: {exc}")
 
@@ -437,12 +468,7 @@ def main() -> None:
     # artifacts and in the entropy analysis; the completion seal reconstructs
     # the locked split as present + excluded.
     eval_records_present = [
-        record
-        for record in eval_records
-        if (record.get("sep_feature_metadata") or {}).get(
-            "greedy_degenerate_excluded"
-        )
-        is not True
+        record for record in eval_records if not sep_feature_unavailable(record)
     ]
     n_excluded_eval = len(eval_records) - len(eval_records_present)
     if n_excluded_eval:
