@@ -119,6 +119,12 @@ export SE_DEVICE_MAP="${SE_DEVICE_MAP:-auto}"
 # --- replication prompt construction ---------------------------------------
 export SE_REPLICATION_REGIME="${REGIME}"
 export SE_REPLICATION_FEWSHOT_DATA="${FEWSHOT_DATA}"
+# A .json here is their fixed five demonstrations from
+# prepare_replication_data.py; the adapter then bypasses seeded selection so the
+# prompt prefix does not move with the run seed. A .jsonl is the legacy pool.
+case "${FEWSHOT_DATA}" in
+    *.json) export SE_REPLICATION_FEWSHOT_JSON="${FEWSHOT_DATA}" ;;
+esac
 export SE_REPLICATION_EVAL_DATA="${DATA_PATH}"
 export SE_REPLICATION_NUM_FEW_SHOT="${NUM_FEW_SHOT:-5}"
 # Must be "none", not unset. adapters._env_system_prompt treats an absent
