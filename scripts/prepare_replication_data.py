@@ -153,13 +153,44 @@ def split_dataset(dataset):
     return answerable, unanswerable
 
 
-def as_record(example, index: int) -> dict:
-    answers = example["answers"]["text"]
+def as_record(example, index: int, dataset_name: str) -> dict:
+    """Write the on-disk shape `semantic_entropy.datasets` expects.
+
+    Their in-memory examples are `{question, context, answers: {text: [...]}}`;
+    the loaders here want the original dataset field names, so the two have to
+    be bridged rather than assumed compatible.
+    """
+    answers = [str(a) for a in example["answers"]["text"]]
+    identifier = str(example.get("id", index))
+
+    if dataset_name == "svamp":
+        # load_svamp_records: ID, Body, Question, numeric Answer. The prompt is
+        # Body + " " + Question, which is why their loader forces
+        # use_context=True for this dataset alone.
+        raw = answers[0] if answers else "0"
+        try:
+            numeric: float | int = int(raw)
+        except ValueError:
+            numeric = float(raw)
+        return {
+            "ID": identifier,
+            "Body": example.get("context") or "",
+            "Question": example["question"],
+            "Answer": numeric,
+            "source_index": index,
+        }
+
+    # load_triviaqa_records / load_nqopen_records: QuestionId, Question and
+    # Answer as {Value, Aliases}. Their reference list is flat, so the first
+    # entry becomes Value and the rest Aliases -- which is also the convention
+    # their construct_fewshot_prompt_from_indices uses when it takes text[0].
     return {
-        "id": str(example.get("id", index)),
-        "question": example["question"],
-        "context": example.get("context") or "",
-        "answers": list(answers),
+        "QuestionId": identifier,
+        "Question": example["question"],
+        "Answer": {
+            "Value": answers[0] if answers else "",
+            "Aliases": answers[1:],
+        },
         "source_index": index,
     }
 
@@ -208,7 +239,10 @@ def prepare(dataset_name: str, out_root: Path, revision: str | None,
         with path.open("w", encoding="utf-8") as handle:
             for index in indices:
                 handle.write(
-                    json.dumps(as_record(source[index], index), ensure_ascii=False)
+                    json.dumps(
+                        as_record(source[index], index, dataset_name),
+                        ensure_ascii=False,
+                    )
                     + "\n"
                 )
         print(f"  wrote {len(indices)} -> {path}")
@@ -227,7 +261,7 @@ def prepare(dataset_name: str, out_root: Path, revision: str | None,
         json.dumps(demos, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    ptrue = [as_record(train_dataset[i], i) for i in p_true_indices]
+    ptrue = [as_record(train_dataset[i], i, dataset_name) for i in p_true_indices]
     (out_dir / "ptrue_examples.jsonl").write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in ptrue) + "\n",
         encoding="utf-8",
