@@ -525,22 +525,44 @@ def _validate_sep_feature(
             "sep_feature_metadata.hidden_dimension must equal the length of "
             "sep_hidden_state"
         )
-    for field in (
+    # Their predict() locates the answer with the stop sequence and never
+    # requires an EOS token. A response that ran past its answer into a
+    # fabricated Question: therefore still has a well-defined final answer
+    # token. `feature_token_basis` records which of the two applied; only under
+    # "stop_truncated" may the terminator be null, and it must then be null
+    # rather than invented.
+    basis = metadata.get("feature_token_basis", "eos_terminated")
+    if basis not in {"eos_terminated", "stop_truncated"}:
+        raise SchemaError(
+            "sep_feature_metadata.feature_token_basis must be 'eos_terminated' "
+            "or 'stop_truncated'"
+        )
+    integer_fields = [
         "generated_content_token_index",
         "full_sequence_token_index",
-        "terminating_special_token_id",
         "sampled_eos_or_eot_count",
         "sampled_max_new_tokens_count",
         "sampling_max_new_tokens",
         "feature_response_max_new_tokens",
         "base_seed",
         "prompt_seed",
-    ):
+    ]
+    if basis == "eos_terminated":
+        integer_fields.append("terminating_special_token_id")
+    elif metadata.get("terminating_special_token_id") is not None:
+        raise SchemaError(
+            "sep_feature_metadata.terminating_special_token_id must be null "
+            "when feature_token_basis is 'stop_truncated'"
+        )
+    for field in integer_fields:
         if not isinstance(metadata.get(field), int) or isinstance(
             metadata.get(field), bool
         ):
             raise SchemaError(f"sep_feature_metadata.{field} must be an integer")
-    if metadata["terminating_special_token_id"] not in termination_token_ids:
+    if (
+        basis == "eos_terminated"
+        and metadata["terminating_special_token_id"] not in termination_token_ids
+    ):
         raise SchemaError(
             "sep_feature_metadata.terminating_special_token_id must be in "
             "termination_token_ids"

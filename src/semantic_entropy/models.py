@@ -111,9 +111,15 @@ def answer_token_count(
     if termination_ids:
         for index, token_id in enumerate(ids):
             if int(token_id) in termination_ids:
-                limit = index + 1
+                # Exclude the terminator itself: the count is content tokens,
+                # so that count - 1 indexes the last *content* token, which is
+                # where the probe feature is read from. Including it would shift
+                # the feature onto EOS.
+                limit = index
                 break
     ids = ids[:limit]
+    if not ids:
+        return 1
 
     full = tokenizer.decode(ids, skip_special_tokens=True)
     answer = truncate_at_stop_sequence(full, stop_sequences)
@@ -794,34 +800,47 @@ def make_hf_model_with_states(
         final_content_offset = None
         feature_position = None
         feature = None
+
+        # Where the answer ends. Their predict() takes the generation cut at the
+        # first stop sequence and reads the embedding at `hidden[n_generated-1]`
+        # -- it never requires an EOS token. Requiring one, as this code used to,
+        # discards the feature whenever the model runs past its answer into a
+        # fabricated Question:, which under few-shot raw completion is the normal
+        # case: coverage was 1.4% on short-phrase TriviaQA and 57% on
+        # sentence-length. Worse, the discarded prompts are the ones the model
+        # rambled on, which are disproportionately the ones it got wrong, so the
+        # survivors are an easier subset than the entropy methods are scored on.
+        content_length = answer_token_count(
+            generated_ids.tolist(), _tokenizer, stop_sequences, _termination_ids
+        )
         try:
             terminating_token_id = _require_eos_or_eot_termination(
                 generated_ids.tolist(),
                 termination_token_ids=_termination_ids,
                 pad_token_ids=_pad_ids,
             )
+            feature_token_basis = "eos_terminated"
         except RuntimeError:
-            # Greedy decoding never emitted EOS/EOT within the feature-response
-            # budget (degeneration / repetition looping). The fail-closed guard
-            # correctly refuses to fabricate an SLT feature from a truncation;
-            # rather than abort the whole shard, mark this one prompt's probe
-            # feature as excluded and keep the record (and its stochastic
-            # samples) so the entropy analysis is unaffected.
+            # No terminator, but the stop sequence still tells us where the
+            # answer ends, so a feature is well defined. Recorded honestly:
+            # terminating_special_token_id stays null and the basis says why.
+            terminating_token_id = None
+            feature_token_basis = "stop_truncated"
+
+        greedy_answer_full = _tokenizer.decode(
+            generated_ids.tolist(), skip_special_tokens=True
+        )
+        if not truncate_at_stop_sequence(greedy_answer_full, stop_sequences).strip():
+            # Nothing but a stop sequence: there is no answer token to read a
+            # feature from, so the exclusion genuinely applies here.
             greedy_degenerate = True
 
         if greedy_degenerate:
             greedy_answer = truncate_at_stop_sequence(
-                _tokenizer.decode(
-                    generated_ids.tolist(), skip_special_tokens=True
-                ),
-                stop_sequences,
+                greedy_answer_full, stop_sequences
             )
         else:
-            special_ids = set(_tokenizer.all_special_ids) | _termination_ids | _pad_ids
-            final_content_offset = _final_content_token_offset(
-                generated_ids.tolist(), special_ids
-            )
-            content_length = final_content_offset + 1
+            final_content_offset = content_length - 1
 
             # A generation-step hidden state predicts the next token and is easy
             # to shift by one. Re-run the complete greedy sequence through the
@@ -874,12 +893,22 @@ def make_hf_model_with_states(
                 "feature_response_temperature": (
                     None if feature_temperature is None else float(feature_temperature)
                 ),
+                # "eos_terminated" when the response ended on EOS/EOT,
+                # "stop_truncated" when the stop sequence marked the end. Their
+                # predict() does not distinguish the two -- it always slices at
+                # the stop sequence -- but recording it keeps the two
+                # populations separable, and a null
+                # terminating_special_token_id is only legitimate under the
+                # second.
+                "feature_token_basis": feature_token_basis,
                 "token_selection": "final_content_token_before_eos_or_eot",
                 "layer_selection": "preregistered_final_layer",
                 "generation_termination": "eos_or_eot",
                 "termination_token_ids": sorted(_termination_ids),
                 "terminating_special_token_id": (
-                    None if greedy_degenerate else int(terminating_token_id)
+                    None
+                    if terminating_token_id is None
+                    else int(terminating_token_id)
                 ),
                 "generation_config_source": "model_generation_config_clone",
                 "greedy_degenerate_excluded": bool(greedy_degenerate),
