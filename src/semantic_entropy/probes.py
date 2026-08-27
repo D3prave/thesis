@@ -63,6 +63,15 @@ CANONICAL_SEP_FEATURE_DEFINITION = (
     "greedy_response_final_content_token_before_eos_or_eot"
 )
 CANONICAL_SEP_TARGET_NLI_MODEL = "cross-encoder/nli-deberta-v3-large"
+# The entropy target may be clustered under either question-conditioning label.
+# "question_answer_v1" is this project's historical name for the labelled form;
+# "question_answer_paper" is the released code's bare-space form, adopted when
+# the protocol was corrected to match it. Both are question-conditioned and
+# bidirectional, which is what the probe contract actually requires.
+CANONICAL_SEP_TARGET_ENTAILMENT_FORMATS = (
+    "question_answer_v1",
+    "question_answer_paper",
+)
 CANONICAL_SEP_TARGET_PROVENANCE_SCHEMA = "qconditioned_entropy_target_v1"
 CANONICAL_SEP_MAX_SAMPLED_TRUNCATION_RATE = 0.01
 _FULL_REVISION_RE = re.compile(r"^[0-9a-fA-F]{40}$")
@@ -341,7 +350,6 @@ def _entropy_target_record_provenance(
     required_values = {
         "question_conditioned": True,
         "question_conditioned_entailment": True,
-        "entailment_input_format": "question_answer_v1",
         "clustering_rule": "bidirectional",
         "nli_model_id": CANONICAL_SEP_TARGET_NLI_MODEL,
         "nli_tokenizer_id": CANONICAL_SEP_TARGET_NLI_MODEL,
@@ -352,8 +360,15 @@ def _entropy_target_record_provenance(
                 f"{role}: entropy-target {field_name} must equal {expected!r}; "
                 f"got {record.get(field_name)!r}"
             )
+    observed_format = record.get("entailment_input_format")
+    if observed_format not in CANONICAL_SEP_TARGET_ENTAILMENT_FORMATS:
+        raise ValueError(
+            f"{role}: entropy-target entailment_input_format must be one of "
+            f"{CANONICAL_SEP_TARGET_ENTAILMENT_FORMATS!r}; got {observed_format!r}"
+        )
 
     normalized = dict(required_values)
+    normalized["entailment_input_format"] = observed_format
     for field_name in (
         "nli_model_revision",
         "nli_tokenizer_revision",
@@ -410,12 +425,18 @@ def validate_entropy_target_provenance(
         "schema": CANONICAL_SEP_TARGET_PROVENANCE_SCHEMA,
         "question_conditioned": True,
         "question_conditioned_entailment": True,
-        "entailment_input_format": "question_answer_v1",
         "clustering_rule": "bidirectional",
         "nli_model_id": CANONICAL_SEP_TARGET_NLI_MODEL,
         "nli_tokenizer_id": CANONICAL_SEP_TARGET_NLI_MODEL,
     }
+    observed_format = value.get("entailment_input_format")
+    if observed_format not in CANONICAL_SEP_TARGET_ENTAILMENT_FORMATS:
+        raise ValueError(
+            f"{role}.entailment_input_format must be one of "
+            f"{CANONICAL_SEP_TARGET_ENTAILMENT_FORMATS!r}; got {observed_format!r}"
+        )
     normalized = dict(expected_values)
+    normalized["entailment_input_format"] = observed_format
     for field_name, expected in expected_values.items():
         if value.get(field_name) != expected:
             raise ValueError(
