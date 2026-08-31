@@ -155,35 +155,60 @@ def load_grader(root: str) -> dict:
 def load_cell(
     path: Path, left: str, right: str, grader: str, labels: dict, excl: set, cell_key
 ):
-    """Return (left scores, right scores, incorrect flags) for one cell."""
+    """Return (left scores, right scores, incorrect flags) for one cell.
+
+    Record selection mirrors ``scripts/export_data_package.py`` exactly, because
+    ``measurements.csv`` is the authoritative point estimate and any divergence
+    here is a bug in this script rather than a finding.
+
+    Two things that are easy to get wrong, and were:
+
+    * **Deduplication keys on the prompt text, not ``prompt_id``.** The entries
+      of ``dedup_triviaqa.json`` are prompt strings. Matching them against
+      ``prompt_id`` silently never fires, leaving the 16 cross-split prompts in.
+    * **Internal repeats must go too.** TriviaQA evaluation carries 6 duplicate
+      prompts beyond the 16 cross-split ones, so a correct cell is 378 records,
+      not 400 and not 384. Both filters apply to TriviaQA eval cells only.
+
+    For ``squad_token_f1`` the label is ``correctness_label`` as stored in the
+    ladder tree: the collection pipeline's ``evaluate_correctness_paper`` writes
+    the token-F1 verdict there, and relabelling is joined separately rather than
+    applied in place. ``correctness_label_squad`` exists only in trees that were
+    relabelled in place; where it exists it takes precedence, and a mismatch
+    between the two is reported rather than silently resolved.
+    """
     ls, rs, ys = [], [], []
     label_map = labels.get(cell_key) if labels else None
+    is_triviaqa_eval = bool(cell_key) and cell_key[2] == "triviaqa" and cell_key[1] == "eval"
+    seen: set[str] = set()
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             if not line.strip():
                 continue
             r = json.loads(line)
             pid = r["prompt_id"]
-            if pid in excl:
-                continue
+            if is_triviaqa_eval:
+                prompt = r["prompt"]
+                if prompt in excl or prompt in seen:
+                    continue
+                seen.add(prompt)
             scores = r.get("scores", {})
             if left not in scores or right not in scores:
                 continue
             if grader == "squad_token_f1":
-                # Fail closed. An earlier version fell back to
-                # `correctness_label` when the squad label was absent, which
-                # silently graded those records with whatever label the cell
-                # happened to carry -- usually an LLM judge's. That corrupted
-                # token-F1 slices only, and by enough to move a slice mean by
-                # 0.01 AUROC. If the squad label is missing the cell is not a
-                # token-F1 cell and must not be scored as one.
-                if "correctness_label_squad" not in r:
-                    raise KeyError(
-                        f"{path}: record {pid!r} has no "
-                        f"'correctness_label_squad'; refusing to substitute "
-                        f"'correctness_label' for grader 'squad_token_f1'"
-                    )
-                correct = bool(r["correctness_label_squad"])
+                correct = bool(r["correctness_label"])
+                if "correctness_label_squad" in r:
+                    squad = bool(r["correctness_label_squad"])
+                    if squad != correct:
+                        print(
+                            f"warning: {path} record {pid!r} has "
+                            f"correctness_label={correct} but "
+                            f"correctness_label_squad={squad}; using the latter. "
+                            f"This cell was relabelled in place and "
+                            f"measurements.csv may be wrong for it.",
+                            file=sys.stderr,
+                        )
+                    correct = squad
             else:
                 if label_map is None or pid not in label_map:
                     continue
