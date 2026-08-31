@@ -170,10 +170,20 @@ def load_cell(
             if left not in scores or right not in scores:
                 continue
             if grader == "squad_token_f1":
-                if "correctness_label_squad" in r:
-                    correct = bool(r["correctness_label_squad"])
-                else:
-                    correct = bool(r["correctness_label"])
+                # Fail closed. An earlier version fell back to
+                # `correctness_label` when the squad label was absent, which
+                # silently graded those records with whatever label the cell
+                # happened to carry -- usually an LLM judge's. That corrupted
+                # token-F1 slices only, and by enough to move a slice mean by
+                # 0.01 AUROC. If the squad label is missing the cell is not a
+                # token-F1 cell and must not be scored as one.
+                if "correctness_label_squad" not in r:
+                    raise KeyError(
+                        f"{path}: record {pid!r} has no "
+                        f"'correctness_label_squad'; refusing to substitute "
+                        f"'correctness_label' for grader 'squad_token_f1'"
+                    )
+                correct = bool(r["correctness_label_squad"])
             else:
                 if label_map is None or pid not in label_map:
                     continue
