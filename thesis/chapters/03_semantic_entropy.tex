@@ -179,8 +179,8 @@ question.
 
 Two details of the input are easy to assume wrongly. The entailment step
 consumes the \emph{raw} generations, not the normalized strings above:
-normalization belongs to the comparator, and applying it first would confound
-the two. And the question is joined to each answer as plain text, so what the
+normalization belongs to the comparator, and applying it first would mix the
+two together. And the question is joined to each answer as plain text, so what the
 entailment model reads is a pair of question-prefixed strings.
 
 The rule approximates equivalence rather than defining it, because judgments

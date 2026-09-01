@@ -55,15 +55,15 @@ scheme resolves 18 of 24 slices on intervals about three times too narrow, and
 once the between-unit component is carried, seven of those resolutions
 disappear and the surviving majority points the other way.
 
-It is bounded from the other side too. Nine independent units give a minimum
-detectable effect of about 0.028 AUROC against a mean absolute effect of 0.023,
-so an effect much below 0.028 would not reliably show up here. The intervals
-that were actually computed are tighter than that in places: on the canonical
-eight they run from a width of about 0.016 in the short-phrase conditions to
-about 0.10 in the sentence-length ones, so the bound this study can defend is
-roughly 0.01 AUROC in its tightest slices and closer to 0.06 in its loosest.
-What the data establish is the absence of a \emph{measurable} benefit, not the
-absence of any benefit. Settling that would need more datasets and generators, not more
+There is a limit on the other side too. With only nine independent units, the
+smallest effect this design could reliably detect is about 0.028 AUROC, against
+an average effect size of 0.023. An effect much smaller than 0.028 would
+therefore not show up dependably. Some of the intervals actually computed are
+tighter than that: across the canonical eight they range from about 0.016 wide
+in the short-phrase conditions to about 0.10 wide in the sentence-length ones.
+So the bound worth defending is roughly 0.01 AUROC where the data are tightest
+and about 0.06 where they are loosest. What the data show is that no benefit
+can be \emph{measured} here, not that there is none. Settling that would need more datasets and generators, not more
 seeds, because seeds account for only about 15\,\% of the variance of this
 contrast.
 
@@ -273,13 +273,12 @@ entropy are interchangeable, differing by $-0.0015$ on average over 648 cells.
 That is the most stable contrast measured anywhere here. And the probes lose accuracy
 out of distribution, by 0.061 to 0.105 AUROC, with the correctness-trained
 probe's in-distribution advantage shrinking in one condition and reversing in
-the other. That reversal is the direction Kossen et
-al.~\cite{kossen_semantic_entropy_probes_2024} predict, since their claim is
-that semantic entropy probes generalize better out of distribution than probes
-trained directly on accuracy. Their stronger claim, that the probes retain high
-performance, is not what Section~\ref{sec:paper-baselines} finds here: both
-probes sit below the sampling-based estimators in every slice where each was
-measured.
+the other. That reversal points the way Kossen et
+al.~\cite{kossen_semantic_entropy_probes_2024} expect, because they argue that
+semantic entropy probes hold up better on unfamiliar data than probes trained
+straight on accuracy. Their stronger claim, that the probes stay competitive,
+is not what Section~\ref{sec:paper-baselines} finds here. Both probes score
+below the sampling-based methods in every slice where each was measured.
 
 \subsection{What does not}
 
@@ -330,8 +329,8 @@ bounds their mutual \emph{consistency}, not their shared error. Two models of
 similar construction, prompted alike, can agree closely and be wrong together.
 Farquhar et al.\ perform exactly this check, on 100 questions in their
 Supplementary Note~6; nothing here does. Every accuracy figure reported here,
-and so every AUROC, rests on an unvalidated judge. This is not a caveat on one
-table. It conditions the whole of Chapter~\ref{ch:results}.
+and so every AUROC, rests on an unvalidated judge. This is not a limit on one
+table. It applies to the whole of Chapter~\ref{ch:results}.
 
 \paragraph{The entailment model and the grader answer the same question.} Both
 are asked, in effect, whether two texts mean the same thing, and both are

@@ -147,17 +147,19 @@ sample entropy counts raw strings. Surface entropy counts them after
 normalization. Discrete semantic entropy groups the samples by meaning, and the
 full estimator weights those groups by likelihood.
 
-One caveat belongs with the third step. Following the released code, the
-clustering runs on the raw generations, while surface entropy is scored over
-normalized strings. That step therefore changes two things at once: the
-equivalence rule, from string identity to bidirectional entailment, and the
-text it is applied to. The direction is known. If the entailment model fails to
-merge case and punctuation variants that the normalizer would have merged, the
-measured value of clustering is pushed \emph{down}, so the confound favors this
-chapter's negative reading rather than working against it. In practice the
-model absorbs most of that difference, but the one-factor property of this step
-is close rather than exact, and the margins below should be read with that in
-mind.
+The third step needs one qualification. Following the released code, the
+clustering is run on the raw answers, while surface entropy counts the
+normalized ones. So that step changes two things at the same time: how two
+answers are judged to mean the same thing, and whether the text was cleaned up
+first.
+
+It is worth saying which way that cuts. Cleaning up an answer merges variants
+like different capitalization and punctuation. If the entailment model does not
+also merge them, then the clustering step gets \emph{less} credit than it
+deserves, not more. The problem therefore works against the clustering step,
+which is the step this chapter concludes is not worth much. In practice the
+model does merge most of them, but the comparison is not perfectly clean, and
+the margins below should be read with that in mind.
 Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give what each step adds
 over all 24 slices.
 
@@ -219,14 +221,15 @@ the two judges, and $+0.0119$ and $+0.0139$ in \texttt{default\_5shot}. All
 seven favoring surface entropy are token-F1 slices, across all four conditions
 and all three backends.
 
-The last two of those four sit below the 0.025 seed floor, which is worth a
-word since that floor was just given as the scale for judging a margin. It is
-not a contradiction. The floor is the spread of a \emph{single} estimator's
-AUROC across run seeds. A paired bootstrap compares two estimators on the same
-generations, so most of that seed-to-seed movement is common to both and
-cancels in the difference. The floor is the right test for an unpaired number
-quoted on its own; the interval is the right test for a paired margin. Both of
-these margins are small, and neither carries an argument on its own.
+The last two of those four are smaller than the 0.025 seed floor, which was
+given earlier as the scale for judging a margin. That is not a contradiction.
+The floor describes how much a \emph{single} method's AUROC moves when the
+sampling seed changes. A paired test compares two methods on the same generated
+answers, so most of that movement affects both of them equally and cancels out
+when one is subtracted from the other. The floor is the right check for a
+single number on its own; the interval is the right check for a difference
+between two methods. Both of these margins are small, and neither carries an
+argument by itself.
 
 \input{includes/t_all_slices.tex}
 

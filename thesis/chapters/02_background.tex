@@ -98,8 +98,8 @@ above safe ones, which is why rejection-based evaluation is the natural lens.
 Accuracy on its own is not enough, because many benchmarks reward a lucky guess
 over an honest admission of uncertainty~\cite{kalai_why_language_models_hallucinate_2025}.
 Rejection-accuracy curves and their area summary fit the practical question
-better. Chapter~\ref{ch:results} nevertheless finds that the summary this
-literature reports behaves in a way that complicates its use, and
+better. Chapter~\ref{ch:results} still finds that the summary this
+literature reports behaves in a way that makes it harder to use, and
 Section~\ref{sec:evaluation-metrics} returns to it.
 
 Semantic entropy has also been used as a training signal: Tjandra et
@@ -205,7 +205,7 @@ same set~\cite{shorinwa_uq_llm_survey_2024,%
 liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. A
 comparison of that shape can show the whole procedure beats the alternatives.
 It cannot show which part of the procedure earns the margin, and the result is
-nonetheless usually read as evidence for the grouping step in particular.
+still usually read as evidence for the grouping step in particular.
 
 The missing comparator is the obvious one: draw the same samples, normalize
 them, count the distinct strings, and take the entropy of those counts. It

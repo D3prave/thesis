@@ -394,13 +394,13 @@ task~\cite{min_factscore_2023}: the prompt is ``Tell me a bio of
 \{entity\}.'' over a curated list of biography subjects, with each entity's
 pinned English Wikipedia lead section, fetched from the MediaWiki summary
 endpoint, as the reference. Each of the nine cells, three generators by three
-seeds, holds 500 records. One caveat belongs here: the entity list committed to
-this repository holds 308 subjects, which is fewer than the preparation script
-would need for the split that produced these files, and the prepared data
-itself is not version-controlled. The 500 records per cell are recorded in the
-measurement package and are what the results are computed over, but the exact
-entity list behind them cannot be reconstructed from the repository. This arm
-is therefore the least reproducible part of the study. Generation is
+seeds, holds 500 records. There is a gap here that should be stated. The list
+of people stored in this repository has 308 entries, which is not enough for
+the split that produced these files, and the prepared data files are not stored
+in the repository either. The 500 records per cell are recorded in the
+measurement package and are what the results are computed from, but the exact
+list of people behind them cannot be recovered from what is stored. This part
+of the study is the least reproducible. Generation is
 checked at collection time to have a median sampled answer length of at least
 300 characters, so the arm really is testing paragraph-length output.
 Uncertainty is scored on the whole paragraph; correctness is judged per claim
