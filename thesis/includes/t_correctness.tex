@@ -1,0 +1,22 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{Generator accuracy and the semantic-minus-surface margin under each correctness rule, canonical backend, $T=1.0$. The same answers are graded three ways. The margin changes sign between the token-overlap rule and either LLM judge.}
+\label{tab:correctness}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+& \multicolumn{3}{c}{Accuracy} & \multicolumn{3}{c}{SE $-$ surface} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+Condition & token-F1 & Qwen & Llama & token-F1 & Qwen & Llama \\
+\midrule
+\texttt{chat\_0shot} & 0.344 & 0.623 & 0.677 & -0.0506 & +0.0204 & +0.0223 \\
+\texttt{default\_0shot} & 0.561 & 0.638 & 0.676 & -0.0263 & +0.0032 & +0.0084 \\
+\texttt{chat\_5shot} & 0.609 & 0.622 & 0.665 & -0.0174 & -0.0020 & -0.0005 \\
+\texttt{default\_5shot} & 0.610 & 0.621 & 0.662 & -0.0133 & +0.0005 & +0.0027 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

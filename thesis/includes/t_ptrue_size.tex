@@ -1,0 +1,18 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{P(True) by generator size, mean of the two LLM judges. The original study suggests P(True) ``seems to improve with model size''; within the Llama family here the ordering is flat or inverted.}
+\label{tab:ptrue-size}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Condition & Llama-3.1-70B & Llama-3.1-8B & Mistral-7B \\
+\midrule
+\texttt{chat\_0shot} & 0.711 & 0.726 & 0.737 \\
+\texttt{default\_5shot} & 0.819 & 0.826 & 0.745 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

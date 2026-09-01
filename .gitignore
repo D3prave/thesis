@@ -94,7 +94,9 @@ data/raw/*
 data/processed/*
 # Generated experiment outputs and thesis figures stay local for now.
 results/
-thesis/figures/
+thesis/figures/*
+!thesis/figures/*.pdf
+!thesis/figures/*.png
 outputs/
 checkpoints/
 models/
@@ -158,3 +160,25 @@ results_T*
 
 # Local seminar report — not part of the thesis repo
 seminar_report/
+
+# --- thesis inputs: exempted so a clone can rebuild the PDF ---
+# The blanket ignores above keep bulky artifacts out. These specific files are
+# inputs the thesis depends on, so they are tracked.
+!docs/
+docs/*
+!docs/*.md
+!docs/pairwise_register.csv
+!docs/independent_analysis/
+docs/independent_analysis/*
+!docs/independent_analysis/DESIGN.md
+!docs/independent_analysis/README.md
+!docs/independent_analysis/data/
+!docs/independent_analysis/data/*.csv
+!docs/independent_analysis/data/*.json
+!docs/independent_analysis/data/README.md
+!results/
+results/*
+!results/paired_bootstrap_se_vs_surface.csv
+!results/e7_cross_dataset.csv
+!thesis/figures/
+!thesis/includes/

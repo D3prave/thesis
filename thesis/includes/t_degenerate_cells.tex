@@ -1,0 +1,22 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{Cells in which the token-overlap rule labels almost nothing correct (\texttt{chat\_0shot}, $T=1.0$). An AUROC computed against three positive examples is not a measurement of a detector. No LLM-graded cell in the study falls below 0.36 accuracy.}
+\label{tab:degenerate-cells}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Dataset & Generator & Seed & token-F1 accuracy & Correct / records \\
+\midrule
+triviaqa & \texttt{Llama-3.1-8B} & 43 & 0.0079 & 3 / 378 \\
+triviaqa & \texttt{Llama-3.1-8B} & 44 & 0.0079 & 3 / 378 \\
+triviaqa & \texttt{Llama-3.1-8B} & 42 & 0.0106 & 4 / 378 \\
+nqopen & \texttt{Llama-3.1-8B} & 43 & 0.0325 & 13 / 400 \\
+nqopen & \texttt{Llama-3.1-8B} & 44 & 0.0325 & 13 / 400 \\
+nqopen & \texttt{Llama-3.1-8B} & 42 & 0.0375 & 15 / 400 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

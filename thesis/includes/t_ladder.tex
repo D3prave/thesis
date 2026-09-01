@@ -1,0 +1,22 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{What each step of the method is worth. Each rung differs from the one below it in exactly one respect, so the value of each step is separately identified. Computed over all 24 (condition, backend, grader) slices at $T=1.0$, with intervals resampling the nine units. Only the normalization step is positive in every slice, and it is the only one whose margin exceeds the seed noise floor of 0.025.}
+\label{tab:ladder}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{5.6cm}cccc@{}}
+\toprule
+Step & Mean & Positive in & \multicolumn{2}{c}{Resolved} \\
+\cmidrule(lr){4-5}
+ & & & for & against \\
+\midrule
+count strings instead of reading likelihoods & +0.0067 & 4 / 24 & 3 & 8 \\
+\textbf{normalize the strings before counting} & \textbf{+0.0398} & \textbf{24 / 24} & \textbf{24} & \textbf{0} \\
+cluster by meaning instead of by string & +0.0016 & 14 / 24 & 4 & 7 \\
+weight the clusters by likelihood & +0.0015 & 12 / 24 & 4 & 2 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

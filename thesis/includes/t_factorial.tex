@@ -1,0 +1,20 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{The $2\times2$ on the canonical backend, mean of the two LLM judges. The isolating contrast is the pair of 0-shot corners, where demonstrations are held at zero and only the instruction changes. Every interval spans zero.}
+\label{tab:factorial}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccrc@{}}
+\toprule
+Condition & Mean chars & Demos & SE $-$ surface & 95\,\% CI (units) \\
+\midrule
+\texttt{chat\_0shot} & 255.2 & 0 & +0.021 & [-0.029, +0.063] \\
+\texttt{default\_0shot} & 69.8 & 0 & +0.006 & [-0.022, +0.031] \\
+\texttt{chat\_5shot} & 11.4 & 5 & -0.001 & [-0.012, +0.008] \\
+\texttt{default\_5shot} & 11.2 & 5 & +0.002 & [-0.006, +0.009] \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

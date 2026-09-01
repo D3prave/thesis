@@ -1,0 +1,19 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{Short-phrase answers (\texttt{default\_5shot}), canonical backend, $T=1.0$, under all three correctness rules. The final column is the paired semantic-minus-surface margin with its unit-resampled interval.}
+\label{tab:short-phrase}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Correctness rule & Discrete SE & Surface & Naive pred. & Margin & 95\,\% CI \\
+\midrule
+token-F1 & 0.7801 & 0.7934 & 0.7894 & -0.0133 & [-0.020, -0.006] \\
+Qwen judge & 0.8059 & 0.8054 & 0.7949 & +0.0005 & [-0.006, +0.008] \\
+Llama judge & 0.8115 & 0.8088 & 0.8055 & +0.0027 & [-0.005, +0.011] \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

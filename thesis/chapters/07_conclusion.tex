@@ -2,135 +2,168 @@
 \label{ch:conclusion}
 
 \section{Summary}
+\label{sec:conclusion-summary}
 
-This thesis asked whether semantic entropy provides a better
-hallucination-risk and abstention signal than surface-form uncertainty,
-and how that answer depends on the surface-form variability of the
-task, the clustering backend, and the scale of the generator. The
-method follows Farquhar et al.~\cite{semantic_entropy_nature_2024};
-the contribution here is a reproducible reimplementation evaluated on
-a full cross-seed grid (three open generators, three short-answer
-datasets and a long-form biography task, three decoding seeds under
-the original paper's sampling and labeling protocol) plus a
-claim-level long-form extension, rather than a new semantic-entropy
-method.
+This thesis reimplemented the semantic entropy method of Farquhar et
+al.~\cite{semantic_entropy_nature_2024} against their released
+code~\cite{kossen_semantic_uncertainty_code_2024}, ran it on three open
+generators and three short-answer benchmarks plus a long-form biography task,
+and used that setup to ask three questions.
 
-The answer depends on the length of the output, and it points in opposite
-directions at the two ends.
-On short answers the sampling-based detectors all work: AUROC lands roughly
-between $0.70$ and $0.90$. But the cheapest score in the family wins.
-Entropy over normalized strings is the strongest of the three count-based
-scores in eight of the nine model--dataset cells, and the best or joint-best
-of all detectors in six. No semantic estimator beats it by a margin that matters:
-every mean difference for discrete semantic entropy is negative, and the one
-Holm-significant result favors the surface baseline. The single exception
-anywhere is a $0.002$ lead for the probability-weighted variant on SVAMP
-with Llama-3.1-70B, which is noise. A record-level
-analysis explains why: dataset normalization already removes almost all
-surface variation before any semantic step runs, so clustering has little
-left to merge. On long-form text the two count-based string-frequency scores
-have little to measure: paragraphs almost never repeat as identical strings,
-so the scores are nearly pinned at their ceiling and sit near chance.
-Surface-only probability-weighted naive entropy remains strong, while
-meaning-level clustering and a correctness-trained probe recover signal by
-different routes.
+\textbf{Does semantic entropy detect confabulations better than the baselines
+the original paper uses?} Yes. On sentence-length answers under the canonical
+entailment model and an LLM judge, likelihood-weighted semantic entropy reaches
+AUROC 0.758 and the discrete variant 0.757, against 0.718 for a
+correctness-trained hidden-state probe, 0.714 for P(True), 0.694 for entropy
+over sequence log-likelihoods and 0.672 for the semantic entropy probe. The
+ordering holds in every slice where each comparator was measured, and the
+headline comparison against naive predictive entropy reproduces at $+0.063$ to
+$+0.162$ against the $+0.099$ the original's own reported figures imply.
 
-Scored one claim at a time against human factuality labels, semantic entropy
-detects confabulated claims at AUROC 0.748, 0.724 and 0.701 for the three
-generators. Here it does beat the normalized surface baseline, by $0.07$ to
-$0.11$ AUROC in every cell. What makes that comparison worth more than the
-whole-paragraph one is the baseline: at claim level it still ranks usefully,
-at $0.642 / 0.650 / 0.619$, rather than sitting at its ceiling. So the
-meaning-clustering step is worth its cost at claim granularity, and is not on
-short answers. On whole paragraphs the picture is weaker and, on the evidence
-of two independent diagnostics, partly an artifact of granularity rather
-than of the method: the score is pinned at its ceiling for between $9\,\%$
-and $32\,\%$ of records depending on the generator, and one generator's
-paragraphs are frequently cut off at the decoding limit.
+\textbf{Which part of the method earns the advantage?} Normalization, not
+grouping by meaning. Every baseline the original uses differs from semantic
+entropy in more than one way at once, so that design cannot attribute the
+margin to any single part. Breaking the method into four steps, each differing
+from the one below it in exactly one way, does attribute it. Of the four, only
+normalizing the answer strings before counting them is clearly worth anything:
+$+0.040$ AUROC, positive and resolved in all 24 slices of the grid, and the
+only step above the seed noise floor. Counting raw strings rather than reading
+likelihoods is positive in 4 slices of 24. Weighting the meaning-groups by
+likelihood adds $+0.002$.
 
-Two further findings qualify the method's practical use.
+The step the method is named after is not beaten by its own comparator. Eight
+slices spanning four prompting conditions and two independent LLM judges give
+margins between $-0.0020$ and $+0.0223$, and a hierarchical paired bootstrap
+resampling both the nine independent units and the records within them resolves
+none of them. Pairing on records was the analysis that could have rescued a
+small consistent effect; it narrows the intervals threefold and changes no
+verdict. The same conclusion follows without any test: the clustering-free
+comparator passes every comparison the original study runs, with no slice
+anywhere going the other way.
 
-The first is that the clustering backend decides the long-form result. Across
-NLI cross-encoders and an LLM judge, the same saved samples yield anything
-from anti-predictive to moderately useful behavior. On short answers the
-same four backends span at most 0.057 AUROC. Backend capacity seems to matter
-in proportion to the length of the text being compared. That makes it an
-implementation detail on short answers and a first-order design decision on
-long-form text.
+That answer is conditional in two specific ways, and neither is a hedge.
+Substituting a 72-billion-parameter model as the entailment judge, on identical
+generations, gives a resolved margin of $+0.087$ on sentence-length answers and
+$+0.012$ to $+0.014$ on short phrases. And on paragraph-length output every
+sampled answer is unique, so the string estimators are constant across records
+and sit at chance. There, grouping is not an improvement over them but a
+precondition for measuring anything at all. The scale of the design bounds the
+null from the other side as well: an effect below roughly 0.01 AUROC would not
+be visible here, so what is established is the absence of a measurable benefit
+rather than of any benefit.
 
-The second is a scale effect. Claim-level detection falls steadily as the
-generator grows, from AUROC $0.748$ through $0.724$ to $0.701$ between 7B and
-70B. A larger model that has invented a detail may simply repeat it more
-consistently, leaving less disagreement to measure; the experiment does not
-establish that mechanism directly. The effect is a gentle slope rather than
-a collapse: $0.047$ AUROC across a tenfold size difference, with the largest
-model still clearly useful. It should not be extrapolated beyond the three
-models measured here.
+\textbf{How much do measurement choices move the answer?} More than the choice
+of method does. On one fixed set of generations the entailment model moves
+discrete semantic entropy from 0.751 to 0.823, a spread three times the 0.020
+margin between semantic and surface entropy on the canonical backend. Sampling
+temperature reorders the families of detector, with diversity-based estimators
+falling from 0.757 to 0.568 between $T=1.0$ and $T=0.1$ while a
+likelihood-based one moves only from 0.694 to 0.644. The conventional $T=1.0$
+is the most favorable point in the measured range for the sampling-based
+approach. The correctness rule reverses the sign of the headline
+contrast, from $+0.020$ under LLM grading to $-0.051$ under the token-overlap
+rule the released code applies by default. And the choice between AUROC and the
+rejection-accuracy summary reported beside it moves the verdict from a bare
+majority for semantic entropy to a majority for surface entropy.
 
-
-Hidden-state probes offer a cheaper, single-pass alternative. On short
-answers the entropy-trained SEP and correctness-trained accuracy probe land
-close together, with the correctness target ahead in eight of nine held-out
-cells. The whole-paragraph biography design reports only the accuracy probe,
-at $0.704 / 0.680 / 0.773$ from 7B to 70B; it defines neither a genuine SEP nor
-an OOD transfer result. Its scale pattern is not monotonic, so those three
-cells give no evidence that hidden-state detection strengthens with model
-size. The measured conclusion is narrower: the correctness-trained probe remains a
-useful single-pass comparator when whole-paragraph cluster scores saturate.
+Taken together: the method is sound and it reproduces, but the number attached
+to it measures the setup as much as the method, and the part of the method that
+the margin is usually credited to is not the part that produces it.
 
 \section{Contributions}
+\label{sec:conclusion-contributions}
 
-The substantive method comes from Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. The contributions promised in
-Chapter~\ref{ch:introduction} were delivered as six artifacts:
-(1)~a reproducible \texttt{semantic\_entropy} implementation
-(Chapters~\ref{ch:semantic_entropy}--\ref{ch:experimental_design});
-(2)~the complete cross-seed experiment record, with paired-bootstrap
-significance kept separate from seed stability
-(Sections~\ref{sec:evaluation-metrics}--\ref{sec:hpc-execution});
-(3)~the extension baselines, including P(True), in- and out-of-distribution
-embedding regression, Kernel Language Entropy under two encoders, and the
-Semantic Entropy Probe~\cite{kossen_semantic_entropy_probes_2024}, with the
-observation that correctness-trained and SE-trained probes perform similarly
-in this grid, although the correctness-trained probe is ahead in eight of
-nine cells (Sections~\ref{sec:related-estimators}, \ref{sec:probes-results});
-(4)~the two-granularity long-form evaluation, whole-paragraph and claim-level,
-which yields the scale trend, the clustering-artifact result, and evidence
-from this biography task that a consistency-based detector should be
-evaluated at a granularity where independent samples can plausibly agree, a
-condition that can be checked from the samples before any AUROC is computed
-(Sections~\ref{sec:bio-results}, \ref{sec:factualbio-results});
-(5)~the record-level worked audits that give mechanistic rather than purely
-metric-level evidence for the main conclusions
-(Section~\ref{sec:hand-audits}); and (6)~the sampling-temperature sweep, which
-isolates the steep temperature dependence of the sampling-based family
-against a near-flat single-pass baseline and shows the resulting crossing to
-depend on model scale (Section~\ref{sec:temperature-sensitivity}).
-
-
-The full source code, result tables, Slurm templates, and LaTeX thesis
-source are available at \url{https://github.com/D3prave/thesis}.
-The Python implementation lives in the \texttt{src/semantic\_entropy/}
-package; entry points are documented in \texttt{README.md}.
+\begin{enumerate}
+  \item \textbf{A four-step decomposition of the method}, in which neighbouring
+    steps differ in exactly one way, so the value of each is measured on its
+    own. It locates the reliable gain in answer normalization rather than in
+    grouping by meaning, and it supplies the comparator the original evaluation
+    leaves out.
+  \item \textbf{The finding that the clustering-free comparator passes every
+    comparison the original study runs}. That is 24 slices of 24 against entropy
+    over log-likelihoods, 6 of 6 against P(True) and against each probe, with none
+    going the other way. That evidence base therefore does not separate
+    semantic entropy from a method that never judges meaning.
+  \item \textbf{A hierarchical paired bootstrap over 24 slices}, with the
+    demonstration that the natural analysis, resampling records with the
+    task units held fixed, gives intervals three times too narrow and flips
+    the direction of the conclusion. The grid holds nine independent units, not
+    twenty-seven cells, and treating the cells as independent inflates the
+    count of significant contrasts by 44\,\%.
+  \item \textbf{The entailment model varied afterwards on identical
+    generations}, showing that choice is worth more than the choice between
+    methods, and that three implementations of ``bidirectional entailment
+    clustering'' agree on cluster count for only 60--73\,\% of records.
+  \item \textbf{A $2\times2$ separating instruction wording from worked-example
+    count}, which the original's two conditions confound, showing that the
+    worked examples rather than the instruction text are what matters.
+  \item \textbf{Three correctness rules applied to identical answers}, two of
+    them independent LLM judges, and the finding that the ranking of methods
+    depends on which is used.
+  \item \textbf{A five-point temperature sweep}, showing that diversity-based
+    and likelihood-based detectors part ways as temperature falls, and that the
+    conventional setting is the most favorable one for the sampling-based
+    family.
+  \item \textbf{Two findings about the metrics rather than the methods}: the
+    two rejection-accuracy definitions rank the methods differently from AUROC
+    and from each other, and both track the generating model's own accuracy at
+    $r \approx 0.97$ against $r = 0.50$ for AUROC, so neither isolates the
+    detector.
+  \item \textbf{An implementation faithful to the released code rather than to
+    its description}, including the order-dependent anchor scan the code
+    performs, with a register of the nine points where code and paper disagree.
+\end{enumerate}
 
 \section{Limitations}
+\label{sec:conclusion-limitations}
 
-The detection target is the confabulation setting of
-Chapter~\ref{ch:background}, so high-confidence systematic errors fall outside
-it by construction. The FactualBio scale trend makes that limit concrete:
-consistent confabulation at 70B is precisely the confident-error
-case~\cite{simhi_choke_2025}.
+Two limitations are not qualifications on individual tables. They condition
+every number here, and they are stated in full because a reader who took the
+conclusions above without them would be taking more than the data support.
+Chapter~\ref{ch:discussion} states both where the results are interpreted; they
+are repeated because they belong to the conclusions as much as to the analysis.
 
-Within the empirical results, the main residual limitations are the
-automated LLM judging behind the whole-paragraph long-form labels (the
-claim-level evaluation uses published human labels), the three-seed basis of
-the stability estimates, and the English-only, biography-only long-form
-scope. The hidden-state probes were not included in the temperature sweep, the
-granularity interpretation comes from one long-form task, and AUROC ranking
-alone does not establish deployment utility. The claim-level
-surface comparison is exploratory rather than preregistered, and rests on one
-claim set and three generators.
-Record-level issues (alias-type oracle failures on TriviaQA,
-semantically consistent refusals on biography, and SVAMP's
-integer-arithmetic structure) are documented in the audits; the
-fuller discussion is in Section~\ref{sec:discussion-limitations}.
+\paragraph{The correctness judges were never validated against human labels.}
+Every AUROC here is computed against a correctness label, and every label came
+either from a token-overlap rule or from a language model asked to grade. The
+two LLM judges agree on 93.7\,\% of records in the sentence-length condition,
+and that figure is easy to over-read: it bounds how consistent the judges are
+with each other, not how often they are both wrong. Two models of similar
+construction, given the same prompt, can agree closely and be wrong in the same
+direction. Farquhar et al.\ run exactly this check against human annotation on
+100 questions in their Supplementary Note~6. This study runs no equivalent, so
+every accuracy figure, and therefore every AUROC, rests on an unvalidated
+judge.
+
+\paragraph{The entailment model and the grader answer the same question.} Both
+are asked, in effect, whether two texts mean the same thing, and both are
+models of the same kind. A method that groups by meaning is therefore favored
+exactly when correctness is scored by meaning, for reasons unrelated to whether
+it detects confabulation. The data carry the fingerprint: semantic entropy's
+margin over surface entropy is $+0.020$ under LLM grading and $-0.051$ under
+token-F1 in the same condition, and the 72B entailment backend gains $+0.065$
+under LLM grading while losing $0.015$ under token-F1. Each estimator does best
+where its notion of sameness matches the grader's.
+
+Without human labels this cannot be settled, and the thesis does not settle it.
+In particular it does not treat the LLM-graded numbers as the true ones and the
+token-F1 numbers as an artifact. Surface entropy resolvably beats semantic
+entropy under token-F1 in seven slices, and under the LLM judges the two are
+indistinguishable on the canonical backend. So the judges do not vindicate
+semantic entropy, they fail to separate the methods. What can be said is that
+the ranking depends on which definition of correctness is adopted, and that
+this study has no way to choose between them. The narrower circularity check of
+Section~\ref{sec:clustering-sensitivity} does not cover this: it rules out one
+particular model favoring its own output, and finds that it does not, but the
+concern is the class of judge rather than the identity of the model.
+
+\paragraph{Further limitations.} Six more qualify particular results and are
+set out in Section~\ref{sec:threats}. The sentence-length condition here is not
+the original's, averaging 255.2 characters against 95.6. Nine independent units
+cannot resolve effects below roughly 0.01 AUROC. The clustering step is
+order-dependent by construction. The long-form arm has degenerate string
+baselines, one grader that is also one of its backends, and a stricter
+clustering rule than the original uses for paragraphs. The probes and P(True)
+sit on different backends and are never directly comparable. And the two added
+prompting conditions exist on one backend, so the $2\times2$ cannot be
+estimated on the backend most favorable to semantic entropy.

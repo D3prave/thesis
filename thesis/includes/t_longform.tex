@@ -1,0 +1,21 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{The long-form arm: nine cells, 500 biographies each, claim-level grading by the Qwen judge. Strict bidirectional entailment throughout, which is not the rule the original study applies to paragraphs (Section~\ref{sec:longform-design}).}
+\label{tab:longform}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Backend & Discrete SE & Surface & Naive sample \\
+\midrule
+\texttt{exact-match} & 0.4965 & 0.4965 & 0.4973 \\
+\texttt{nli-deberta-v3-base} & 0.5245 & 0.4965 & 0.4973 \\
+\texttt{nli-deberta-v3-large} & 0.6703 & 0.4965 & 0.4973 \\
+\textbf{\texttt{Qwen2.5-72B-Instruct}} & 0.7084 & 0.4965 & 0.4973 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\par\vspace{2pt}\footnotesize Mean claim accuracy 0.375 over the nine cells. Surface and naive sample entropy are constant across backends because they never consult one; they are not performing badly but are structurally degenerate, since ten sampled biographies are never string-identical and every sample forms its own cluster. The canonical \texttt{deberta-v2-xlarge-mnli} was not applied to this arm.
+\end{table}

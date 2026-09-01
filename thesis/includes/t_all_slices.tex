@@ -1,0 +1,40 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{All 24 slices: discrete semantic entropy minus surface entropy, with hierarchical intervals resampling both the nine units and the records within them. The final column names the direction where the interval excludes zero. Every slice resolved in favor of semantic entropy is a Qwen-backend slice; every slice resolved in favor of surface entropy is a token-F1 slice.}
+\label{tab:all-slices}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lllccl@{}}
+\toprule
+Condition & Backend & Grader & Margin & 95\,\% CI (hier.) & Resolved \\
+\midrule
+\texttt{chat\_0shot} & \texttt{xlarge} & Qwen judge & +0.0204 & [-0.030, +0.059] & --- \\
+\texttt{chat\_0shot} & \texttt{xlarge} & Llama judge & +0.0223 & [-0.033, +0.066] & --- \\
+\texttt{chat\_0shot} & \texttt{xlarge} & token-F1 & -0.0506 & [-0.084, -0.022] & surface \\
+\texttt{chat\_0shot} & \texttt{v3-large} & Qwen judge & +0.0147 & [-0.027, +0.050] & --- \\
+\texttt{chat\_0shot} & \texttt{v3-large} & Llama judge & +0.0139 & [-0.039, +0.055] & --- \\
+\texttt{chat\_0shot} & \texttt{v3-large} & token-F1 & -0.0587 & [-0.091, -0.029] & surface \\
+\texttt{chat\_0shot} & \texttt{Qwen-72B} & Qwen judge & +0.0867 & [+0.060, +0.119] & SE \\
+\texttt{chat\_0shot} & \texttt{Qwen-72B} & Llama judge & +0.0872 & [+0.056, +0.124] & SE \\
+\texttt{chat\_0shot} & \texttt{Qwen-72B} & token-F1 & -0.0658 & [-0.144, -0.004] & surface \\
+\texttt{default\_0shot} & \texttt{xlarge} & Qwen judge & +0.0032 & [-0.026, +0.028] & --- \\
+\texttt{default\_0shot} & \texttt{xlarge} & Llama judge & +0.0084 & [-0.021, +0.033] & --- \\
+\texttt{default\_0shot} & \texttt{xlarge} & token-F1 & -0.0263 & [-0.045, -0.012] & surface \\
+\texttt{chat\_5shot} & \texttt{xlarge} & Qwen judge & -0.0020 & [-0.014, +0.008] & --- \\
+\texttt{chat\_5shot} & \texttt{xlarge} & Llama judge & -0.0005 & [-0.011, +0.010] & --- \\
+\texttt{chat\_5shot} & \texttt{xlarge} & token-F1 & -0.0174 & [-0.027, -0.007] & surface \\
+\texttt{default\_5shot} & \texttt{xlarge} & Qwen judge & +0.0005 & [-0.007, +0.008] & --- \\
+\texttt{default\_5shot} & \texttt{xlarge} & Llama judge & +0.0027 & [-0.006, +0.012] & --- \\
+\texttt{default\_5shot} & \texttt{xlarge} & token-F1 & -0.0133 & [-0.022, -0.005] & surface \\
+\texttt{default\_5shot} & \texttt{v3-large} & Qwen judge & +0.0014 & [-0.007, +0.009] & --- \\
+\texttt{default\_5shot} & \texttt{v3-large} & Llama judge & +0.0047 & [-0.005, +0.015] & --- \\
+\texttt{default\_5shot} & \texttt{v3-large} & token-F1 & -0.0130 & [-0.023, -0.004] & surface \\
+\texttt{default\_5shot} & \texttt{Qwen-72B} & Qwen judge & +0.0119 & [+0.003, +0.021] & SE \\
+\texttt{default\_5shot} & \texttt{Qwen-72B} & Llama judge & +0.0139 & [+0.003, +0.024] & SE \\
+\texttt{default\_5shot} & \texttt{Qwen-72B} & token-F1 & -0.0064 & [-0.017, +0.004] & --- \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

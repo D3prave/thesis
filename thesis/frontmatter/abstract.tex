@@ -2,57 +2,60 @@
 \addcontentsline{toc}{chapter}{Abstract}
 
 Large language models often produce fluent answers that are wrong or
-unsupported by the input, and they rarely warn the reader when this
-happens. A useful question-answering system should also be able to say
-``I am not sure'' when its answer is unreliable. This thesis studies
-one signal for detecting such unreliable answers: semantic entropy,
-introduced by Farquhar et al.\ in \emph{Nature} (2024). The idea is simple. The
-model is asked the same question several times; the sampled answers are
-grouped so that answers meaning the same thing count as one; and the
-spread over these meaning groups is measured with Shannon entropy. If
-the samples agree in meaning, the answer is probably safe; if they
-scatter across incompatible meanings, it is probably not.
+unsupported, and they rarely warn the reader when this happens. Semantic
+entropy, introduced by Farquhar et al.\ in \emph{Nature} in 2024, is a
+training-free signal for that failure. The model is asked the same question
+several times, the sampled answers are grouped so that answers meaning the same
+thing count as one, and the spread over those meaning-groups is measured with
+Shannon entropy. If the samples agree in meaning the answer is probably safe;
+if they scatter across incompatible meanings it is probably not.
 
-The thesis does not propose a new method. It re-implements the method
-of Farquhar et al.\ in a fully local, reproducible setup and asks when
-the meaning-level grouping actually helps, compared with a much cheaper
-baseline that only counts distinct answer strings. The evaluation runs
-three open generator models (Mistral-7B, Llama-3.1-8B, Llama-3.1-70B)
-on three short-answer tasks (TriviaQA, NQ-Open, SVAMP) and one
-long-form biography task graded by an LLM judge against Wikipedia, each
-decoded under three random seeds with the original paper's sampling and
-labeling protocol on the NHR@FAU computing cluster. Alongside the
-entropy scores it evaluates P(True), embedding regression,
-semantic-entropy probes, Kernel Language Entropy, several entailment
-backends, and a sampling-temperature sweep. Ranking quality is measured
-with AUROC and rejection-accuracy curves; seed stability and
-record-level paired-bootstrap significance are reported separately.
+This thesis does not propose a new method. It reimplements the published one
+against the authors' released code, on three open generators, three
+short-answer benchmarks and a long-form biography task, and uses that setup to
+ask three questions: whether semantic entropy detects confabulations better
+than the baselines the original paper evaluates, whether its advantage is
+attributable to the clustering step in particular, and how far the answer moves
+when measurement choices the literature treats as configuration are varied
+instead of fixed.
 
-The answer depends on the length of the output. On short answers the core
-count-based sampling estimators generally reach AUROC values of roughly
-0.70--0.90 and reproduce the original results under the matched protocol.
-Entropy over normalized strings is nevertheless the strongest single score in
-most cells, and no method beats it by a practically relevant margin. A
-record-level analysis shows why: simple answer normalization, not semantic
-clustering, performs almost all of the grouping. On long-form biography
-the picture changes. The two count-based string-frequency baselines collapse
-to chance, but surface-only probability-weighted naive entropy remains strong
-and is best for the two smaller generators. Meaning-aware and
-representation-based detectors also recover signal, and the choice of
-clustering backend becomes result-determining, spanning anti-predictive to
-moderately useful behavior on the same samples. Scored one claim at a time
-against human labels, where the surface baseline still ranks usefully rather
-than sitting at its ceiling, meaning-based clustering leads it by 0.07 to
-0.11 AUROC for every generator: the one regime measured here in which the
-clustering step earns its cost.
+To the first question the answer is yes. On sentence-length answers, semantic
+entropy leads every comparator the original study uses, reaching AUROC 0.758
+against 0.714 for self-evaluation and 0.694 for entropy over sequence
+log-likelihoods, and its headline margin over the latter reproduces.
 
-Two further effects qualify practical use. Claim-level detection power falls
-modestly as the generator scales, a pattern consistent with larger models
-repeating their confabulations more consistently and leaving less
-inconsistency to measure. Sampling-based entropy also strengthens as decoding
-temperature rises, whereas the single-pass P(True) self-evaluation baseline
-(which was swept, while the hidden-state probes were not) remains nearly flat,
-so which detector is preferable depends on the decoding settings as much as on
-the method. Taken together the results locate the value of meaning-based
-clustering precisely: it is redundant wherever answer normalization already
-groups the samples, and it is worth its cost where it does not.
+The second question is the thesis's contribution. Every baseline the original
+study uses differs from semantic entropy in more than one respect at once, so
+that design cannot attribute the margin to any one component, although it is
+routinely read as crediting one in particular. Decomposing the method into four
+steps, each differing from the one below it in exactly one respect, does
+attribute it. The step that carries the reliable gain is not the clustering. Normalizing the answer strings before counting them is worth
+$+0.040$ AUROC and is positive and resolved in all 24 slices of the evaluation
+grid, the only step above the run-to-run noise. Grouping those normalized
+strings by meaning adds nothing measurable on the entailment model the released
+code loads: across four prompting conditions and two independent LLM judges,
+eight paired comparisons produce margins between $-0.002$ and $+0.022$ AUROC
+and a bootstrap resampling both the nine independent task units and the records
+within them resolves none of them. The clustering-free comparator also passes
+every comparison the original study runs, with no slice anywhere resolving
+against it. The result is conditional in
+two ways that are stated rather than hedged. Substituting a
+72-billion-parameter entailment model produces a resolved margin of $+0.087$;
+and on paragraph-length output, where no two samples are ever identical and the
+string-based scores are constant, clustering is not an improvement but a
+precondition.
+
+To the third question the answer is that measurement choices move the result by
+more than the choice of method does. On one fixed set of generations the
+entailment model spans 0.751 to 0.823, three times the margin between the
+methods; the sampling temperature reorders the families of detector, and the
+conventional setting is the most favorable point in the range; and the standard
+token-overlap correctness rule reverses the sign of the headline contrast.
+Two limitations bound all of this: the correctness judges were never validated
+against human labels, and the entailment model and the judge answer versions of
+the same question, so a method that groups by meaning is favored exactly when
+correctness is scored by meaning.
+
+The method reproduces. The number attached to it is a measurement of the
+apparatus as much as of the method, and the component the margin is usually
+credited to is not the component that produces it.

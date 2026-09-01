@@ -63,13 +63,6 @@
     other, is used as the proxy for semantic equivalence}
 }
 
-\newglossaryentry{semanticcluster}{
-  name={semantic cluster},
-  description={a group of sampled answers treated as semantically equivalent,
-    either by exact-match normalization in the baseline or by bidirectional
-    entailment in the NLI-clustered runs. Each cluster is one distinct
-    meaning among the samples}
-}
 
 \newglossaryentry{auroc}{
   name={AUROC},
@@ -87,12 +80,6 @@
     are comparable only within one task and model}
 }
 
-\newglossaryentry{selectiveprediction}{
-  name={selective prediction},
-  description={a setting in which the model may abstain rather than always
-    answer. An uncertainty estimator decides which prompts to answer, the
-    goal being higher accuracy on those it does}
-}
 
 \newglossaryentry{deberta}{
   name={DeBERTa},
@@ -106,12 +93,4 @@
   description={Semantic Entropy Probe: a lightweight linear classifier on the
     generator's frozen hidden states, trained to predict high semantic entropy
     without multi-sample generation at inference time}
-}
-
-\newglossaryentry{kle}{
-  name={KLE},
-  description={Kernel Language Entropy: the von Neumann entropy of a
-    normalized kernel matrix built from sentence embeddings of the sampled
-    answers. Replaces hard NLI clustering with a continuous, soft measure of
-    semantic spread}
 }

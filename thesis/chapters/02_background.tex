@@ -2,211 +2,258 @@
 \label{ch:background}
 
 Chapter~\ref{ch:introduction} used ``hallucination'' as a cover term. This
-chapter makes it precise, then builds up the two ideas the method rests on:
-why uncertainty is hard to measure over free-form text, and how entailment
-can stand in for sameness of meaning.
+chapter makes it precise, then builds the two ideas the method rests on: why
+uncertainty is hard to measure over free text, and how entailment can stand in
+for sameness of meaning. It ends with the gap the three questions address.
 
 \section{Hallucinations and confabulations}
+\label{sec:hallucination-confabulation}
 
-``Hallucination'' is an umbrella over several distinct mechanisms:
-unfaithfulness to source material, unsupported factual claims, gaps in the
-model's knowledge, faulty reasoning, and answers encouraged by benchmarks
-that reward guessing over admitting
+``Hallucination'' covers several failures. A model can be unfaithful to a
+source, make unsupported claims, run out of knowledge, reason badly, or guess
+because the benchmark rewards guessing over admitting
 ignorance~\cite{ji_hallucination_survey_2023,%
 huang_llm_hallucination_survey_2023,%
 maynez_faithfulness_factuality_2020,%
 kalai_why_language_models_hallucinate_2025,%
-augenstein_factuality_challenges_2024}. These have different causes and call
-for different remedies, so no single detector addresses all of them.
+augenstein_factuality_challenges_2024}. These have different causes and need
+different fixes, so no single detector handles all of them.
 
-The semantic entropy paper~\cite{semantic_entropy_nature_2024}, on which this
-thesis is based, isolates one of them: \emph{confabulations}, fluent answers
-that are both incorrect and arbitrary, where ``arbitrary'' means the answer is
-sensitive to irrelevant variation such as the random seed used during
-decoding. That is the target throughout this thesis, and the restriction it
-imposes is strict rather than incidental. A model that is consistently wrong,
-because its training data contains a misconception, because the problem needs
-reasoning it cannot perform, or because evaluation incentives discourage
-abstention, produces stable answers; any detector built on sampling
-inconsistency is blind to it by
-construction~\cite{simhi_choke_2025,ma_semantic_energy_2025}. Every result
-below should be read against that boundary, which
-Section~\ref{sec:discussion-limitations} revisits with a worked example.
+The semantic entropy paper~\cite{semantic_entropy_nature_2024} isolates one:
+\emph{confabulations}, fluent answers that are both wrong and arbitrary.
+``Arbitrary'' means the answer changes with things that should not matter, such
+as the random seed used while decoding. That is the target throughout this
+thesis, and the restriction is strict rather than incidental. Some models are
+wrong the same way every time. That happens when the training data contains a
+misconception, when the problem needs reasoning the model cannot do, or when
+the benchmark discourages abstention. Such a model gives stable answers, and no
+detector built on sampling inconsistency can see
+it~\cite{simhi_choke_2025,ma_semantic_energy_2025}.
 
-The same framing supplies the hypothesis the thesis tests. If the model knows
-the answer, stochastic samples should vary mostly in wording while preserving
-meaning; if it is confabulating, they should split across several incompatible
-meanings. Measuring uncertainty over meanings rather than over surface strings
-should therefore be the more informative signal for free-form question
-answering~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+The reason is short, and it bounds everything that follows. The method reads
+one quantity: how much the answers to a question disagree with each other when
+the question is asked repeatedly. An error that survives resampling produces no
+disagreement, so it produces no signal.
+
+The same framing gives the expectation the thesis tests. If the model knows the
+answer, repeated samples should vary in wording but keep the meaning. If it is
+confabulating, they should split across incompatible meanings. Measuring
+uncertainty over meanings rather than over strings should therefore be the
+better signal~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
 
 \section{Uncertainty in free-form generation}
+\label{sec:uncertainty-freeform}
 
-When a model has to pick from a fixed, short list of answers, say
-``cat'', ``dog'', or ``horse'', measuring its uncertainty is easy: it
-assigns a percentage to each option, and those percentages already say
-how sure it is. A language model has no such tidy list. It instead
-produces whole sentences, and the catch is that the \emph{same fact} can
-be written in many ways (``Paris'', ``Paris, France'', ``the capital is
-Paris''), while two sentences that look almost identical can mean
-different things. So counting how often the exact words differ is a poor
-guide to whether the model is really unsure. Split the model's probability
-mass across ten paraphrases of one fact and the token-level numbers look
-uncertain, even though the model has said the same thing ten times. Sequence-level entropy or
-token-level variation can therefore be misleading for natural-language
-answers, as discussed in work on uncertainty in natural language
+When a model picks from a short fixed list, say ``cat'', ``dog'' or ``horse'',
+measuring its uncertainty is easy. It assigns a probability to each option, and
+those probabilities already say how sure it is. A language model has no such
+list. It produces whole sentences, and the same fact can be written many ways
+(``Paris'', ``Paris, France'', ``the capital is Paris''), while two sentences
+that look almost alike can mean different things. Counting how often the exact
+words differ is therefore a poor guide to whether the model is unsure. Spread
+the model's probability across ten paraphrases of one fact and the token-level
+numbers look uncertain, even though the model said the same thing ten times.
+Sequence-level entropy can mislead for the same reason, which is the starting
+point of work on uncertainty in natural language
 generation~\cite{baan_uncertainty_nlg_2023} and semantic
 uncertainty~\cite{kuhn_semantic_uncertainty_2023}.
-The thesis distinguishes three levels of variation accordingly:
+
+Three levels of variation are worth keeping apart:
 
 \begin{enumerate}
-  \item \emph{lexical variation}: different token sequences or
-    paraphrases (e.g.\ ``Paris'' vs.\ ``Paris, France'');
-  \item \emph{semantic variation}: different meanings or propositions
-    (e.g.\ ``Paris'' vs.\ ``Lyon'');
-  \item \emph{factual correctness}: whether the chosen meaning is
-    correct for the task.
+  \item \emph{lexical variation}: different words for the same thing
+    (``Paris'' vs.\ ``Paris, France'');
+  \item \emph{semantic variation}: different claims
+    (``Paris'' vs.\ ``Lyon'');
+  \item \emph{factual correctness}: whether the chosen claim is right.
 \end{enumerate}
 
-Semantic entropy operates at the second level. It estimates uncertainty
-over semantic answers, not over truth directly; correctness evaluation
-is a separate step that compares the selected answer against a reference
-or a judge in semantic entropy~\cite{semantic_entropy_nature_2024}.
-Recent surveys~\cite{shorinwa_uq_llm_survey_2024,liu_uq_confidence_calibration_survey_2025}
-place
-this family of methods within uncertainty quantification for LLMs,
-alongside calibration, verbalized confidence, internal-state methods,
-and other sampling-based estimators, and systematic benchmarks now
-compare many such estimators head to
-head~\cite{lm_polygraph_vashurin_2025}.
+Semantic entropy works at the second level. It estimates uncertainty over
+meanings, not over truth. Deciding whether an answer is correct is a separate
+step that compares it against a reference or a
+judge~\cite{semantic_entropy_nature_2024}. That separation matters for reading
+this thesis, because the two steps can be varied independently, and
+Chapter~\ref{ch:results} shows that changing the second changes the apparent
+ranking of methods that differ only in the first.
+
+Recent surveys~\cite{shorinwa_uq_llm_survey_2024,%
+liu_uq_confidence_calibration_survey_2025} place this family within uncertainty
+quantification for language models, alongside calibration, verbalized
+confidence and internal-state methods, and benchmarks now compare many such
+estimators side by side~\cite{lm_polygraph_vashurin_2025}.
 
 \section{Confidence, calibration, and abstention}
+\label{sec:calibration-abstention}
 
-The motivation for estimating uncertainty is not only to attach a score
-to an answer, but to decide what should happen next: answer, abstain,
-defer to retrieval, request human review, or invoke a more expensive
-verification procedure. A related notion is \emph{calibration}. A model is well calibrated when its
-stated confidence matches how often it is actually right: among all answers
-given with 90\,\% confidence, roughly 90\,\% should be correct. Calibration
-and accuracy are different properties, and a model can have one without the
-other. The view taken here needs neither. Selective prediction only requires
-that risky answers be \emph{ranked} above safe ones. This
-makes selective prediction and
-rejection-based evaluation the natural evaluation lens for the thesis.
-Accuracy alone is insufficient, because many benchmarks reward a lucky
-guess more than an honest admission of uncertainty, a problem discussed
-by Kalai et al.~\cite{kalai_why_language_models_hallucinate_2025}.
-Rejection-accuracy curves and their AURAC summary are better aligned
-with the practical question of whether uncertain answers can be
-filtered out. Related work has also
-examined whether semantic entropy can be used as a training signal to
-encourage abstention: Tjandra et
-al.~\cite{tjandra_abstain_semantic_entropy_2024} fine-tune models on it
-directly. That is a different use of the same quantity, and it is not what
+The point of estimating uncertainty is not only to attach a number to an
+answer. It is to decide what happens next: answer, abstain, look something up,
+ask a person, or run a more expensive check.
+
+A related idea is \emph{calibration}. A model is well calibrated when its
+stated confidence matches how often it is right: among answers given with
+90\,\% confidence, about 90\,\% should be correct. Calibration and accuracy are
+different properties and a model can have one without the other. The view here
+needs neither. Selective prediction only needs risky answers to be \emph{ranked}
+above safe ones, which is why rejection-based evaluation is the natural lens.
+Accuracy on its own is not enough, because many benchmarks reward a lucky guess
+over an honest admission of uncertainty~\cite{kalai_why_language_models_hallucinate_2025}.
+Rejection-accuracy curves and their area summary fit the practical question
+better. Chapter~\ref{ch:results} nevertheless finds that the summary this
+literature reports behaves in a way that complicates its use, and
+Section~\ref{sec:evaluation-metrics} returns to it.
+
+Semantic entropy has also been used as a training signal: Tjandra et
+al.~\cite{tjandra_abstain_semantic_entropy_2024} fine-tune models on it to
+encourage abstention. That is a different use of the same quantity and not what
 this thesis does. Here the score is only ever computed on a finished answer
-from a model that is left untouched; no gradient is taken through it.
+from a model that is left alone.
 
-A number of related works have approached the same problem without
-explicit semantic clustering. P(True)~\cite{kadavath_language_models_know_2022}
-asks the model to judge whether its own answer is correct, probing verbalized
-self-knowledge rather than sample diversity. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023}
-instead samples multiple responses and checks them for consistency without
-relying on external databases or access to token probabilities. Semantic
-entropy is closest in spirit to these sampling-based methods, but, unlike
-them, it explicitly aggregates samples into semantic clusters before
-computing an entropy score~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-These methods span a spectrum, from purely internal, where P(True) reads the
-model's own verdict, to purely behavioral, where SelfCheckGPT compares
-samples. Semantic entropy sits between them. It adds one step that none of
-the others perform: deciding when two answers mean the same thing. The value
-of exactly that step is what this study measures.
+Several related methods attack the same problem without grouping by meaning.
+P(True)~\cite{kadavath_language_models_know_2022} asks the model whether its own
+answer is correct, testing what the model can say about itself rather than how
+much its samples vary. SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} samples
+several responses and checks them against each other, without any database or
+access to token probabilities. Semantic entropy is closest to the second kind,
+but unlike it, semantic entropy groups the samples into meaning-clusters before
+computing an
+entropy~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
+These methods form a spectrum. P(True) reads only the model's own verdict, and
+SelfCheckGPT compares samples. Semantic entropy sits between them and adds one
+step none of the others perform: deciding when two answers mean the same thing.
+What that step is worth is what this study measures.
 
-
-A third family reads the model's \emph{hidden states} rather than its words.
-The observation behind it is that a model's internal activations often carry
-information about the reliability of an answer that its output text does not
-express. Burns et al.~\cite{burns_latent_knowledge_2023} recover a
-truth-like direction in activation space without any labels; Azaria and
+A third family reads the model's \emph{hidden states} instead of its words. The
+observation behind it is that internal activations often carry information
+about reliability that the output text does not. Burns et
+al.~\cite{burns_latent_knowledge_2023} find a truth-like direction in activation
+space without any labels; Azaria and
 Mitchell~\cite{azaria_internal_state_lying_2023} train a small classifier on
-hidden states to tell true from false statements; and
+hidden states to tell true statements from false ones; and
 INSIDE~\cite{chen_inside_2024} scores hallucinations from the geometry of
-sentence embeddings taken from inside the model. The practical appeal is cost:
-these methods need one forward pass, not $M$ samples and $M^2$ entailment
-comparisons. Semantic Entropy Probes~\cite{kossen_semantic_entropy_probes_2024}
-join the two families by training exactly such a probe to predict semantic
-entropy itself, so that the expensive signal is paid for once at training time
-and read cheaply thereafter. Both a probe of this kind and a
-correctness-trained variant are evaluated in
-Chapter~\ref{ch:results} as single-pass comparators; they are defined in
-Sections~\ref{sec:sep-method} and~\ref{sec:other-estimators}. Note that
-training such a probe is a separate, supervised step layered on top of a frozen
-generator, and it does not change the generator either.
+sentence embeddings taken from inside the model. The appeal is cost: one forward pass instead of $M$ samples and $M^2$
+entailment comparisons. Semantic Entropy
+Probes~\cite{kossen_semantic_entropy_probes_2024} join the two families by
+training such a probe to predict semantic entropy itself. The expensive signal
+is then paid for once during training and read cheaply afterwards. Both that
+probe and a correctness-trained variant appear in Chapter~\ref{ch:results}, and
+Sections~\ref{sec:sep-method} and~\ref{sec:other-estimators} define them.
 
 \section{Semantic equivalence and entailment}
+\label{sec:semantic-equivalence}
 
-For computing the semantic entropy, the key operational step is
-deciding when two sampled answers should be treated as the same answer.
-Semantic entropy adopts semantic equivalence rather than exact string
-equality: in Farquhar et al.'s original
-formulation~\cite{semantic_entropy_nature_2024}, two answers belong to
-the same group when they entail one another in the context of the question.
-This bidirectional-entailment
-criterion is a practical approximation to equality of meaning.
+The working step in semantic entropy is deciding when two sampled answers count
+as the same answer. It uses semantic equivalence rather than string equality:
+in Farquhar et al.'s formulation~\cite{semantic_entropy_nature_2024}, two
+answers belong together when they entail one another in the context of the
+question. That is an approximation to sameness of meaning, not a definition of
+it.
 
-Natural Language Inference (NLI) is the standard tool for this. An NLI
-model reads two sentences and labels their relationship as
-\emph{entailment} (the first implies the second), \emph{contradiction},
-or \emph{neutral}. Checking entailment in both directions is then a
-practical stand-in for ``these two answers mean the same thing.'' The
-specific NLI models used here are DeBERTa-v3 \emph{cross-encoders} (in
-two sizes, base and large) fine-tuned on the standard SNLI and MultiNLI inference
-datasets~\cite{sentence_transformers_nli_deberta_v3_base_2022,%
-he_deberta_2021,he_debertav3_2021,williams_multinli_2018}. ``Cross-encoder''
-just means the two sentences are fed into the model
-\emph{together}, so it can directly compare them; the alternative, a
-\emph{bi-encoder}, would encode each sentence on its own and compare the
-results afterwards. The cross-encoder is more accurate for this kind of
-pairwise judgement but slower, because every pair of answers has to be
-run through the model.
-The exact bidirectional-entailment rule and the recorded backend choices
-are settled in Chapters~\ref{ch:semantic_entropy} and~\ref{ch:results}.
+Natural Language Inference (NLI) is the standard tool. An NLI model reads two
+sentences and labels the relation between them as \emph{entailment} (the first
+implies the second), \emph{contradiction}, or \emph{neutral}. Checking both
+directions then stands in for ``these two answers mean the same thing''. Two
+kinds of model do this here. The first is a \emph{cross-encoder} fine-tuned on
+standard inference data such as MultiNLI~\cite{williams_multinli_2018}: the
+model the released code loads is a DeBERTa model~\cite{he_deberta_2021} of that
+kind, and a current DeBERTa-v3
+cross-encoder~\cite{he_debertav3_2021,%
+sentence_transformers_nli_deberta_v3_large_2022,%
+sentence_transformers_nli_deberta_v3_base_2022} is used beside it.
+``Cross-encoder'' means both sentences go into the model together, so it can
+compare them directly; the alternative, a \emph{bi-encoder}, encodes each
+sentence separately and compares afterwards. The cross-encoder is more accurate
+for this kind of judgment but slower, because every pair has to be run through
+it. The second kind is a general instruction-tuned language model asked the
+same question in words. That role is filled by
+Qwen2.5-72B-Instruct~\cite{yang_qwen25_2024}, standing in for the proprietary
+judge the original uses on sentence-length answers.
+Chapter~\ref{ch:semantic_entropy} gives the exact rule and the full list.
+
+Two properties of this approximation matter later. It is only as good as the
+model making the judgment, and the models available differ by two orders of
+magnitude in size. And the relation is symmetric by construction but not
+transitive: nothing forces $a \equiv b$ and $b \equiv c$ to imply $a \equiv c$.
+What a grouping procedure does when that fails is a design decision, and
+Section~\ref{sec:clustering} shows the released code resolves it in a way that
+makes the result depend on the order the samples arrive in.
 
 \section{Research gap}
+\label{sec:research-gap}
 
-Prior evaluations of semantic entropy report strong aggregate AUROC but
-leave three questions unresolved. First, the original evaluation compares
-semantic entropy against naive entropy over raw sampled strings, but not
-against a normalized surface-form
-baseline~\cite{semantic_entropy_nature_2024}, and the survey and
-benchmark literature that follows it inherits that set of
-comparisons~\cite{shorinwa_uq_llm_survey_2024,%
-liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. It
-is therefore unclear how much of the
-reported gain over ``naive'' entropy is attributable to semantic
-clustering rather than to simple answer normalization. Second, short-answer and long-form results are usually reported together
-rather than as a controlled contrast. Yet these are exactly the two regimes
-in which surface-level and meaning-level uncertainty should come apart.
-Recent work does report that semantic entropy weakens as one-sentence outputs
-grow longer~\cite{nguyen_beyond_semantic_entropy_2025}, but it does not
-isolate the short-versus-long contrast under one protocol. Third,
-the dependence of sampling-based detection on the decoding temperature,
-the very parameter that controls sample diversity, has been
-examined only in isolated ablations (including in the same
-work~\cite{nguyen_beyond_semantic_entropy_2025}) rather than
-characterized systematically across tasks and detector families. This
-thesis targets these three gaps directly.
+Semantic entropy is reported to detect confabulations better than the methods
+it is compared against, and that result has been taken up
+widely~\cite{semantic_entropy_nature_2024,kuhn_semantic_uncertainty_2023,%
+kossen_semantic_entropy_probes_2024}. Three gaps remain, one for each question
+this thesis asks.
 
-Addressing them fixes the empirical scope to three short-answer tasks,
-namely open-domain factual question answering with
-TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}
-and arithmetic word problems with SVAMP~\cite{patel_svamp_2021}, and
-one long-form task, a FactScore-style biography
-task~\cite{min_factscore_2023}. The dataset rationale, the datasets left
-outside the recorded study, representative records, and the exact prompt
-construction are given in Chapter~\ref{ch:experimental_design} and
-Appendix~\ref{app:prompts}.
+\paragraph{The evaluation has not been repeated on current open models.} The
+original uses proprietary judges and a generation of models that has since been
+superseded, and its released
+code~\cite{kossen_semantic_uncertainty_code_2024} differs from its prose in
+several small ways that only show up if you read the code. Whether the reported
+advantage survives a faithful reimplementation on open models, with every
+difference recorded, is the first question.
 
-Taken together, the literature places semantic entropy between cheap
-surface signals and expensive factual verification. Testing it fairly means
-keeping generation, clustering, scoring and evaluation separate, so this
-thesis builds a small, verifiable implementation first.
+\paragraph{No baseline isolates any single step.} This is the substantive gap.
+The comparators in this literature are of three kinds: entropy over sequence
+log-likelihoods, self-evaluation in the style of
+P(True)~\cite{kadavath_language_models_know_2022}, and hidden-state
+probes~\cite{kossen_semantic_entropy_probes_2024}. Each differs from semantic entropy in more than one way at once. They differ in
+what quantity is read, in how many model calls are made, and in whether any
+grouping happens at all. The surveys and benchmarks that follow inherit the
+same set~\cite{shorinwa_uq_llm_survey_2024,%
+liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. A
+comparison of that shape can show the whole procedure beats the alternatives.
+It cannot show which part of the procedure earns the margin, and the result is
+nonetheless usually read as evidence for the grouping step in particular.
+
+The missing comparator is the obvious one: draw the same samples, normalize
+them, count the distinct strings, and take the entropy of those counts. It
+needs no entailment model and no second network, and it differs from semantic
+entropy in exactly one way, the one at issue.
+
+Supplying it also makes a fuller answer possible. Semantic entropy differs from
+the crudest string baseline in four steps, and comparing each against the one
+below it gives the value of every step rather than only the last. Which step
+earns the advantage, tested with a procedure that respects how the evaluation
+grid is actually built, is the second question.
+
+\paragraph{The parts treated as implementation details have not been varied.}
+Three choices sit inside every reported number and are described in this
+literature as configuration: which entailment model decides that two answers
+mean the same thing, which rule decides whether an answer was correct, and what
+temperature the samples were drawn at. Each is a free parameter a reader is
+invited to assume does not matter much, and nothing establishes that. Recent
+work reports that semantic entropy weakens as one-sentence outputs get
+longer~\cite{nguyen_beyond_semantic_entropy_2025} and includes isolated
+ablations of temperature, but no study varies these three on one fixed set of
+generations, which is the only way to attribute a change to the factor rather
+than to the data. Seed-to-seed variability is not reported either, so a reader
+has no scale for judging whether a margin is large. How far these choices move
+the answer, next to the difference between the methods themselves, is the third
+question.
+
+\paragraph{}
+One smaller point shapes Chapter~\ref{ch:experimental_design}. The original
+reports two prompting conditions, one giving sentence-length answers and one
+giving short phrases, and they differ at the same time in the instruction given
+to the model and in the number of worked examples before the question. Any
+difference between them could come from either factor or from their
+interaction. Collecting the two missing combinations costs little and separates
+them.
+
+These questions fix the scope to three short-answer tasks and one long-form
+task. The short-answer tasks are open-domain factual recall with
+TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}, and
+arithmetic word problems with SVAMP~\cite{patel_svamp_2021}. The long-form task
+is a FactScore-style biography task~\cite{min_factscore_2023}, which supplies
+the regime where counting strings cannot work at all. The dataset rationale, the prompt
+construction and the reproduced question selection are in
+Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
+
+Taken together, the literature places semantic entropy between cheap surface
+signals and expensive fact-checking. Testing it fairly means keeping
+generation, grouping, scoring and evaluation separate, so each can be varied
+while the others are held fixed. Chapter~\ref{ch:semantic_entropy} defines the
+method in those terms, and Chapter~\ref{ch:experimental_design} builds the
+design around them.

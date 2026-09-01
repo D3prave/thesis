@@ -1,0 +1,19 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{The semantic-minus-surface margin per generator in \texttt{chat\_0shot} under the Llama judge, on the canonical backend and on the 72B entailment model. On the released cross-encoder the longest-answer generator gains least; on the 72B model the same generator gains most. The ordering inverts with the entailment model on identical generations.}
+\label{tab:backend-by-model}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrcc@{}}
+\toprule
+Generator & Mean chars & \texttt{xlarge} & \texttt{Qwen-72B} \\
+\midrule
+Llama-3.1-8B & 667 & +0.012 & +0.132 \\
+Mistral-7B & 38 & +0.026 & +0.067 \\
+Llama-3.1-70B & 61 & +0.029 & +0.062 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}

@@ -1,36 +1,77 @@
 \chapter{Experimental Design and Implementation}
 \label{ch:experimental_design}
 
-This chapter specifies the experimental design used to evaluate whether
-semantic entropy provides a better hallucination and abstention signal
-than surface-form uncertainty. The design separates surface-form
-baselines from an NLI-clustered replication condition. The baseline is
-small enough to debug locally before being run at evaluation scale. The
-replication condition repeats the same measurement plan with NLI
-clustering on NHR@FAU resources. The final section
-(Section~\ref{sec:hpc-execution}) covers how the runs were implemented
-and executed on the cluster, together with the storage and
-reproducibility policy.
+This chapter says what was run. It is written to be checkable: every setting
+that could change a reported number is stated, and every departure from
+Farquhar et al.~\cite{semantic_entropy_nature_2024} is listed in
+Section~\ref{sec:deviation-register} rather than left to be inferred.
 
-\section{Datasets}
+Two conventions run through the design. First, the study is built against the
+authors' released code~\cite{kossen_semantic_uncertainty_code_2024}, and where
+the published prose and that code disagree, the code is followed. The object of
+study is the method as a reader would obtain it. The disagreements are not
+hypothetical. There are nine, and two of them change what the reported quantity
+is: the clustering procedure, and the scoring of P(True). Second, generation happened once. Clustering, correctness
+labelling and scoring are all applied afterwards to those stored generations,
+so the entailment model, the correctness rule and the estimator can each be
+varied while everything else stays fixed by construction rather than by
+matching.
 
-The final evaluation grid uses four datasets: TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019}, SVAMP~\cite{patel_svamp_2021}, and a FactScore-style biography generation task~\cite{min_factscore_2023}. TriviaQA provides open-domain question answering with short factual answers, e.g.\ \textit{``What is the capital of France?''}. NQ-Open provides open-domain questions derived from real search queries. It shares TriviaQA's short free-text answer format and normalization approach but is markedly harder for all generators evaluated here. SVAMP provides short math word problems for which answer normalization and semantic equivalence matter at the level of numbers rather than phrasings, e.g.\ \textit{``Mia has 3 apples. She buys 4 more. How many apples does she have now?''}. The biography task prompts the model with \textit{``Tell me a bio of \{entity\}.''} and elicits a paragraph rather than a short answer. Following the FactScore setup~\cite{min_factscore_2023}, the entities come from English Wikipedia category listings, including Nobel laureates, heads of state and government, major scientific-award winners, inventors, and novelists. Each entity's reference is the pinned lead section of its article. The evaluated prompt sets are fixed once and shared by every model, seed, and condition: 500 prompts each for TriviaQA, NQ-Open, and the biography task, and 300 for SVAMP. The short-answer prompts are drawn from the datasets' validation splits. The biography prompts are drawn from the Wikipedia category listings described above. The three short-answer datasets are small enough to support repeated sampling while exercising distinct failure modes: trivia-style factual recall, search-query factual recall, and structured arithmetic reasoning. The biography task adds a qualitatively different regime in which each sample is a free-form paragraph rather than a normalizable token string. This long-form regime is the setting in which surface-form and meaning-level uncertainty are most likely to diverge. After normalization, the ten samples for a biography prompt are almost always ten distinct strings, so exact-match clustering can no longer collapse them. Representative records from each dataset are shown in Table~\ref{tab:dataset-samples}, and further example records are reproduced in Appendix~\ref{app:experiment-details}.
+\section{Datasets and question selection}
+\label{sec:datasets}
 
+The short-answer arm uses three benchmarks:
+TriviaQA~\cite{joshi_triviaqa_2017} for open-domain factual recall,
+NQ-Open~\cite{lee_nq_open_2019} for recall from real search queries, and
+SVAMP~\cite{patel_svamp_2021} for arithmetic word problems, where equivalence
+is about numbers rather than phrasing. Table~\ref{tab:dataset-samples} shows
+example records; Appendix~\ref{app:prompts} gives the prompt construction.
+
+Each is loaded exactly as the released \texttt{data/data\_utils.py} loads it,
+including the loader's incidental behavior: a question mark is appended to
+every NQ-Open question, the record identifier is an md5 hash of the question
+text, and SVAMP's \texttt{Body} field becomes a separate \texttt{Context:}
+line. Table~\ref{tab:dataset-sources} gives the sources and split sizes.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{Illustrative records from TriviaQA, NQ-Open, SVAMP, and the
-  biography task. TriviaQA and NQ-Open
-  prompts are the raw question string (NQ-Open questions are real
-  search queries and keep their original lowercase form; a question mark
-  is appended, as in the original study's data loader); SVAMP prompts
-  concatenate the
-  \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open reference
-  answers include accepted aliases separated by semicolons; SVAMP
-  reference answers are the single numeric value; biography references
-  are pinned English Wikipedia lead paragraphs.}
+\caption{Dataset sources and split sizes as produced by the released loader.
+  The TriviaQA split is not a published one: the loader takes the
+  \texttt{unmodified} split of a SQuAD-format conversion and applies
+  \texttt{train\_test\_split(test\_size=0.2, seed=10)} to it, which has the
+  consequence recorded below.}
+\label{tab:dataset-sources}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{1.5cm}>{\raggedright\arraybackslash}p{5.9cm}r@{}}
+\toprule
+Dataset & Source and split & Train / eval \\
+\midrule
+TriviaQA & \texttt{TimoImhof/TriviaQA-in-SQuAD-format}, split
+  \texttt{unmodified}, then \texttt{train\_test\_split(test\_size=0.2,
+  seed=10)} & 12{,}294 / 3{,}074 \\
+NQ-Open & \texttt{google-research-datasets/nq\_open} & 87{,}925 / 3{,}610 \\
+SVAMP & \texttt{ChilleD/SVAMP} & 700 / 300 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Constructed examples showing the prompt format and the shape of the
+  reference answers for each task. These are not records sampled from the
+  evaluation sets; they illustrate the format only. TriviaQA and NQ-Open
+  prompts are the raw question string, and NQ-Open questions are real search
+  queries that keep their original lowercase form. SVAMP prompts concatenate
+  the \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open
+  reference answers include accepted aliases, separated here by semicolons.
+  SVAMP reference answers are a single number, and biography references are
+  pinned English Wikipedia lead sections.}
 \label{tab:dataset-samples}
 \begingroup
 \setlength{\tabcolsep}{3pt}
@@ -50,502 +91,364 @@ SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?
 SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
 SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
 \midrule
-Biography & Tell me a bio of Marie Curie. & English Wikipedia lead paragraph \\
+Biography & Tell me a bio of Marie Curie. & English Wikipedia lead section \\
 \bottomrule
 \end{tabular}
 \endgroup
 \end{table}
 
-The original semantic entropy evaluation~\cite{semantic_entropy_nature_2024}
-reports results across five short-answer datasets: TriviaQA, SQuAD,
-BioASQ, NQ-Open, and SVAMP. The grid used here covers three of these
-(TriviaQA, NQ-Open, SVAMP), spanning open-domain factual recall and
-short-answer arithmetic, together with the long-form biography
-setting that the original work also evaluates and that is precisely
-where the surface-form baseline is expected to break down.
-SQuAD~\cite{rajpurkar_squad_2016} is omitted because its
-reading-comprehension origin assumes source passages that Farquhar et
-al.~\cite{semantic_entropy_nature_2024} have to withhold artificially;
-BioASQ~\cite{tsatsaronis_bioasq_2015} is omitted as a third
-open-domain recall task that differs from TriviaQA and NQ-Open
-primarily in domain; and TruthfulQA~\cite{lin_truthfulqa_2022} is
-omitted because the design isolates semantic clustering rather than
-broader truthfulness. Beyond the whole-paragraph biography evaluation, a claim-level long-form
-extension (FactualBio) scores individual factual claims rather than whole
-paragraphs. It starts from the $150$ published FactualBio claims together
-with their \emph{human} factuality labels, so no automatic judge stands
-between the method and the ground truth, and it generates no new
-biographies. Claims and labels come from the code release accompanying
-Farquhar et al.~\cite{semantic_entropy_nature_2024}
-(\texttt{jlko/long\_hallucinations}, release v.1.0.0, commit
-\texttt{957b806}), pinned by file hash at import time; the importer requires
-21 biographies, 150 claim annotations and the published 105 correct / 45
-false split before it writes anything. Each claim carries six frozen questions, and three answers are
-regenerated per question from the model under test. The question set is
-hash-locked and shared across all three generators, which makes the model
-comparison paired at the cost of not tailoring questions per model; that
-fixed-question adaptation is disclosed rather than treated as neutral. Two
-further deviations from the released FactualBio code are disclosed for the
-same reason: the clustering here is question-conditioned rather than
-answer-only, and it uses \texttt{cross-encoder/nli-deberta-v3-large} in place
-of the original \texttt{microsoft/deberta-v2-xlarge-mnli}. This is therefore a
-fixed-claim, question-conditioned FactualBio adaptation using the released
-claim labels, not a direct replication. Results are reported in
-Section~\ref{sec:factualbio-results}.
+\paragraph{Which questions are evaluated.} The selection reproduces
+\texttt{generate\_answers.py} rather than taking a prefix of the split. The
+detail matters because three draws share one random stream, so the draw order
+decides which questions are evaluated. The released code parameterizes the four
+constants; they are shown here at this study's values:
 
-\section{Models and the replication condition}
-\label{sec:models-replication}
+\begin{quote}\footnotesize
+\begin{verbatim}
+random.seed(10)
+prompt_indices = random.sample(answerable_indices, 5)
+remaining = list(set(answerable_indices)
+                 - set(prompt_indices))
+p_true_indices = random.sample(answerable_indices, 20)
+remaining = list(set(remaining) - set(p_true_indices))
+for split in ("train", "validation"):
+    indices = random.sample(list(possible_indices),
+                            min(400, len(dataset)))
+\end{verbatim}
+\end{quote}
 
-The study generates answers with three open language models of different
-sizes: Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023},
-Llama-3.1-8B-Instruct, and
-Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}. Using three sizes
-lets the experiments ask how the detectors behave as the model gets
-bigger. Farquhar et al.~\cite{semantic_entropy_nature_2024} evaluate
-LLaMA-2 Chat at 7B, 13B and 70B, Falcon Instruct at 7B and 40B, and
-Mistral Instruct at 7B, and report that semantic entropy is stable across
-those families. The grid here is narrower in families but spans the same
-range of scales, and it deliberately retains one point of overlap: Mistral
-7B Instruct appears in both, here at the later v0.3 revision. The two Llama
-models replace the LLaMA-2 pair with a current within-family contrast, which
-is the only pair in this grid for which a scale comparison is
-within-architecture. Every model--dataset cell is decoded under three seeds
-(42, 43, 44), and all headline results are reported as cross-seed means with
-seed standard deviations.
+This draws 400 questions per split, except that SVAMP's validation split holds
+only 300, so all 300 are taken. The selection is fixed across run seeds, so
+every model and seed answers the same questions and all comparisons between
+them are paired.
 
-The entailment judges are local DeBERTa-v3 cross-encoders (two sizes, base
-and large, introduced below). Farquhar et al.\ operationalize entailment
-either with an NLI model, DeBERTa-Large-MNLI, or with a general-purpose LLM
-such as GPT-3.5; this study takes the first of those two options throughout,
-so the choice is a narrowing of their protocol rather than a departure from
-it.
-Using a local model rather than a closed API matters for several
-reasons: the model version is fixed and publicly available, so results
-are fully reproducible without requiring access to any external service;
-there are no per-call costs or rate limits; and no prompt or response
-data leaves the local system.
-The whole pipeline therefore runs without dependence on a closed API;
-a posthoc rerun in which this cross-encoder is replaced
-with a large open instruction-tuned judge is reported in
-Section~\ref{sec:clustering-sensitivity}. The methodological
-implications of these substitutions are discussed in
-Section~\ref{sec:comparison-farquhar}.
+\paragraph{TriviaQA evaluation sets are 378 questions, not 400.} The
+SQuAD-format conversion stores one row per question and context pair, so questions
+recur. The released split therefore puts \textbf{16 questions in both the
+training and the evaluation split}, with 9 more repeated inside training and 6
+inside evaluation. All were removed identically from every method's evaluation,
+leaving \textbf{391 training and 378 evaluation questions}. NQ-Open and SVAMP
+have no repeats. This is a defect inherited from the released loader, not one
+introduced here.
 
-\paragraph{Surface-form baselines.}
-The baseline records two surface-form scores. For each prompt, $M=10$
-answers are sampled, lightly normalized, and clustered by exact-match
-on the normalized string, as defined in
-Chapter~\ref{ch:semantic_entropy}. Entropy is computed over these
-normalized exact-match clusters and, as a deliberately naive companion,
-over the raw unnormalized strings. The baseline therefore acts both as a
-sanity check on the full pipeline (generation, normalization,
-clustering, entropy scoring, correctness labeling, JSONL output)
-and as the surface-form reference against which the NLI numbers are
-compared. Because exact-match clustering ignores paraphrases, the
-exact-match entropy score is reported as a surface-form baseline rather
-than as semantic entropy. The corresponding run artifacts are summarized in
-Appendix~\ref{app:runs}.
+\section{Prompting conditions: instruction against worked examples}
+\label{sec:conditions}
 
-\paragraph{NLI-clustered replication condition.}
-The replication condition keeps the same model--dataset grid, prompt subset, decoding
-settings, and seed, but writes a separate output record in which the
-exact-match clustering step is replaced with the bidirectional-NLI rule
-from Chapter~\ref{ch:semantic_entropy}. Correctness labels are
-recomputed for the NLI-clustered records. The NLI backend used is a
-Sentence-Transformers DeBERTa-v3-base
-cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022},
-a DeBERTa-v3 model~\cite{he_debertav3_2021} fine-tuned on SNLI and
-MultiNLI~\cite{williams_multinli_2018}. This is the lightest
-configuration faithful to the original semantic-entropy method, and it
-is the backend used for the full-grid generation runs.
+The original reports two prompting conditions, one giving sentence-length
+answers and one giving short phrases. They differ in two things at once: the
+instruction text and the number of worked examples. Any difference between them
+could come from either, or from both. This study collects all four
+combinations, on the same questions, models and seeds
+(Table~\ref{tab:conditions}).
 
-Two NLI cross-encoders therefore appear in the results. The replication
-condition above is run end-to-end with DeBERTa-v3-base. For the headline
-entropy numbers reported in Chapter~\ref{ch:results}, every saved sample
-set is additionally re-clustered \emph{post hoc} with the larger
-DeBERTa-v3-large cross-encoder, which is treated as the canonical
-backend. Because re-clustering reuses the same saved samples, any
-difference between the two backends reflects the equivalence judge alone.
-Throughout, a table or figure that reports ``canonical'' clustering
-refers to DeBERTa-v3-large; the base-backend numbers appear as one column
-of the clustering-sensitivity analysis
-(Section~\ref{sec:clustering-sensitivity}).
-
-The replication condition introduces no new research question; it tests whether
-the ranking behavior seen in the baseline survives when exact-match clustering
-is replaced by NLI-defined semantic clustering under the same evaluation grid.
-Its outputs are then reused rather than regenerated. The saved samples are
-re-clustered under a larger NLI backend and an LLM judge, re-scored with Kernel
-Language Entropy, and used as the training target for the semantic-entropy
-probe. Those checks, the supervised and self-evaluation baselines, and the
-sampling-temperature sweep are set out in
-Section~\ref{sec:baselines-and-analyses}.
-
-\paragraph{The biography task under the same comparison.}
-The biography task is not a separate study but a fourth dataset evaluated
-under exactly the same baseline-versus-semantic comparison. The baseline
-clusters its samples by exact match and the replication condition by
-semantic clustering, with the only
-differences being mechanical: the maximum answer length is raised to
-accommodate paragraph-length generations, and because free-form text has
-no dataset-specific normalization, the exact-match baseline is
-applied to the raw sampled strings. The semantic-clustering step is run
-both with the whole-response NLI cross-encoder and with the open
-instruction-tuned judge, since paragraph-length pairs are exactly the
-case where the two semantic-equivalence backends are most likely to
-disagree.
-
-\paragraph{Correctness labeling for long-form generations.}
-For TriviaQA and NQ-Open, the low-temperature most-likely answer is marked
-correct when its maximum SQuAD token-F1 against the reference answers exceeds
-$0.5$; SVAMP uses exact match after numeric normalization. This short-answer
-protocol is not available for
-paragraph-length biographies, which have no single short ground-truth
-string. The biography task therefore grades correctness with the open
-instruction-tuned judge
-(Qwen2.5-72B-Instruct~\cite{yang_qwen25_2024}) against the first
-paragraph of the entity's English Wikipedia article. Because AUROC and
-AURAC need one correctness bit per prompt, the recorded label grades the
-representative response from the modal cluster, not all ten sampled
-paragraphs independently; this assumes that the most frequently expressed
-paragraph is the one whose reliability the detector is being asked to
-predict. The judge is asked whether that representative
-biography is factually consistent with the reference, and the binary
-verdict becomes the correctness label used for AUROC and AURAC. The
-reference revision is pinned per record so the label is reproducible.
-This protocol matches the long-form correctness setup of Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. One caveat is specific to the
-long-form task. These correctness labels are produced by the
-Qwen2.5-72B-Instruct judge, and that same model is also one of the
-clustering backends (Section~\ref{sec:clustering-sensitivity}); in that
-sensitivity variant the clusterer and the grader coincide, so a
-systematic judge error could affect a detector score and its label in a
-correlated way. The canonical headline numbers avoid this coincidence,
-because their clustering uses the independent DeBERTa-v3-large
-cross-encoder rather than the grading model. Varying the clusterer while
-holding the label fixed (Section~\ref{sec:clustering-sensitivity})
-therefore also serves as a partial control; this and the more general
-limitation of a judge standing in for ground truth are discussed in
-Section~\ref{sec:discussion-limitations}.
-
-\section{Sampling settings}
-\label{sec:sampling-settings}
-
-The final grid uses the paper-faithful sampling configuration of
-Farquhar et al.~\cite{semantic_entropy_nature_2024}: $M=10$ samples per
-prompt at temperature $T=1.0$ with nucleus top-$p=0.9$ and
-top-$k=50$, applied uniformly to every generation stage. Per-sequence
-log-probabilities are captured for each sample and length-normalized,
-which is what enables the probability-weighted estimators (naive
-entropy and full semantic entropy) alongside the count-based ones. The maximum answer length is short for the short-answer datasets,
-appropriate for sentence-length question answering, and is raised for the
-biography task so that paragraph-length generations can complete. The exact
-ceilings, and the truncation actually observed under them, are given in
-Section~\ref{sec:budgets-and-exclusions}.
-
-Correctness labeling on the short-answer datasets also follows the
-original protocol: in addition to the ten high-temperature samples,
-each prompt receives one low-temperature ($T=0.1$) most-likely answer,
-which is counted correct when its SQuAD token-F1 against any reference
-answer exceeds 0.5 (exact match for SVAMP's numeric answers). This
-single label propagates to every estimator and posthoc backend on that
-record, so all methods share one accuracy definition. The biography
-task instead grades correctness with the long-form judge, as described
-above.
-
-During pipeline development an earlier configuration was used, the
-instruction-tuned models' default deployment settings ($T=0.7$,
-top-$p=0.95$) with string-comparison correctness labels, to debug the
-pipeline before the evaluation grid was locked. All headline numbers in
-this thesis come from the paper-faithful configuration above. The
-meaning of $M$, $T$, and top-$p$ is explained in
-Chapter~\ref{ch:semantic_entropy}. Each run logs its decoding
-configuration into the JSONL record.
-
-\section{Baselines, replication method, and additional analyses}
-\label{sec:baselines-and-analyses}
-
-The surface-form baselines are entropy over raw strings and entropy over
-distinct normalized exact-match strings. They address a single question:
-does semantic clustering add value beyond observing that sampled outputs
-differ lexically? The replication methods are discrete semantic entropy
-with bidirectional NLI clustering and, using the captured sequence
-log-probabilities, the paper's probability-weighted naive entropy and
-full semantic entropy (the estimator taxonomy is laid out in
-Chapter~\ref{ch:semantic_entropy}).
-
-Beyond the entropy family, the final grid records three supervised or
-self-evaluation baselines.
-
-\emph{P(True)}~\cite{kadavath_language_models_know_2022} asks the generator
-to judge its own most-likely answer. The grading prompt first shows a few
-solved true/false examples, then the actual question; the probability the
-model puts on the token ``True'' becomes the uncertainty score
-$1-P(\mathrm{True})$.
-
-\emph{Embedding regression} is a logistic probe on the final hidden state,
-trained to predict incorrectness. It is reported in-distribution, and
-out-of-distribution by training on the pooled prompts of the other two
-short-answer tasks and scoring on the held-out one.
-
-The third is the \emph{semantic-entropy probe} of
-Section~\ref{sec:sep-method}.
-SelfCheckGPT~\cite{manakul_selfcheckgpt_2023} is a related
-sampling-based baseline but was not included in the recorded runs.
-
-Each saved sample set is additionally re-clustered posthoc under
-multiple semantic backends (DeBERTa-v3-base and DeBERTa-v3-large
-cross-encoders plus a Qwen2.5-72B-Instruct
-LLM judge) and re-scored with KLE under two sentence encoders
-(all-MiniLM-L6-v2 and nli-roberta-large). These checks reuse the saved
-answer samples, so any metric change comes from the semantic judge or
-entropy estimator rather than from new generations. The KLE method is
-defined in Section~\ref{sec:kle}; clustering sensitivity is
-reported in Section~\ref{sec:clustering-sensitivity}.
-
-\section{Output schema}
-
-Each recorded run writes JSONL (one JSON object per line) with
-exactly one record per prompt. Every record stores the prompt and reference answers; the model and its
-full decoding configuration, including the seed; the ten sampled answers with
-their normalized forms and length-normalized sequence log-probabilities; the
-low-temperature most-likely answer used for accuracy labeling; the cluster
-assignment of every sample with one representative string per cluster; all
-entropy scores; the clustering backend; and the correctness label.
-This makes generation, clustering, scoring, and evaluation auditable
-from a single line of JSONL, while leaving extensions free to add
-method-specific fields (KLE, probe, and P(True) scores; a greedy-response
-hidden state and its feature metadata in canonical SEP collection runs).
-The metric-relevant schema and canonical SEP feature shape are reproduced in
-Appendix~\ref{app:schema}.
-
-In the exact-match baseline artifacts, \texttt{surface\_entropy} and
-\texttt{discrete\_semantic\_entropy} coincide by construction, because
-both count clusters induced by normalized exact-match strings.
-\texttt{naive\_sample\_entropy} is kept as a separate raw-string
-baseline, where unnormalized spelling, casing, punctuation, and
-whitespace variants remain distinct. The SEP collection runs use the
-exact-match clustering backend (so \texttt{discrete\_semantic\_entropy}
-again equals \texttt{surface\_entropy} on those records) and additionally
-write one greedy-response \texttt{sep\_hidden\_state} with
-\texttt{sep\_feature\_metadata} per record; held-out evaluation splits also
-carry a \texttt{probe\_uncertainty} score in $[0,1]$. The legacy
-\texttt{hidden\_states} matrix is reserved for the separately named
-sample-level accuracy-probe path.
-The serialized \texttt{phase} field remains as a legacy condition label
-so recorded outputs stay traceable; this thesis instead uses the labels
-baseline, replication condition, and additional analysis.
-Larger raw generations, model caches, and full intermediate outputs
-are described by the storage and reproducibility policy in
-Section~\ref{sec:hpc-execution}.
-
-\section{Validation checks}
-\label{sec:validation-checks}
-
-Every recorded run is checked against the following structural
-requirements:
-
-\begin{enumerate}
-  \item every prompt has exactly $M$ sampled answers;
-  \item every sampled answer has a normalized form;
-  \item every answer receives a semantic cluster identifier, and the
-    cluster list contains one identifier per sampled answer;
-  \item entropy scores are finite and non-negative;
-  \item correctness labels are present for all evaluated prompts;
-  \item decoding settings, model names, clustering backend, dataset
-    split, and random seeds are recorded.
-\end{enumerate}
-
-A manual audit on a handful of records additionally checks that the
-clusters look reasonable; worked examples of such audits are shown in
-Section~\ref{sec:hand-audits}.
-
-\section{Decoding budgets, truncation, and excluded prompts}
-\label{sec:budgets-and-exclusions}
-
-Three properties of the generation step affect how the results should be
-read. All three are measured rather than assumed, and all three turn out to be
-small; they are recorded here so that later chapters can refer to a number
-instead of an assurance.
-
-\paragraph{Two decoding budgets.} The ten stochastic samples and the single
-greedy response used as the probe feature have separate token ceilings. The
-stochastic ceiling is per dataset ($64$ tokens for TriviaQA, $128$ for NQ-Open
-and SVAMP, $256$ for biography), while the greedy feature response is fixed at
-$256$ tokens everywhere. Keeping the two apart matters: an earlier version of
-the pipeline reused the stochastic ceiling for the greedy response and cut it
-short.
-
-\paragraph{Truncation.} A sample that hits its ceiling before the model emits
-an end-of-sequence token is truncated, which can distort the entropy computed
-over it. The protocol rejects any collection shard above $1\,\%$; no shard
-reaches it, the worst being $0.86\,\%$. Pooled by dataset the rates are
-$0.38\,\%$ for TriviaQA, $0.39\,\%$ for NQ-Open and $0.07\,\%$ for SVAMP.
-
-\paragraph{Excluded prompts.} On a few prompts greedy decoding enters a
-repetition loop and never terminates within the feature budget; a diagnostic
-at a $2048$-token ceiling confirmed these are genuine loops, so a larger cap
-would not rescue them. Such a prompt keeps its ten stochastic samples in the
-entropy analysis but carries no probe feature, and is skipped by the probes.
-This affects $33$ of the $11\,700$ prompts in the evaluation grid
-($0.28\,\%$). Because the greedy response is decoded deterministically, the
-affected prompts are identical across all three seeds, which is what makes the
-exclusion a property of the prompt rather than of the draw.
-
-So that the primary short-answer table compares like with like, every method
-in it is scored on the same $99.72\,\%$ of prompts for which all methods
-produce a score. The confirmatory semantic-versus-surface comparison is the
-exception: neither score needs the greedy feature, so both are defined on all
-$11\,700$ prompts and that comparison is paired on the full set.
-
-\paragraph{Empty samples from Mistral-7B.} One further artifact is recorded
-because it damaged an earlier set of runs. The answer-extraction step strips
-stop markers that include Mistral's own chat-template tokens, so a sample
-opening with a new conversational turn was cut to the empty string, which then
-formed its own cluster and inflated the entropy. In the sealed runs it is
-effectively gone: no cell exceeds one empty sample in $5\,000$
-($\le 0.02\,\%$), and the two Llama generators sit at $0.00\,\%$. The effect
-would in any case attenuate rather than inflate measured performance, so no
-Mistral number in this thesis is flattered by it.
-
-\section{Protocol provenance}
-\label{sec:protocol-provenance}
-
-Every number reported in Chapter~\ref{ch:results} comes from one family of
-runs. A frozen master protocol fixes the prompt sets, the model and tokenizer
-revisions, the decoding budgets, the sampling parameters, the seeds, the
-train/eval splits and the code commit. One instance of that protocol is derived
-per sampling temperature, so the five temperatures differ in exactly one
-declared parameter and in nothing else. No result in this thesis mixes
-protocols.
-
-The binding is mechanical rather than declarative. Before any artifact is accepted, every reported metric is recomputed from the per-record files and each artifact is fixed by content hash. A cell whose recorded metadata disagrees with the manifest in any field, including clustering backend, revision pin, split role, or decoding budget, is rejected outright rather than kept with a note. Every artifact behind a number in this thesis is bound this way, including the supporting analyses as well as the headline ones. The manifest digests are listed in Appendix~\ref{app:reproducibility}.
-
-
-What still distinguishes the results of Chapter~\ref{ch:results} from one
-another is statistical, not procedural. The semantic-versus-surface comparison
-is preregistered, and its significance is assessed against a fixed bootstrap
-over prompt clusters; the remaining comparisons are descriptive, and are read
-for direction and magnitude. That distinction is stated where it applies rather
-than attached to every caption.
-
-One figure (Figure~\ref{fig:regime-split}) places short-answer and biography results side by side because the short-versus-long contrast is the central claim of this thesis. The two biography groups are shaded and separated by a divider there, and comparisons are made only between the two bars of one group. The three regimes are graded differently: short answers against reference answers, whole paragraphs by an LLM judge, and individual claims against published human labels. Their absolute AUROC values are therefore not commensurable.
-
-
-\section{Where this study differs from the original}
-\label{sec:deviation-register}
-
-A replication is only as useful as its account of what it changed.
-Table~\ref{tab:deviation-register} lists every difference between this study
-and Farquhar et al.~\cite{semantic_entropy_nature_2024}, together with the
-reason for it. Everything not listed follows the original: the number of
-samples per question, the decoding settings, the low-temperature answer used
-for grading, the way answers are grouped by meaning, the four entropy scores,
-the two comparison methods, and the way correctness is decided.
-
-\begin{table}[ht]
+\begin{table}[htb]
 \thisfloatsetup{capposition=above}
 \centering
-\caption{Every difference between this study and the original, with its
-reason. The first group was forced by cost or access; the second was chosen
-to make the comparison across models cleaner; the third is what this study
-adds.}
-\label{tab:deviation-register}
-\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
-\begin{tabular}{@{}p{4.4cm}p{4.4cm}p{5.0cm}@{}}
+\small
+\caption{The four prompting conditions. The first and last are the original
+  study's two; the middle two complete the factorial. Mean answer length is
+  the mean over cells of the mean most-likely-answer length at $T=1.0$, and is
+  reported here because it is what the two factors act on.}
+\label{tab:conditions}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lp{4.0cm}ccr@{}}
 \toprule
-Original & This study & Reason \\
+Condition & Instruction & Demos & Provenance & \makecell[r]{Mean\\chars} \\
 \midrule
-\multicolumn{3}{@{}l}{\emph{Forced by cost or access}}\\
-GPT-3.5 decides whether two long answers mean the same thing &
-  a local entailment model does &
-  no paid or closed service; the original's own comparison puts the local
-  model about $0.05$ AUROC behind \\
-\addlinespace[3pt]
-GPT-4 decides which answers count as correct in the longer setting &
-  automatic string matching, with an open judge reported alongside &
-  same reason; the original measures this trade-off and it is reported here \\
-\addlinespace[3pt]
-Six models, and six more without instruction tuning &
-  three models, all instruction-tuned &
-  compute; the families overlap and the size range is comparable \\
-\addlinespace[3pt]
-Five question sets &
-  the three shared with this study &
-  one of theirs withholds its own reading passages artificially, and another
-  differs from the two kept here mainly in subject matter \\
-\midrule
-\multicolumn{3}{@{}l}{\emph{Chosen for a cleaner comparison}}\\
-Question sets resampled per run &
-  one fixed set of questions, shared by every model and repeat &
-  every model answers the same questions, so the comparison between them is
-  paired \\
-\addlinespace[3pt]
-$400$ questions per task &
-  $500$, or $300$ for the arithmetic task &
-  a slightly larger sample at no extra cost \\
-\midrule
-\multicolumn{3}{@{}l}{\emph{Added here}}\\
-No baseline that counts answer strings &
-  two: one over raw strings, one after light clean-up &
-  tests whether grouping by meaning beats simply tidying the strings \\
-\addlinespace[3pt]
-Long text handled only by splitting it into single claims &
-  whole paragraphs scored directly as well &
-  isolates what changes when the scored unit grows \\
+\texttt{chat\_0shot} & ``\ldots in a single brief but complete sentence.'' & 0 & original & 255.2 \\
+\texttt{default\_0shot} & ``\ldots as briefly as possible.'' & 0 & added & 69.8 \\
+\texttt{chat\_5shot} & as \texttt{chat\_0shot} & 5 & added & 11.4 \\
+\texttt{default\_5shot} & ``\ldots as briefly as possible.'' & 5 & original & 11.2 \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabular}
+\endgroup
 \end{table}
 
-One further difference concerns the biography experiment and cannot be
-removed. In the original, one model writes a biography, its claims are checked
-by hand, and that same model's repeated answers supply the uncertainty score.
-Here the claims and the hand-checked labels are taken from the original, so
-they describe a model this study does not run, while the repeated answers come
-from the three generators evaluated here. The measurement is therefore of one
-model's uncertainty about another model's claims. Rebuilding the closed loop
-would mean generating fresh biographies and checking their claims by hand,
-which would give up the only human-checked labels available. The trend with
-model size reported in Section~\ref{sec:factualbio-results} should be read
-with this in mind.
+The isolating contrast is the pair of 0-shot corners, where the example count
+is held at zero and only the instruction changes. Supplementary Note~7 of the
+original introduces the five examples while describing the short-phrase
+condition, remarking that they ``further encourage the LLM to predict with
+brevity''; the factorial makes it possible to ask whether that is a detail or
+the variable that matters.
+
+\paragraph{Prompt format.} Prompts are plain completions: one brief
+instruction, then \texttt{Question:\ \ldots} and \texttt{Answer:\ \ldots}
+blocks for any worked examples, then the query left open at \texttt{Answer:}.
+No chat template and no system message is applied, even for the
+instruction-tuned models, because that is what the released code does.
+Generation stops at the first sequence in the released
+\texttt{STOP\_SEQUENCES}.
+
+Two limits are worth stating now. Both 11-character corners are 5-shot, so the
+design separates length from example count only at the long end. And the two
+added corners were collected on one entailment backend and one temperature, so
+the factorial can only be estimated on a single clustering model, and not on
+the backend most favorable to semantic entropy.
+
+\section{Generators and decoding}
+\label{sec:sampling-settings}
+
+Three open instruction-tuned generators are used, at pinned revisions verified
+against the local weight cache before generation (Table~\ref{tab:generators}).
+Farquhar et al.\ evaluate LLaMA-2 Chat at three sizes, Falcon Instruct at two,
+and Mistral Instruct at 7B. The grid here has fewer families but a comparable
+range of sizes, keeps Mistral 7B Instruct as a point of overlap, and adds a
+within-family size contrast in the two Llama models.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Generators and pinned revisions.}
+\label{tab:generators}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lp{4.6cm}@{}}
+\toprule
+Model & Revision \\
+\midrule
+\texttt{Mistral-7B-Instruct-v0.3}~\cite{jiang_mistral_2023} & \texttt{c170c708c41dac9275d1}\allowbreak\texttt{5a8fff4eca08d52bab71} \\
+\texttt{Llama-3.1-8B-Instruct}~\cite{grattafiori_llama3_2024} & \texttt{0e9e39f249a16976918f}\allowbreak\texttt{6564b8830bc894c89659} \\
+\texttt{Llama-3.1-70B-Instruct}~\cite{grattafiori_llama3_2024} & \texttt{1605565b47bb9346c551}\allowbreak\texttt{5c34102e054115b4f98b} \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+\paragraph{The ten samples.} For each question the model is sampled $M=10$
+times at temperature $T=1.0$, top-$p$ $0.9$, top-$k$ $50$, under a budget of at
+most \textbf{64 new tokens}. The entropy estimators are computed from these
+samples and nothing else. Per-sequence log-likelihoods are captured and
+length-normalized, which is what makes the probability-weighted estimators
+available.
+
+\paragraph{The most-likely answer.} One extra answer per question plays a
+different role: it is what correctness is scored on, what P(True) judges, and
+where the probe feature is read. It is \emph{not} a greedy decode. Following
+\texttt{generate\_answers.py}, which sets
+\texttt{temperature = 0.1 if i == 0 else args.temperature} with
+\texttt{do\_sample=True}, it is a temperature-$0.1$ sample. It is drawn under a
+\textbf{256-token} budget rather than the 64 the samples get, inherited from
+the probe-feature path.
+
+That asymmetry is one-sided and it matters, so it belongs in the main text. The
+estimators see answers capped at 64 tokens, while correctness is judged on an
+answer allowed four times that. It is the main
+reason the sentence-length condition here averages 255.2 characters against the
+95.6 the original reports, and it falls hardest on Llama-3.1-8B, whose
+most-likely answers reach a cell mean of 826.3 characters.
+
+\paragraph{Seeds.} Three run seeds (42, 43, 44) vary sampling only. The worked
+examples and the evaluated question set are fixed across them, so a seed is a
+repeat draw from one configuration rather than an independent replication.
+Section~\ref{sec:statistics} draws the consequence.
+
+\section{Entailment backends}
+\label{sec:backends}
+
+Clustering is applied afterwards to the stored generations, so one set of
+samples serves every backend and the backend is the only thing that differs.
+Five equivalence rules appear in the results (Table~\ref{tab:backends}).
+Strict bidirectional entailment is used in every arm, with the order-dependent
+anchor scan of Algorithm~\ref{alg:clustering} including its reassignment
+behavior. Raw generations are the input, and the question is joined to each
+answer as plain text.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Equivalence rules used. \texttt{exact-match} is applied at collection
+  time and supplies the clustering-free comparator; the other four are applied
+  post hoc to identical generations.}
+\label{tab:backends}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{4.1cm}p{6.1cm}@{}}
+\toprule
+Backend & Role \\
+\midrule
+\texttt{microsoft/deberta-v2-} \texttt{xlarge-mnli} & the model the released
+  code loads; \textbf{canonical} throughout this thesis \\
+\addlinespace[2pt]
+\texttt{cross-encoder/nli-} \texttt{deberta-v3-large} & current-generation
+  cross-encoder \\
+\addlinespace[2pt]
+\texttt{cross-encoder/nli-} \texttt{deberta-v3-base} & smaller cross-encoder;
+  long-form arm only. Note that the canonical backend was in turn never applied
+  to the long-form arm, so ``canonical'' names a short-answer default \\
+\addlinespace[2pt]
+\texttt{Qwen/Qwen2.5-72B-} \texttt{Instruct} & open stand-in for the
+  proprietary judge used in the original's sentence-length condition; applied
+  to both short-answer conditions and to the long-form arm, prompted with the
+  entailment instruction taken verbatim from the released
+  \texttt{entailment.py} \\
+\addlinespace[2pt]
+\texttt{exact-match} & string identity after normalization, applied at
+  collection time \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+``Canonical'' in Chapter~\ref{ch:results} means
+\texttt{deberta-v2-xlarge-mnli}: a result reported without a named backend uses
+it, because it is what a reader running the published code would get.
+
+\section{Correctness: three rules on identical answers}
+\label{sec:correctness}
+
+Correctness is a separate step applied to the finished most-likely answer, so
+the rule can be varied while the estimators stay fixed. Three are recorded
+(Table~\ref{tab:graders}), and they do not always agree.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{The three correctness rules. All three grade identical answers.}
+\label{tab:graders}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{2.6cm}p{7.6cm}@{}}
+\toprule
+\texttt{grader} & Definition \\
+\midrule
+\texttt{squad\_token\_f1} & SQuAD token-F1~\cite{rajpurkar_squad_2016} against
+  the reference, counted correct when $\mathrm{F1} \ge 50.0$ on a 0--100
+  scale, inclusive. This is the rule the released code applies by default \\
+\addlinespace[2pt]
+\texttt{llm\_qwen2.5-72b} & \texttt{Qwen2.5-72B-Instruct}~\cite{yang_qwen25_2024}
+  as judge, using the prompt in the released \texttt{utils.model\_based\_metric};
+  the released code supports this path \\
+\addlinespace[2pt]
+\texttt{llm\_llama-3.1-70b} & \texttt{Llama-3.1-70B-Instruct}~\cite{grattafiori_llama3_2024}
+  as judge, same prompt, run independently \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+Two overlaps between roles matter for reading the results.
+\texttt{llm\_llama-3.1-70b} grades output from Llama-3.1-70B-Instruct in a
+third of the cells, so it judges its own model there. And
+\texttt{Qwen2.5-72B-Instruct} is both an entailment backend and a correctness
+judge, so in that combination one model fills both roles. Because the two
+judges were run over identical answers, the second overlap can be tested
+directly by re-grading with the other judge, which
+Section~\ref{sec:clustering-sensitivity} reports.
+
+No human correctness labels were collected. Farquhar et al.\ validate their
+judge against human annotation on 100 questions in their Supplementary Note~6;
+nothing here does. Every accuracy figure in this thesis, and so every AUROC,
+rests on an unvalidated judge, and Chapters~\ref{ch:discussion}
+and~\ref{ch:conclusion} state what that costs.
+
+\section{The temperature sweep}
+\label{sec:temperature-sweep}
+
+The short-answer grid was also collected at temperatures $0.1$, $0.3$, $0.5$
+and $0.7$, alongside the canonical $1.0$. The sweep ran with probe-feature
+collection switched off, and that switch introduced a defect whose reach is
+bounded:
+
+\begin{itemize}
+  \item \textbf{The estimators are unaffected.} Every entropy score is computed
+    from the ten samples, which the defect does not touch.
+  \item \textbf{The LLM-judge labels are unaffected.} They are joined to each
+    record by \texttt{prompt\_id} from one grading pass over the canonical
+    collection, so they describe the canonical temperature-$0.1$ answer at all
+    five temperatures. Verified bit-identical in 108 of 108 cells.
+  \item \textbf{The token-F1 labels are affected.} With feature collection off,
+    no most-likely answer is written, and the correctness routine falls through
+    to the modal sampled answer. Sweep cells therefore grade the modal sample
+    \emph{at the sweep temperature}. Measured: token-F1 accuracy differs from
+    the canonical run in 54 of 54 cells, mean range $0.016$, maximum $0.262$.
+  \item \textbf{Answer length is affected} for the same reason, and means
+    different things in different rows. Only the temperature-$1.0$ rows are
+    comparable.
+\end{itemize}
+
+Two consequences hold throughout: the sweep is quoted only under LLM grading,
+and no statement about answer length is drawn from a sweep row.
+
+The sweep is also not a test of Kuhn et al.'s intermediate-temperature
+optimum~\cite{kuhn_semantic_uncertainty_2023}. There, lowering the temperature
+also changed the accuracy of the answer being judged; here the graded answer is
+held outside the sweep, so only the diversity side of that trade-off can move.
+
+\section{The long-form arm}
+\label{sec:longform-design}
+
+The long-form arm is a FactScore-style biography
+task~\cite{min_factscore_2023}: the prompt is ``Tell me a bio of
+\{entity\}.'' over entities from English Wikipedia category listings, with each
+entity's pinned article lead section as the reference. There are 500 entities
+per cell and nine cells, being three generators by three seeds. Generation is
+checked at collection time to have a median sampled answer length of at least
+300 characters, so the arm really is testing paragraph-length output.
+Uncertainty is scored on the whole paragraph; correctness is judged per claim
+by the Qwen2.5-72B-Instruct judge. Only that judge is available here, so this arm has no second grader as a
+control. It is the one place where the two-roles concern of
+Section~\ref{sec:correctness} is uncontrolled.
+
+\paragraph{This arm does not implement the original's paragraph method.}
+Farquhar et al.\ relax the clustering rule for paragraphs: two answers mean the
+same thing ``if at least one of them entails the other and neither is seen to
+contradict the other'', which their Methods section calls a \emph{non-defeating}
+bidirectional entailment check. They adopt it because DeBERTa has lower recall
+than the judges they compare against, and the caption of their Supplementary
+Figure~1 says it is this variant that produces their DeBERTa result.
+
+The difference is not a matter of interpretation. The released
+\texttt{get\_semantic\_ids} takes a \texttt{strict\_entailment} flag, and the
+two branches are different rules. With the flag set, both directions must
+return entailment. Without it, and the default is without it, two answers count as
+equivalent when neither direction returns contradiction and the two directions
+are not both neutral. This study sets the flag in every arm, including this
+one. So the divergence is a one-line configuration difference rather than a
+difference of implementation. It has two consequences. The backend comparison
+here is not a test of that figure. And a poor paragraph result from a
+low-recall cross-encoder follows from the rule rather than from the model.
 
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
 
-The main evaluation framework is \emph{selective prediction}. The idea
-is to use the uncertainty score as a ranking signal: examples with the
-highest uncertainty scores are flagged as ``probably wrong'' and would
-in deployment be rejected, deferred to a human, or routed to a more
-expensive verification step. The thesis reports three quantities.
+The framework is \emph{selective prediction}. The uncertainty score is a
+ranking signal, and the records ranked most uncertain are the ones a deployment
+would reject or check more expensively.
 
 \begin{itemize}
-  \item \emph{AUROC} (area under the receiver operating characteristic
-        curve). Treating ``incorrect'' as the positive class, AUROC is
-        the probability that a randomly chosen incorrect record
-        receives a higher uncertainty score than a randomly chosen
-        correct record. An AUROC of 0.5 corresponds to random ranking;
-        1.0 is perfect ranking. Values around 0.7--0.9 indicate
-        moderate-to-strong ranking in this study; practical usefulness
-        depends on the operating threshold and the relative costs of
-        missed and false alerts. Because AUROC depends only on the
-        \emph{ranking} of scores, the unit of the entropy (nats
-        vs.\ bits) does not affect it.
-  \item \emph{Rejection-accuracy curve}. For each rejection fraction
-        $f\in[0,1]$, the curve shows the accuracy obtained on the
-        remaining $1-f$ fraction of records after rejecting the $f$
-        fraction with the highest uncertainty. A useful uncertainty
-        signal makes the curve rise above the flat ``raw accuracy''
-        baseline.
-  \item \emph{AURAC} (area under the rejection-accuracy curve). A
-        single-number summary of the rejection-accuracy curve. Unlike
-        AUROC it depends on how accurate the model was to begin with,
-        so AURAC values are comparable only within the same task and
-        model.
+  \item \emph{AUROC}. Treating ``incorrect'' as the positive class, AUROC is
+        the probability that a randomly chosen incorrect record gets a higher
+        uncertainty score than a randomly chosen correct one. Here $0.5$ is
+        random and $1.0$ is perfect. It depends only on the ranking, so the
+        unit of the entropy does not matter. This is the metric that isolates
+        the detector, and the one this thesis leads with.
+  \item \emph{Rejection-accuracy curve}. For each rejection fraction $f$, the
+        accuracy on the remaining $1-f$ of records after discarding the $f$
+        most uncertain. A useful signal makes the curve rise above the flat
+        raw-accuracy line.
+  \item \emph{AURAC}, the area under that curve, reported in \textbf{two
+        definitions}, because they are not comparable and the released code
+        uses the first:
+        \begin{itemize}
+          \item \texttt{aurac\_paper}: twenty retention quantiles from $0.1$,
+            with $dx = 0.9/19$, unnormalized. Maximum attainable about $0.947$.
+          \item \texttt{aurac\_mean\_retained}: mean retained accuracy averaged
+            over all retention levels.
+        \end{itemize}
 \end{itemize}
 
-A small worked example makes both concrete. Suppose a detector scores five
-answers, of which three are correct (C) and two are wrong (W):
+Unlike AUROC, both AURAC definitions depend on how accurate the generator was
+to begin with, so their values are comparable only within one task and model.
+Section~\ref{sec:aurac-disagreement} shows the dependence is strong enough to
+matter, and that the two definitions do not rank the methods the same way as
+AUROC or as each other.
+
+\paragraph{A worked example.} Suppose a detector scores five answers, three
+correct (C) and two wrong (W):
 
 \begin{center}\small
 \begin{tabular}{lccccc}
@@ -558,117 +461,271 @@ Actually & C & C & W & C & W \\
 \end{tabular}
 \end{center}
 
-\emph{AUROC by hand.} Form every (wrong, correct) pair; there are
-$2 \times 3 = 6$. The wrong answer gets the higher score in five of the six
-pairs; the only failure is the pair (\#3, \#4), where the wrong answer \#3
-($0.25$) scores below the correct answer \#4 ($0.30$). So
-AUROC $= 5/6 \approx 0.83$: a good but imperfect ranking.
-\emph{AURAC by hand.} Start from the raw accuracy, $3/5 = 0.60$. Reject the
-highest-scoring answer (\#5, wrong): accuracy of the rest rises to
-$3/4 = 0.75$. Reject the next (\#4, correct): accuracy dips to
-$2/3 \approx 0.67$, because the detector discarded a good answer. Reject the
-next (\#3, wrong): accuracy reaches $2/2 = 1.00$. Rejecting \#2 leaves the
-correct answer \#1, so the final non-empty retained set also has accuracy
-$1.00$. The rejection--accuracy curve is therefore the sequence
-$0.60, 0.75, 0.67, 1.00, 1.00$, and under the implementation's stepwise
-definition AURAC is the mean over these five non-empty retention levels,
-$0.803$. For both metrics, \emph{higher is better}.
+\emph{AUROC by hand.} Form every (wrong, correct) pair; there are $2 \times 3 =
+6$. The wrong answer scores higher in five of them; the exception is
+(\#3, \#4), where the wrong answer \#3 ($0.25$) scores below the correct answer
+\#4 ($0.30$). So AUROC $= 5/6 \approx 0.83$.
 
-Raw answer accuracy is reported only as context; it is not sufficient
-on its own, because the practical goal is to decide when a model
-should answer, abstain, or route the prompt to a more expensive
-verification procedure, as in the selective-prediction framing of
-semantic entropy~\cite{semantic_entropy_nature_2024}.
+\emph{Rejection accuracy by hand.} Start from the raw accuracy, $3/5 = 0.60$.
+Reject the highest-scoring answer (\#5, wrong) and accuracy rises to
+$3/4 = 0.75$. Reject the next (\#4, correct) and it dips to $2/3 \approx 0.67$, because a
+good answer was thrown away. Reject the next (\#3, wrong) and it
+reaches $2/2 = 1.00$; rejecting \#2 leaves the correct answer \#1, so the last
+non-empty set is also $1.00$. The curve is $0.60, 0.75, 0.67, 1.00, 1.00$, and
+averaging over those five levels gives $0.803$. For both metrics, higher is
+better.
 
-Two kinds of uncertainty are reported for these metrics, and they are
-kept strictly separate. The \emph{cross-seed spread} (the $\pm$ values
-in the result tables) is the standard deviation of a metric over the
-three decoding seeds; with only three seeds it indicates stability
-rather than statistical significance.
+Raw answer accuracy is reported as context only. It is not a measure of the
+detector, and Section~\ref{sec:aurac-disagreement} shows how strongly the AURAC
+definitions are governed by it.
 
-Significance claims instead use a \emph{prompt-cluster paired bootstrap}.
-Prompts are resampled with replacement $10\,000$ times; each resample is
-applied identically to all three seeds, and the per-seed AUROC difference
-between the two detectors is recomputed and averaged over seeds. Both
-detectors are always scored on exactly the same records within a seed, so
-the comparison is paired and far more sensitive than comparing two
-independent averages. A difference is reported as significant when the
-resulting $95\,\%$ interval excludes zero after Holm correction across the
-family of tests. Holm's step-down procedure~\cite{holm_simple_1979} is what
-makes that family-wise rather than per-cell: the nine $p$-values are ordered,
-the smallest is tested against $\alpha/9$, the next against $\alpha/8$, and so
-on until one fails, after which the remainder are retained. Nine independent
-chances at $\alpha = 0.05$ would otherwise yield at least one spurious
-``significant'' cell about a third of the time. Holm is used in preference to
-Bonferroni because it guarantees the same family-wise error rate while
-rejecting at least as often.
+\section{Statistical procedure}
+\label{sec:statistics}
 
-\paragraph{What the interval is an interval over.} The resampling unit is
-the prompt, not the seed. The estimand is therefore the mean per-seed AUROC
-difference \emph{conditional on seeds 42, 43 and 44}, not a statement about
-the population of decoding seeds. This is a measured design decision rather
-than a convenience: the between-seed standard deviation of the primary
-comparison is roughly an order of magnitude smaller than the bootstrap
-interval half-width in every cell, so prompt sampling, not seed sampling, is
-what limits precision at $N=500$ (or $300$ for SVAMP). Additional seeds
-would shrink the smaller component only, and a seed-variance component
-estimated from three seeds would in any case be badly underpowered. The
-per-seed differences are reported alongside every interval so the seed
-spread stays visible.
+\paragraph{Nine units, not twenty-seven cells.} A short-answer configuration
+has 27 cells: three datasets by three generators by three seeds. It does not
+have 27 independent observations. The seeds sit inside each (dataset,
+generator) pair and vary sampling alone, so the design carries \textbf{nine
+independent units}. Seeds account for about $15\,\%$ of the variance of the
+semantic-minus-surface contrast and the differences between units for the rest.
+Treating the cells as independent inflates the number of contrasts that look
+significant by $44\,\%$.
 
-\paragraph{Confirmatory versus exploratory.} Exactly one comparison is
-preregistered and confirmatory: question-conditioned discrete semantic
-entropy against the normalized surface baseline across the nine short-answer
-task--model cells, with Holm correction over that nine-member family. Every
-other comparison reported in this thesis, including clustering backends,
-probes, \mbox{P(True)}, KLE, temperature, and both long-form analyses, is
-exploratory and is described as such. The distinction matters because it
-prevents the negative headline result from being read as the outcome of a
-search across many comparisons for the most striking one.
+\paragraph{Every paired test resamples units as well as records.} This is a
+commitment of the thesis, not a detail of one table. Three resampling schemes
+are available for a paired comparison, and they answer different questions:
 
+\begin{itemize}
+  \item \texttt{units}: resample the nine (dataset, model) units with
+    replacement, holding records fixed. Uses only the between-unit variance.
+  \item \texttt{records}: hold units fixed and resample records inside each
+    cell, paired so both estimators always score the same prompts. Uses only
+    the within-cell variance.
+  \item \texttt{hier}: resample units, then records inside each drawn cell.
+    Carries both.
+\end{itemize}
+
+In each scheme the statistic is the mean over units of the mean-over-seeds
+paired AUROC difference, with 95\,\% percentile intervals over 2{,}000
+resamples. The \texttt{hier} scheme is what this thesis reports. That is not a
+preference: Section~\ref{sec:se-vs-surface} shows \texttt{records} alone gives
+intervals about three times too narrow and reverses the direction of the
+conclusion, because it treats several hundred correlated questions from one
+dataset as several hundred independent pieces of evidence about a population of
+tasks. That is itself a result, and it is reported as one.
+
+\paragraph{Other intervals.} Intervals reported over cells are 95\,\% bootstrap
+intervals resampling cells, 2{,}000 iterations. Where several cells within one
+condition are tested as a family, Holm's step-down
+procedure~\cite{holm_simple_1979} controls the family-wise error rate; it is
+preferred to Bonferroni because it gives the same rate while rejecting at least
+as often. The released code's own intervals are 90\,\% BCa over 1{,}000
+resamples, so intervals quoted from the original and computed here are not
+directly comparable.
+
+\paragraph{Cross-seed spread.} A $\pm$ value on a per-cell number is the
+standard deviation over the three run seeds. With three seeds that shows
+stability, not significance, and it is kept separate from the bootstrap
+intervals. It also gives the scale for judging a margin: effects below about
+$0.03$ AUROC are inside the seed range for most methods.
+
+\section{Where this study differs from the original}
+\label{sec:deviation-register}
+
+A replication is only as useful as its account of what it changed. Two
+registers follow. Table~\ref{tab:code-divergence} lists the points where the
+original's prose and its released code disagree, and records that the code was
+followed. Table~\ref{tab:deviation-register} lists where this study departs
+from both.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Points where the published description and the released code
+  diverge. The code was followed in every case, because the object of study is
+  the method as a reader would obtain it.}
+\label{tab:code-divergence}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{2.6cm}p{7.6cm}@{}}
+\toprule
+Point & What the code does, and what is followed here \\
+\midrule
+Clustering rule & An order-dependent anchor scan with unconditional
+  reassignment, not a transitive closure over mutually entailed answers
+  (Section~\ref{sec:clustering}) \\
+\addlinespace[2pt]
+P(True) scoring & \texttt{get\_p\_true} returns the raw log-probability of the
+  token \texttt{"~A"}, not a probability renormalized over the two options \\
+\addlinespace[2pt]
+Log-likelihood span & \texttt{HuggingfaceModel.predict} passes a stopping
+  criterion to \texttt{generate} \emph{and} slices per-token log-likelihoods
+  to the stop-truncated answer \\
+\addlinespace[2pt]
+Probe feature location & The embedding is read at
+  \texttt{hidden[n\_generated - 1]}, where \texttt{n\_generated} comes from
+  the stop sequence; no end-of-sequence token is required \\
+\addlinespace[2pt]
+Evaluation set & A seeded random sample of 400 drawn \emph{after} the few-shot
+  and P(True) draws have consumed the random stream, not a prefix of the
+  split \\
+\addlinespace[2pt]
+F1 threshold & $\mathrm{F1} \ge 50.0$, inclusive \\
+\addlinespace[2pt]
+Most-likely answer & A temperature-$0.1$ sample with
+  \texttt{do\_sample=True}, not a greedy decode \\
+\addlinespace[2pt]
+Token budgets & The paper states 50 new tokens; the code takes the budget as a
+  parameter, and this study sets 64 for the samples and 256 for the most-likely
+  answer \\
+\addlinespace[2pt]
+Correctness metric & The code supports
+  \texttt{--metric \{squad, llm, llm\_gpt-3.5, llm\_gpt-4\}}; the paper
+  reports the \texttt{squad} path for the short-phrase condition \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Where this study departs from the original. The first group was
+  forced by cost or access, the second is what the study adds, and the third
+  is a divergence in the algorithm itself.}
+\label{tab:deviation-register}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{2.9cm}p{3.0cm}p{4.0cm}@{}}
+\toprule
+Original & This study & Reason \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Forced by cost or access}}\\
+LLaMA-2 Chat at 7B, 13B and 70B; Falcon Instruct at 7B and 40B; Mistral
+  Instruct 7B &
+  three open models two generations newer &
+  compute; the size range is comparable and Mistral 7B Instruct overlaps \\
+\addlinespace[2pt]
+GPT-4 decides which answers are correct in the sentence-length condition &
+  two open LLM judges, reported alongside token-F1 &
+  paid API access out of scope; the original validates its choice of judge
+  against human annotation, and this study cannot \\
+\addlinespace[2pt]
+GPT-3.5 as the sentence-length entailment model &
+  Qwen2.5-72B-Instruct &
+  open stand-in of comparable scale \\
+\addlinespace[2pt]
+Five question sets &
+  the three shared with this study &
+  SQuAD~\cite{rajpurkar_squad_2016} withholds its own passages artificially;
+  BioASQ~\cite{tsatsaronis_bioasq_2015} differs from the two kept mainly in
+  subject matter \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Added here}}\\
+No clustering-free entropy baseline &
+  two: over raw strings and over normalized strings &
+  isolates the clustering step, which is RQ2 \\
+\addlinespace[2pt]
+One entailment model &
+  four, applied post hoc to identical generations &
+  makes the choice measurable rather than assumed \\
+\addlinespace[2pt]
+One correctness rule per condition &
+  three, on identical answers &
+  the rule turns out to change the ranking \\
+\addlinespace[2pt]
+$T=1.0$ fixed &
+  five temperatures &
+  the parameter controls the signal the method reads \\
+\addlinespace[2pt]
+Two prompting conditions differing in two factors &
+  all four combinations &
+  separates instruction from demonstrations \\
+\addlinespace[2pt]
+Seed variability not reported &
+  three seeds, spread reported throughout &
+  supplies the scale for judging a margin \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Divergence in the algorithm}}\\
+Non-defeating bidirectional entailment for paragraphs &
+  strict bidirectional entailment everywhere &
+  the long-form backend comparison is therefore not a test of Supplementary
+  Figure~1, and a poor paragraph result from a low-recall cross-encoder is a
+  consequence of the rule rather than of the model
+  (Section~\ref{sec:longform-design}) \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+Two defects are inherited rather than introduced: token-F1 grading, whose
+behavior on verbose answers Section~\ref{sec:correctness-comparison}
+quantifies, and the TriviaQA split contamination of
+Section~\ref{sec:datasets}.
+
+\section{Data properties worth knowing}
+\label{sec:data-properties}
+
+Facts about the recorded data, not conclusions.
+
+\begin{itemize}
+  \item \textbf{Probe feature coverage} is 41{,}399 of 41{,}400 records
+    ($100.0\,\%$).
+  \item \textbf{The LLM entailment backend is not bitwise reproducible.}
+    Batching in the inference engine moved about $0.02\,\%$ of entailment
+    verdicts between two runs of the same cell. The cross-encoders are
+    deterministic.
+  \item \textbf{Truncation.} A sample that reaches its 64-token ceiling before
+    a stop sequence is truncated, which can distort the entropy computed over
+    it. The rate was measured on an earlier collection at a different sample
+    size and not recomputed for this one, so no figure is quoted.
+  \item \textbf{Coverage is not uniform.} The two added prompting conditions
+    exist on one backend and one temperature; the temperature sweep covers the
+    entropy estimators only; and the probes and P(True) were collected under
+    different backends, so those two are never compared directly. Each table in
+    Chapter~\ref{ch:results} states its own coverage.
+\end{itemize}
 
 \section{Implementation and HPC execution}
 \label{sec:hpc-execution}
 
-This section records how the design above was implemented and run. The
-work used the NHR@FAU computing center (Nationales Höchstleistungsrechnen
-an der Friedrich-Alexander-Universität): its GPU cluster \emph{Alex}
-(NVIDIA A100 nodes) for all generation and GPU-heavy steps, and its CPU
-cluster \emph{Fritz} for the lighter posthoc reclustering and KLE scoring
-that needs no GPU. The scope of these results matters for reading them correctly. The entropy
-baselines and the NLI replication are the primary runs. The larger judges,
-KLE and the probes are posthoc checks computed on the \emph{same} saved
-samples, so a change in their scores reflects the judge or the estimator,
-not a new set of generations.
+The work used the NHR@FAU computing center: its GPU cluster \emph{Alex} (NVIDIA
+A100 nodes) for generation and all GPU-heavy steps, and its CPU cluster
+\emph{Fritz} for the lighter post-hoc reclustering.
 
-\paragraph{Code and libraries.} All code, configuration, and batch
-scripts are in a small public Python package
-(\texttt{semantic\_entropy}), installed with \texttt{uv} and targeting
-Python~3.11+. Generation uses vLLM for fast sampling; the probe-collection
-runs instead use the HuggingFace \texttt{transformers} path, because vLLM
-does not expose the hidden states a probe needs. NLI clustering uses a
-DeBERTa-v3 cross-encoder, KLE uses sentence-transformer encoders, and the
-small logistic-regression probes use scikit-learn. The pipeline reads a
-processed dataset, samples $M$ answers per prompt, normalizes them,
-clusters them with the configured backend, computes the entropy scores,
-attaches a correctness label, and writes the JSONL schema above; the
-same script serves both the baseline and the replication, with the
-clustering backend chosen by a command-line flag.
+\paragraph{Code and libraries.} All code, configuration and batch scripts live
+in a small Python package installed with \texttt{uv}, targeting Python~3.11+.
+Generation uses vLLM for fast sampling; the probe-collection runs use the
+HuggingFace \texttt{transformers} path instead, because vLLM does not expose
+the hidden states a probe needs. Clustering uses the cross-encoders and the LLM
+judge of Section~\ref{sec:backends}, and the probes use scikit-learn. The
+pipeline reads a processed dataset, samples $M$ answers per prompt, clusters
+them with the configured backend, computes the entropy scores, attaches a
+correctness label and writes one JSONL record per prompt;
+Appendix~\ref{app:schema} reproduces the schema.
 
-\paragraph{What ran where.} Generation and NLI clustering ran on Alex
-(a single A100 for the 7B/8B models; four A100-80GB GPUs with tensor
-parallelism for the 70B model, with the NLI cross-encoder on CPU so the
-GPUs stayed free for generation). The DeBERTa-v3-large reclustering and
-KLE rescoring ran on Fritz; the Qwen2.5-72B judge, being itself a 72B
-model, ran on Alex. All GPU work went through the Slurm batch scheduler.
+\paragraph{What ran where.} Generation and clustering ran on Alex: one A100 for
+the 7B and 8B models, four A100-80GB GPUs with tensor parallelism for the 70B
+model, with the cross-encoder on CPU so the GPUs stayed free. Post-hoc
+cross-encoder reclustering ran on Fritz; the Qwen2.5-72B judge, being itself a
+72B model, ran on Alex. All GPU work went through the Slurm batch scheduler.
 
-\paragraph{Reproducibility and auditing.} Every run writes a
-\texttt{job\_meta.json} recording the Slurm job id, host, model, dataset,
-full decoding parameters, seed, backend, and input path: enough to
-reproduce or audit it later. Source code, configs, small result tables,
-and final figures are version-controlled; bulky artifacts (model caches,
-raw generations, hidden states) live in separate project storage. Analysis is deliberately separable from the runs: every reported number is
-recomputed from the saved per-record JSONL by a single aggregation step, and
-an independent audit checks those values against the reported tables. That
-separation is also what makes the worked examples of
-Section~\ref{sec:hand-audits} possible.
+\paragraph{Provenance.} All artifacts were produced at one pinned commit,
+recorded in each cell's \texttt{job\_meta.json} as
+\texttt{analysis\_code\_commit}. Every collection job checks that the
+repository HEAD matches that commit and that the tracked working tree is clean
+before generating anything, and refuses to start otherwise. Each
+\texttt{job\_meta.json} also records the Slurm job id, host, model, dataset,
+decoding parameters, seed, backend and input path. Code, configuration, result
+tables and figures are version-controlled; model caches, raw generations and
+hidden states live in separate project storage.
+Appendix~\ref{app:reproducibility} lists the manifest digests.
+
+\paragraph{Analysis is separable from the runs.} Every number in
+Chapter~\ref{ch:results} is recomputed from the saved per-record files by one
+aggregation step, with nothing carried over from an intermediate table, so an
+error in an earlier aggregation cannot reach a reported figure. A cell whose recorded metadata disagrees with the manifest in any field is
+rejected rather than kept with a note. The fields checked are the backend, the
+revision pin, the split role and the decoding budget.

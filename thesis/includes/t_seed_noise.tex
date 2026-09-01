@@ -1,0 +1,21 @@
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{The noise floor. AUROC range across the three run seeds, averaged over (dataset, model) configurations. A margin smaller than these values is inside the variation produced by resampling alone.}
+\label{tab:seed-noise}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Method & Mean seed range & Max seed range \\
+\midrule
+Discrete semantic entropy & 0.024 & 0.161 \\
+Semantic entropy, likelihood-weighted & 0.024 & 0.160 \\
+Surface entropy & 0.026 & 0.212 \\
+Naive predictive entropy & 0.025 & 0.398 \\
+Naive sample entropy & 0.030 & 0.240 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
