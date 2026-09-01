@@ -9,9 +9,11 @@ Section~\ref{sec:deviation-register} rather than left to be inferred.
 Two conventions run through the design. First, the study is built against the
 authors' released code~\cite{kossen_semantic_uncertainty_code_2024}, and where
 the published prose and that code disagree, the code is followed. The object of
-study is the method as a reader would obtain it. The disagreements are not
-hypothetical. There are nine, and two of them change what the reported quantity
-is: the clustering procedure, and the scoring of P(True). Second, generation happened once. Clustering, correctness
+study is the method as a reader would obtain it. The gaps are not
+hypothetical. There are nine points where the code either departs from the
+published description or settles a detail the description leaves open, and two
+of them change what the reported quantity is: the clustering procedure, and the
+scoring of P(True). Second, generation happened once. Clustering, correctness
 labelling and scoring are all applied afterwards to those stored generations,
 so the entailment model, the correctness rule and the estimator can each be
 varied while everything else stays fixed by construction rather than by
@@ -177,8 +179,9 @@ instruction, then \texttt{Question:\ \ldots} and \texttt{Answer:\ \ldots}
 blocks for any worked examples, then the query left open at \texttt{Answer:}.
 No chat template and no system message is applied, even for the
 instruction-tuned models, because that is what the released code does.
-Generation stops at the first sequence in the released
-\texttt{STOP\_SEQUENCES}.
+Generation stops at whichever of the released \texttt{STOP\_SEQUENCES} occurs
+earliest in the output, in practice the single newline, or at the tokenizer's
+end-of-sequence token.
 
 Two limits are worth stating now. Both 11-character corners are 5-shot, so the
 design separates length from example count only at the long end. And the two
@@ -218,7 +221,7 @@ Model & Revision \\
 
 \paragraph{The ten samples.} For each question the model is sampled $M=10$
 times at temperature $T=1.0$, top-$p$ $0.9$, top-$k$ $50$, under a budget of at
-most \textbf{64 new tokens}. The entropy estimators are computed from these
+most \textbf{50 new tokens}, which is the released code's default. The entropy estimators are computed from these
 samples and nothing else. Per-sequence log-likelihoods are captured and
 length-normalized, which is what makes the probability-weighted estimators
 available.
@@ -229,12 +232,12 @@ where the probe feature is read. It is \emph{not} a greedy decode. Following
 \texttt{generate\_answers.py}, which sets
 \texttt{temperature = 0.1 if i == 0 else args.temperature} with
 \texttt{do\_sample=True}, it is a temperature-$0.1$ sample. It is drawn under a
-\textbf{256-token} budget rather than the 64 the samples get, inherited from
+\textbf{256-token} budget rather than the 50 the samples get, inherited from
 the probe-feature path.
 
 That asymmetry is one-sided and it matters, so it belongs in the main text. The
-estimators see answers capped at 64 tokens, while correctness is judged on an
-answer allowed four times that. It is the main
+estimators see answers capped at 50 tokens, while correctness is judged on an
+answer allowed about five times that. It is the main
 reason the sentence-length condition here averages 255.2 characters against the
 95.6 the original reports, and it falls hardest on Llama-3.1-8B, whose
 most-likely answers reach a cell mean of 826.3 characters.
@@ -282,8 +285,8 @@ Backend & Role \\
 \texttt{Qwen/Qwen2.5-72B-} \texttt{Instruct} & open stand-in for the
   proprietary judge used in the original's sentence-length condition; applied
   to both short-answer conditions and to the long-form arm, prompted with the
-  entailment instruction taken verbatim from the released
-  \texttt{entailment.py} \\
+  \texttt{EntailmentGPT4} instruction taken verbatim from the released
+  \texttt{semantic\_entropy.py} \\
 \addlinespace[2pt]
 \texttt{exact-match} & string identity after normalization, applied at
   collection time \\
@@ -348,8 +351,12 @@ and~\ref{ch:conclusion} state what that costs.
 \section{The temperature sweep}
 \label{sec:temperature-sweep}
 
-The short-answer grid was also collected at temperatures $0.1$, $0.3$, $0.5$
-and $0.7$, alongside the canonical $1.0$. The sweep ran with probe-feature
+The two conditions the original uses, \texttt{chat\_0shot} and
+\texttt{default\_5shot}, were also collected at temperatures $0.1$, $0.3$,
+$0.5$ and $0.7$ alongside the canonical $1.0$, on the canonical backend and on
+\texttt{Qwen2.5-72B-Instruct}, for the five entropy estimators. The two added
+conditions, the \texttt{nli-deberta-v3-large} backend, the probes and P(True)
+are not in the sweep. The sweep ran with probe-feature
 collection switched off, and that switch introduced a defect whose reach is
 bounded:
 
@@ -364,7 +371,8 @@ bounded:
     no most-likely answer is written, and the correctness routine falls through
     to the modal sampled answer. Sweep cells therefore grade the modal sample
     \emph{at the sweep temperature}. Measured: token-F1 accuracy differs from
-    the canonical run in 54 of 54 cells, mean range $0.016$, maximum $0.262$.
+    the canonical run in 54 of 54 cells, by $0.015$ on average in absolute
+    terms and by at most $0.262$.
   \item \textbf{Answer length is affected} for the same reason, and means
     different things in different rows. Only the temperature-$1.0$ rows are
     comparable.
@@ -383,9 +391,16 @@ held outside the sweep, so only the diversity side of that trade-off can move.
 
 The long-form arm is a FactScore-style biography
 task~\cite{min_factscore_2023}: the prompt is ``Tell me a bio of
-\{entity\}.'' over entities from English Wikipedia category listings, with each
-entity's pinned article lead section as the reference. There are 500 entities
-per cell and nine cells, being three generators by three seeds. Generation is
+\{entity\}.'' over a curated list of biography subjects, with each entity's
+pinned English Wikipedia lead section, fetched from the MediaWiki summary
+endpoint, as the reference. Each of the nine cells, three generators by three
+seeds, holds 500 records. One caveat belongs here: the entity list committed to
+this repository holds 308 subjects, which is fewer than the preparation script
+would need for the split that produced these files, and the prepared data
+itself is not version-controlled. The 500 records per cell are recorded in the
+measurement package and are what the results are computed over, but the exact
+entity list behind them cannot be reconstructed from the repository. This arm
+is therefore the least reproducible part of the study. Generation is
 checked at collection time to have a median sampled answer length of at least
 300 characters, so the arm really is testing paragraph-length output.
 Uncertainty is scored on the whole paragraph; correctness is judged per claim
@@ -489,7 +504,9 @@ generator) pair and vary sampling alone, so the design carries \textbf{nine
 independent units}. Seeds account for about $15\,\%$ of the variance of the
 semantic-minus-surface contrast and the differences between units for the rest.
 Treating the cells as independent inflates the number of contrasts that look
-significant by $44\,\%$.
+significant by roughly a third: across the 336 pairwise comparisons of the
+register, 171 resolve when units are resampled, against about 230 when the 27
+cells are treated as independent.
 
 \paragraph{Every paired test resamples units as well as records.} This is a
 commitment of the thesis, not a detail of one table. Three resampling schemes
@@ -527,7 +544,7 @@ directly comparable.
 standard deviation over the three run seeds. With three seeds that shows
 stability, not significance, and it is kept separate from the bootstrap
 intervals. It also gives the scale for judging a margin: effects below about
-$0.03$ AUROC are inside the seed range for most methods.
+$0.025$ AUROC are inside the seed range for the entropy estimators.
 
 \section{Where this study differs from the original}
 \label{sec:deviation-register}
@@ -542,9 +559,10 @@ from both.
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{Points where the published description and the released code
-  diverge. The code was followed in every case, because the object of study is
-  the method as a reader would obtain it.}
+\caption{Points where the released code departs from the published
+  description, or settles something the description leaves open. The code was
+  followed in every case, because the object of study is the method as a reader
+  would obtain it.}
 \label{tab:code-divergence}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -576,9 +594,9 @@ F1 threshold & $\mathrm{F1} \ge 50.0$, inclusive \\
 Most-likely answer & A temperature-$0.1$ sample with
   \texttt{do\_sample=True}, not a greedy decode \\
 \addlinespace[2pt]
-Token budgets & The paper states 50 new tokens; the code takes the budget as a
-  parameter, and this study sets 64 for the samples and 256 for the most-likely
-  answer \\
+Token budgets & The paper states 50 new tokens and the code's default is also
+  50, which is what the ten samples use here; only the most-likely answer
+  departs, at 256, inherited from the probe-feature path \\
 \addlinespace[2pt]
 Correctness metric & The code supports
   \texttt{--metric \{squad, llm, llm\_gpt-3.5, llm\_gpt-4\}}; the paper
@@ -677,13 +695,14 @@ Facts about the recorded data, not conclusions.
     Batching in the inference engine moved about $0.02\,\%$ of entailment
     verdicts between two runs of the same cell. The cross-encoders are
     deterministic.
-  \item \textbf{Truncation.} A sample that reaches its 64-token ceiling before
+  \item \textbf{Truncation.} A sample that reaches its 50-token ceiling before
     a stop sequence is truncated, which can distort the entropy computed over
     it. The rate was measured on an earlier collection at a different sample
     size and not recomputed for this one, so no figure is quoted.
   \item \textbf{Coverage is not uniform.} The two added prompting conditions
     exist on one backend and one temperature; the temperature sweep covers the
-    entropy estimators only; and the probes and P(True) were collected under
+    entropy estimators only, on the original's two conditions and two of the
+    three backends; and the probes and P(True) were collected under
     different backends, so those two are never compared directly. Each table in
     Chapter~\ref{ch:results} states its own coverage.
 \end{itemize}
@@ -697,9 +716,10 @@ A100 nodes) for generation and all GPU-heavy steps, and its CPU cluster
 
 \paragraph{Code and libraries.} All code, configuration and batch scripts live
 in a small Python package installed with \texttt{uv}, targeting Python~3.11+.
-Generation uses vLLM for fast sampling; the probe-collection runs use the
-HuggingFace \texttt{transformers} path instead, because vLLM does not expose
-the hidden states a probe needs. Clustering uses the cross-encoders and the LLM
+Generation runs on the HuggingFace \texttt{transformers} path, because the
+probe features are read in the same pass and vLLM does not expose the hidden
+states a probe needs. vLLM is used for the LLM entailment backend and the LLM
+judges, where only the generated text is needed. Clustering uses the cross-encoders and the LLM
 judge of Section~\ref{sec:backends}, and the probes use scikit-learn. The
 pipeline reads a processed dataset, samples $M$ answers per prompt, clusters
 them with the configured backend, computes the entropy scores, attaches a
@@ -707,8 +727,8 @@ correctness label and writes one JSONL record per prompt;
 Appendix~\ref{app:schema} reproduces the schema.
 
 \paragraph{What ran where.} Generation and clustering ran on Alex: one A100 for
-the 7B and 8B models, four A100-80GB GPUs with tensor parallelism for the 70B
-model, with the cross-encoder on CPU so the GPUs stayed free. Post-hoc
+the 7B and 8B models, four A100-80GB GPUs with the model sharded across them
+for the 70B model, with the cross-encoder on CPU so the GPUs stayed free. Post-hoc
 cross-encoder reclustering ran on Fritz; the Qwen2.5-72B judge, being itself a
 72B model, ran on Alex. All GPU work went through the Slurm batch scheduler.
 
@@ -718,7 +738,7 @@ recorded in each cell's \texttt{job\_meta.json} as
 repository HEAD matches that commit and that the tracked working tree is clean
 before generating anything, and refuses to start otherwise. Each
 \texttt{job\_meta.json} also records the Slurm job id, host, model, dataset,
-decoding parameters, seed, backend and input path. Code, configuration, result
+decoding parameters, seed and input path. Code, configuration, result
 tables and figures are version-controlled; model caches, raw generations and
 hidden states live in separate project storage.
 Appendix~\ref{app:reproducibility} lists the manifest digests.
@@ -726,6 +746,8 @@ Appendix~\ref{app:reproducibility} lists the manifest digests.
 \paragraph{Analysis is separable from the runs.} Every number in
 Chapter~\ref{ch:results} is recomputed from the saved per-record files by one
 aggregation step, with nothing carried over from an intermediate table, so an
-error in an earlier aggregation cannot reach a reported figure. A cell whose recorded metadata disagrees with the manifest in any field is
-rejected rather than kept with a note. The fields checked are the backend, the
-revision pin, the split role and the decoding budget.
+error in an earlier aggregation cannot reach a reported figure. Each
+reclustering job also checks its own output before exiting: if any record's
+clustering rule, closure, clustering input, entailment input format or
+question-conditioning flag differs from what the job was asked for, the job
+fails rather than writing a cell that is quietly off-protocol.

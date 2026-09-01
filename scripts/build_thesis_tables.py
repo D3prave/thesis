@@ -306,7 +306,7 @@ def t_ladder():
                       [round(float(mus.mean()), 4), pos, res_for, res_against]))
     return table(
         'What each step of the method is worth. Each rung differs from the one '
-        'below it in exactly one respect, so the value of each step is separately '
+        'below it in essentially one respect, so the value of each step is separately '
         'identified. Computed over all 24 (condition, backend, grader) slices at '
         '$T=1.0$, with intervals resampling the nine units. Only the '
         'normalization step is positive in every slice, and it is the only one '

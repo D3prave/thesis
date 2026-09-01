@@ -18,13 +18,14 @@ correctness-trained hidden-state probe, 0.714 for P(True), 0.694 for entropy
 over sequence log-likelihoods and 0.672 for the semantic entropy probe. The
 ordering holds in every slice where each comparator was measured, and the
 headline comparison against naive predictive entropy reproduces at $+0.063$ to
-$+0.162$ against the $+0.099$ the original's own reported figures imply.
+$+0.162$ on the canonical backend, against the $+0.099$ the original's own
+reported figures imply.
 
 \textbf{Which part of the method earns the advantage?} Normalization, not
 grouping by meaning. Every baseline the original uses differs from semantic
 entropy in more than one way at once, so that design cannot attribute the
 margin to any single part. Breaking the method into four steps, each differing
-from the one below it in exactly one way, does attribute it. Of the four, only
+from the one below it in essentially one way, does attribute it. Of the four, only
 normalizing the answer strings before counting them is clearly worth anything:
 $+0.040$ AUROC, positive and resolved in all 24 slices of the grid, and the
 only step above the seed noise floor. Counting raw strings rather than reading
@@ -48,9 +49,10 @@ $+0.012$ to $+0.014$ on short phrases. And on paragraph-length output every
 sampled answer is unique, so the string estimators are constant across records
 and sit at chance. There, grouping is not an improvement over them but a
 precondition for measuring anything at all. The scale of the design bounds the
-null from the other side as well: an effect below roughly 0.01 AUROC would not
-be visible here, so what is established is the absence of a measurable benefit
-rather than of any benefit.
+null from the other side as well: with nine units the minimum detectable effect
+is about 0.028 AUROC, reaching roughly 0.01 only in the tightest slices, so what
+is established is the absence of a measurable benefit rather than of any
+benefit.
 
 \textbf{How much do measurement choices move the answer?} More than the choice
 of method does. On one fixed set of generations the entailment model moves
@@ -75,8 +77,8 @@ the margin is usually credited to is not the part that produces it.
 
 \begin{enumerate}
   \item \textbf{A four-step decomposition of the method}, in which neighbouring
-    steps differ in exactly one way, so the value of each is measured on its
-    own. It locates the reliable gain in answer normalization rather than in
+    steps differ in essentially one way, so the value of each is measured on
+    its own. It locates the reliable gain in answer normalization rather than in
     grouping by meaning, and it supplies the comparator the original evaluation
     leaves out.
   \item \textbf{The finding that the clustering-free comparator passes every
@@ -89,14 +91,16 @@ the margin is usually credited to is not the part that produces it.
     task units held fixed, gives intervals three times too narrow and flips
     the direction of the conclusion. The grid holds nine independent units, not
     twenty-seven cells, and treating the cells as independent inflates the
-    count of significant contrasts by 44\,\%.
+    count of significant contrasts by roughly a third.
   \item \textbf{The entailment model varied afterwards on identical
     generations}, showing that choice is worth more than the choice between
     methods, and that three implementations of ``bidirectional entailment
     clustering'' agree on cluster count for only 60--73\,\% of records.
   \item \textbf{A $2\times2$ separating instruction wording from worked-example
-    count}, which the original's two conditions confound, showing that the
-    worked examples rather than the instruction text are what matters.
+    count}, which the original's two conditions confound. No corner resolves,
+    so the design shows that the two factors interact rather than adding, and
+    that the demonstrations are the operative variable, rather than isolating a
+    main effect.
   \item \textbf{Three correctness rules applied to identical answers}, two of
     them independent LLM judges, and the finding that the ranking of methods
     depends on which is used.
@@ -111,7 +115,8 @@ the margin is usually credited to is not the part that produces it.
     detector.
   \item \textbf{An implementation faithful to the released code rather than to
     its description}, including the order-dependent anchor scan the code
-    performs, with a register of the nine points where code and paper disagree.
+    performs, with a register of the nine points where the code departs from
+    its published description or settles what that description leaves open.
 \end{enumerate}
 
 \section{Limitations}
@@ -160,7 +165,8 @@ concern is the class of judge rather than the identity of the model.
 \paragraph{Further limitations.} Six more qualify particular results and are
 set out in Section~\ref{sec:threats}. The sentence-length condition here is not
 the original's, averaging 255.2 characters against 95.6. Nine independent units
-cannot resolve effects below roughly 0.01 AUROC. The clustering step is
+give a minimum detectable effect of about 0.028 AUROC, and reach roughly 0.01
+only in the tightest slices. The clustering step is
 order-dependent by construction. The long-form arm has degenerate string
 baselines, one grader that is also one of its backends, and a stricter
 clustering rule than the original uses for paragraphs. The probes and P(True)

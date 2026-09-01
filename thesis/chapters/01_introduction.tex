@@ -84,11 +84,12 @@ grouping of answers by meaning.
 
 Breaking the method into steps can say. Semantic entropy differs from the
 crudest string baseline in four steps. Count repeated strings instead of
-reading likelihoods. Normalize those strings before counting. Group the
-normalized answers by meaning instead of by exact match. Weight the resulting
-groups by likelihood. Comparing each step against the one below it gives the
-value of that step on its own, because neighbouring comparisons then differ in
-exactly one way. The third step is the one the method is named after. Its
+reading likelihoods. Normalize those strings before counting. Group the answers
+by meaning instead of by exact match. Weight the resulting groups by
+likelihood. Comparing each step against the one below it gives the value of
+that step on its own, because neighbouring comparisons then differ in
+essentially one way. Section~\ref{sec:ladder} notes the one place where that
+is approximate rather than exact. The third step is the one the method is named after. Its
 comparator is \emph{surface entropy}, the entropy over distinct normalized
 answer strings. It keeps the sampling, the counting and the entropy, and drops
 only the judgment of meaning. It costs no model call.
@@ -105,9 +106,10 @@ temperature the answers are sampled at.
 \textbf{To RQ1, yes.} On sentence-length answers, semantic entropy leads every
 baseline the paper uses. Under the entailment model the released code loads and
 an LLM judge for correctness, likelihood-weighted semantic entropy reaches
-AUROC 0.758. The comparators reach 0.694 for entropy over log-likelihoods,
-0.714 for P(True), 0.718 for the correctness-trained probe and 0.672 for the
-semantic entropy probe. That ordering holds in every slice of the data where
+AUROC 0.758. The comparators reach 0.694 for entropy over log-likelihoods and
+0.714 for P(True). The two hidden-state probes were collected on a different
+backend, \texttt{nli-deberta-v3-large}, and reach 0.718 for the
+correctness-trained probe and 0.672 for the semantic entropy probe. That ordering holds in every slice of the data where
 each comparator was measured.
 
 \textbf{To RQ2, normalization rather than grouping by meaning.} Of the four
@@ -137,12 +139,13 @@ original assembles is also produced by a method that never judges meaning.
 
 Two conditions change the verdict, and both are stated here so that no later
 chapter appears to contradict this one. Substituting a 72-billion-parameter
-model as the entailment judge gives a resolved margin of $+0.088$ on
+model as the entailment judge gives a resolved margin of $+0.087$ on
 sentence-length answers. And on paragraph-length output no two samples are ever
 identical, so every sample forms its own group and the string scores sit at
 chance. There, grouping by meaning is not an improvement but a precondition for
 measuring anything. The size of the design bounds the null from the other side
-too. An effect smaller than about 0.01 AUROC would not show up here.
+too. With nine units the minimum detectable effect is about 0.028 AUROC, and
+the intervals computed here reach roughly 0.01 only in the tightest slices.
 
 \textbf{To RQ3, more than the choice of method does.} Holding the generations
 fixed and changing only the entailment model moves discrete semantic entropy
@@ -164,7 +167,8 @@ every number here.
 Table~\ref{tab:grid-at-a-glance} lists what was varied. The design is not a
 full crossing. The two prompting conditions added here exist on one entailment
 backend and one temperature. The temperature sweep covers the entropy
-estimators only. The probes and P(True) were collected on different backends,
+estimators only, and only the original's two prompting conditions on two of the
+three entailment backends. The probes and P(True) were collected on different backends,
 so those two are never compared directly. Each table in
 Chapter~\ref{ch:results} states its own coverage.
 
@@ -202,7 +206,7 @@ Correctness rule &
 Sampling temperature &
   0.1, 0.3, 0.5, 0.7, 1.0 & 5 \\
 Long-form arm &
-  FactScore-style biographies, 500 entities per cell, scored at paragraph and
+  FactScore-style biographies, 500 records per cell, scored at paragraph and
   at claim level & 9 cells \\
 \bottomrule
 \end{tabular}
@@ -215,7 +219,7 @@ not twenty-seven. The three run seeds sit inside each (dataset, generator) pair
 and vary sampling alone. Seeds account for about 15\,\% of the variance of the
 semantic-minus-surface contrast, and the differences between units for the
 rest. A test that treats the twenty-seven cells as independent overstates the
-number of resolved contrasts by 44\,\%. Every paired test here resamples units
+number of resolved contrasts by roughly a third. Every paired test here resamples units
 as well as records.
 
 \section{Contributions}
@@ -225,7 +229,7 @@ The method itself is Farquhar et al.'s. What this thesis adds is a
 reimplementation faithful to their released
 code~\cite{kossen_semantic_uncertainty_code_2024}, together with comparisons
 their design does not make. The main one is a four-step decomposition in which
-neighbouring steps differ in exactly one way, so the value of each step is
+neighbouring steps differ in essentially one way, so the value of each step is
 measured on its own. It supplies the comparator the original evaluation leaves
 out, and it locates the reliable gain in answer normalization rather than in
 grouping by meaning. Beside it sit the paired bootstrap that respects the nine

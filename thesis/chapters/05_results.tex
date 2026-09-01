@@ -2,8 +2,11 @@
 \label{ch:results}
 
 This chapter reports what was measured. Interpretation waits for
-Chapter~\ref{ch:discussion}. Every table is generated from the measurement
-package by one script, with nothing copied from an intermediate table.
+Chapter~\ref{ch:discussion}. Every table here except the reproduction scorecard
+of Table~\ref{tab:reproduction}, which is written out by hand, is generated from
+the measurement package by one script. Two sets of rows are the exception to
+that: the hierarchical intervals and the out-of-distribution probe figures are
+quoted from two record-level scripts that the published package cannot rerun.
 
 \section{How to read the numbers}
 \label{sec:how-to-read}
@@ -25,7 +28,9 @@ well defined, and none is quoted here.
 
 \paragraph{The noise floor.} Table~\ref{tab:seed-noise} gives the AUROC range
 across the three run seeds: 0.024 to 0.030 for the entropy estimators, 0.047
-for P(True). A smaller margin is inside the variation from resampling alone.
+for P(True). Where a single figure is quoted below, it is $0.025$, the range for
+discrete semantic entropy itself, which is the estimator the comparisons are
+about. A smaller unpaired margin is inside the variation from resampling alone.
 
 \input{includes/t_seed_noise.tex}
 
@@ -136,11 +141,23 @@ comparison that would test it. That is the next section.
 \label{sec:ladder}
 
 Semantic entropy differs from the crudest string baseline in four steps, and
-each can be isolated because neighbouring steps differ in exactly one way.
+each can be isolated because neighbouring steps differ in essentially one way.
 Naive predictive entropy reads sequence likelihoods without grouping. Naive
 sample entropy counts raw strings. Surface entropy counts them after
-normalization. Discrete semantic entropy groups the normalized samples by
-meaning, and the full estimator weights those groups by likelihood.
+normalization. Discrete semantic entropy groups the samples by meaning, and the
+full estimator weights those groups by likelihood.
+
+One caveat belongs with the third step. Following the released code, the
+clustering runs on the raw generations, while surface entropy is scored over
+normalized strings. That step therefore changes two things at once: the
+equivalence rule, from string identity to bidirectional entailment, and the
+text it is applied to. The direction is known. If the entailment model fails to
+merge case and punctuation variants that the normalizer would have merged, the
+measured value of clustering is pushed \emph{down}, so the confound favors this
+chapter's negative reading rather than working against it. In practice the
+model absorbs most of that difference, but the one-factor property of this step
+is close rather than exact, and the margins below should be read with that in
+mind.
 Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give what each step adds
 over all 24 slices.
 
@@ -164,8 +181,8 @@ The other three are not. Counting raw strings instead of reading sequence
 log-likelihoods is positive in only 4 slices of 24 and resolves against raw
 counting in 8. So the familiar claim that counting answer strings beats
 reading log-likelihoods holds only for \emph{normalized} strings. Grouping the
-normalized strings by meaning adds $+0.0016$, positive in 14 of 24 and resolved
-against in 7. Weighting the resulting groups by likelihood adds $+0.0015$.
+samples by meaning adds $+0.0016$ over counting normalized strings, positive in
+14 of 24 and resolved against in 7. Weighting the resulting groups by likelihood adds $+0.0015$.
 
 The rest of this section examines the third step, the one the method is named
 after.
@@ -201,6 +218,15 @@ are Qwen-backend slices: $+0.0867$ and $+0.0872$ in \texttt{chat\_0shot} under
 the two judges, and $+0.0119$ and $+0.0139$ in \texttt{default\_5shot}. All
 seven favoring surface entropy are token-F1 slices, across all four conditions
 and all three backends.
+
+The last two of those four sit below the 0.025 seed floor, which is worth a
+word since that floor was just given as the scale for judging a margin. It is
+not a contradiction. The floor is the spread of a \emph{single} estimator's
+AUROC across run seeds. A paired bootstrap compares two estimators on the same
+generations, so most of that seed-to-seed movement is common to both and
+cancels in the difference. The floor is the right test for an unpaired number
+quoted on its own; the interval is the right test for a paired margin. Both of
+these margins are small, and neither carries an argument on its own.
 
 \input{includes/t_all_slices.tex}
 
@@ -296,8 +322,8 @@ identical in both columns.
 Table~\ref{tab:cluster-counts} gives the mean clusters per record out of ten
 samples. In \texttt{chat\_0shot} the canonical backend produces 4.34, 
 \texttt{nli-deberta-v3-large} 4.23 and \texttt{Qwen2.5-72B-Instruct} 4.01. The
-three assign the same number of clusters to between 60.3\,\% and 72.8\,\% of
-records.
+taken two at a time, they assign the same number of clusters to between
+60.3\,\% and 72.8\,\% of records; all three agree on at most 60.3\,\%.
 
 \input{includes/t_cluster_counts.tex}
 
@@ -338,10 +364,12 @@ string-identical, so every sample forms its own cluster, the score is constant
 within a cell, and the AUROC is chance up to ties. No comparison against them
 is informative here.
 
-What the arm does support is a comparison between backends, and the spread is
-0.184 AUROC: 0.4965 under exact match, 0.5245 under
+What the arm does support is a comparison between backends. Across the three
+entailment backends the spread is 0.184 AUROC: 0.5245 under
 \texttt{nli-deberta-v3-base}, 0.6703 under \texttt{nli-deberta-v3-large} and
-0.7084 under \texttt{Qwen2.5-72B-Instruct}. The canonical backend was never
+0.7084 under \texttt{Qwen2.5-72B-Instruct}. Exact match sits at 0.4965, which
+widens the range to 0.212, but it is the degenerate baseline just described and
+is not a fourth reading of the same choice. The canonical backend was never
 applied to this arm.
 
 The 0.5245 for \texttt{nli-deberta-v3-base} is a result about this study's
@@ -401,10 +429,13 @@ whose token-F1 accuracy falls below 0.05. Three are TriviaQA with
 Llama-3.1-8B, at 0.0106, 0.0079 and 0.0079. That is three or four correct
 answers out of 378. An AUROC computed against three positive examples is not a stable
 measurement, and these cells carry much of the token-F1 margin in this
-condition: excluding cells outside the accuracy range $[0.05, 0.95]$ moves the
-Qwen-backend token-F1 margin from $-0.0658$ to $-0.0330$, while the
-canonical-backend margin moves only from $-0.0506$ to $-0.0485$. No LLM-graded
-cell anywhere in the study falls below 0.36 accuracy.
+condition. Excluding the six cells outside the accuracy range $[0.05, 0.95]$,
+which is two of the nine units, moves the Qwen-backend token-F1 margin from
+$-0.0658$ to $-0.0277$, while the canonical-backend margin moves only from
+$-0.0506$ to $-0.0485$. Dropping the TriviaQA and Llama-3.1-8B unit alone gives
+$-0.0330$ and $-0.0440$. No LLM-graded short-answer cell falls below 0.36
+accuracy; the lowest is 0.3625. The long-form arm, which is graded by the same
+Qwen judge, does go lower, to 0.242.
 
 \input{includes/t_degenerate_cells.tex}
 
@@ -445,8 +476,8 @@ On short-phrase answers the ordering reverses, at 0.642 against 0.668.
 Comparing each probe against its own in-distribution value under the same
 grader, the four losses are 0.094 and 0.061 on sentence-length answers and
 0.105 and 0.078 on short phrases. The mean is 0.084 and the range 0.061 to
-0.105. The accuracy probe's advantage of 0.046 in the first condition falls to
-0.010.
+0.105. Under the grader the out-of-distribution pass used, the accuracy
+probe's advantage of 0.042 in the first condition falls to 0.010.
 
 Two limits apply. Both probes are trained and evaluated on disjoint question
 sets in both regimes, so these are held-out figures throughout. But the
