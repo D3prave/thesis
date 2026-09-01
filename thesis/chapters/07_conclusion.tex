@@ -13,13 +13,13 @@ and used that setup to ask three questions.
 \textbf{Does semantic entropy detect confabulations better than the baselines
 the original paper uses?} Yes. On sentence-length answers under the canonical
 entailment model and an LLM judge, likelihood-weighted semantic entropy reaches
-AUROC 0.758 and the discrete variant 0.757, against 0.718 for a
+AUROC 0.758 and the discrete variant 0.757. The comparators reach 0.718 for a
 correctness-trained hidden-state probe, 0.714 for P(True), 0.694 for entropy
-over sequence log-likelihoods and 0.672 for the semantic entropy probe. The
-ordering holds in every slice where each comparator was measured, and the
-headline comparison against naive predictive entropy reproduces at $+0.063$ to
-$+0.162$ on the canonical backend, against the $+0.099$ the original's own
-reported figures imply.
+over sequence log-likelihoods and 0.672 for the semantic entropy probe. That
+ordering holds in every slice where each comparator was measured. The headline
+comparison against naive predictive entropy reproduces at $+0.063$ to $+0.162$
+on the canonical backend, against the $+0.099$ the original's own reported
+figures imply.
 
 \textbf{Which part of the method earns the advantage?} Normalization, not
 grouping by meaning. Every baseline the original uses differs from semantic

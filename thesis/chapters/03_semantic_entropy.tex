@@ -317,7 +317,7 @@ Meaning judgment & \makecell[l]{discrete semantic entropy\\
 Two of the four ignore meaning and read only the strings: \emph{naive sample
 entropy} counts the raw strings, \emph{surface entropy} counts them after
 normalization. A third, the paper's \emph{naive entropy}, ignores meaning
-differently: it does no grouping at all and is the mean negative
+in a different way. It does no grouping at all, and is the mean negative
 length-normalized sequence log-likelihood over the $M$ samples, so it reads how
 confident the model was rather than how often an answer recurred. The two
 semantic scores group first: \emph{discrete semantic entropy} counts the
@@ -624,8 +624,8 @@ limited to what is linearly readable from one hidden state.
 
 \textbf{P(True)} asks the model to grade itself. It is shown the question, a
 set of brainstormed alternative answers, and its own most-likely answer, and is
-asked whether that answer is true, with the options presented as letters; a
-twenty-shot prefix from the training split comes first. What the released code
+then asked whether that answer is true, with the options presented as letters.
+A twenty-shot prefix drawn from the training split comes first. What the released code
 records is the raw log-probability the model puts on the token for the ``true''
 option, not a probability renormalized over the two options, which is what the
 published description suggests. This thesis follows the code, and

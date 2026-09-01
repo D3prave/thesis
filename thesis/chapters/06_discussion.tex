@@ -30,10 +30,9 @@ after adds $+0.0016$.
 
 There is a second route to the same conclusion that uses no significance test
 at all. The clustering-free comparator passes every comparison the original
-study runs: against entropy over sequence log-likelihoods it is positive in 24
-slices of 24, against P(True) in 6 of 6, against the semantic entropy probe in
-6 of 6, and against the correctness-trained probe in 6 of 6, with no slice
-anywhere going the other way. Whatever the original's evidence establishes, a
+study runs. Against entropy over sequence log-likelihoods it is positive in 24
+slices of 24, and in 6 of 6 against each of P(True), the semantic entropy probe
+and the correctness-trained probe. No slice anywhere goes the other way. Whatever the original's evidence establishes, a
 method that never judges meaning establishes it too.
 
 \subsection{On the released cross-encoders, the clustering step is null}
@@ -68,9 +67,9 @@ seeds, because seeds account for only about 15\,\% of the variance of this
 contrast.
 
 And it is not a claim that the method fails. Semantic entropy is the best
-detector among those the original evaluates, by a comfortable margin, and it
-reproduces the headline comparison against naive predictive entropy at $+0.063$
-to $+0.162$ in the sentence-length condition on the canonical backend, and at
+detector among those the original evaluates, by a comfortable margin. It also
+reproduces the headline comparison against naive predictive entropy: $+0.063$
+to $+0.162$ in the sentence-length condition on the canonical backend, and
 $+0.057$ to $+0.162$ across all three backends. The claim is narrower and is
 about attribution: that reproduced effect shows counting \emph{normalized}
 answer strings beats reading sequence log-likelihoods. It does not show that
@@ -83,8 +82,8 @@ not beaten.
 
 Substituting Qwen2.5-72B-Instruct as the entailment judge, on identical stored
 generations, moves discrete semantic entropy from 0.757 to 0.823 in the
-sentence-length condition and turns the margin over surface entropy into
-$+0.087$ under both judges, resolved in both. In the short-phrase condition the
+sentence-length condition. The margin over surface entropy becomes $+0.087$
+under both judges, and is resolved under both. In the short-phrase condition the
 same substitution gives $+0.012$ and $+0.014$, also resolved. Surface entropy
 is unchanged to four decimal places across all three backends, so the whole
 difference comes from the entailment model.
@@ -107,10 +106,10 @@ Two things stop that from being a mechanism.
 
 First, and decisively, there is a within-condition contrast on identical
 generations. Table~\ref{tab:backend-by-model} splits the sentence-length margin
-by generator. On the canonical cross-encoder the generator with by far the
-longest answers, Llama-3.1-8B at 667 mean characters, has the \emph{smallest}
-margin, $+0.012$, while two generators producing 38 and 60
-characters sit at $+0.026$ and $+0.029$. Substituting the 72B entailment model
+by generator. Llama-3.1-8B writes by far the longest answers, 667
+characters on average. On the canonical cross-encoder it has the
+\emph{smallest} margin of the three, $+0.012$. The two generators writing 38
+and 60 characters sit higher, at $+0.026$ and $+0.029$. Substituting the 72B entailment model
 inverts the ordering: the same long-answer generator now has the
 \emph{largest} margin at $+0.132$, eleven times its own value on the
 cross-encoder, against $+0.067$ and $+0.063$ for the two short ones. Nothing
@@ -137,9 +136,10 @@ its baselines there. It is that grouping is a \emph{precondition} for having any
 signal at all, and a comparison against a constant is vacuous.
 
 What the arm does support is the same conclusion as the short-answer arm,
-reached independently: the informative variation is between entailment models,
-and it spans 0.184 AUROC, from 0.5245 with \texttt{nli-deberta-v3-base} through
-0.6703 with \texttt{nli-deberta-v3-large} to 0.7084 with the 72B judge.
+reached independently. The variation that carries information is the one
+between entailment models, and it spans 0.184 AUROC: 0.5245 with
+\texttt{nli-deberta-v3-base}, 0.6703 with \texttt{nli-deberta-v3-large} and
+0.7084 with the 72B judge.
 
 Two cautions attach to this arm. It sets \texttt{strict\_entailment} where the
 original leaves it at the relaxed default for paragraphs, so its backend
@@ -214,10 +214,10 @@ held outside the sweep, so only the diversity side can move.
 \subsection{The correctness rule reverses the ranking}
 
 The same answers, scored by the same detectors, rank differently depending on
-which rule decides correctness. In the sentence-length condition on the
-canonical backend, semantic entropy leads surface entropy by $+0.020$ and
-$+0.022$ under the two LLM judges and trails it by $0.051$ under the
-token-overlap rule the released code applies by default.
+which rule decides correctness. Take the sentence-length condition on the
+canonical backend. Under the two LLM judges, semantic entropy leads surface
+entropy by $+0.020$ and $+0.022$. Under the token-overlap rule, which is what
+the released code applies by default, it trails by $0.051$.
 
 The token-overlap rule is visibly doing something odd in that condition. It
 scores the generators at 0.344 mean accuracy where the judges score them at
@@ -375,8 +375,8 @@ another number.
 grader that is also one of its clustering backends.
 
 \paragraph{Coverage gaps.} The probes exist on one backend and P(True) on
-another, so the two are never directly comparable; the temperature sweep omits
-both, and covers only the original's two conditions on two of the three
-backends; and the two added prompting conditions exist on one backend, so the
-$2\times2$ can only be estimated on the canonical model and not on the backend
+another, so the two are never directly comparable. The temperature sweep leaves
+out both, and covers only the original's two conditions on two of the three
+backends. And the two added prompting conditions exist on one backend, so the
+$2\times2$ can only be estimated on the canonical model, not on the backend
 most favorable to semantic entropy.

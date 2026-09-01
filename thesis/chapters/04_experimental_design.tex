@@ -353,8 +353,9 @@ and~\ref{ch:conclusion} state what that costs.
 
 The two conditions the original uses, \texttt{chat\_0shot} and
 \texttt{default\_5shot}, were also collected at temperatures $0.1$, $0.3$,
-$0.5$ and $0.7$ alongside the canonical $1.0$, on the canonical backend and on
-\texttt{Qwen2.5-72B-Instruct}, for the five entropy estimators. The two added
+$0.5$ and $0.7$, alongside the canonical $1.0$. That sweep covers two backends,
+the canonical one and \texttt{Qwen2.5-72B-Instruct}, and the five entropy
+estimators. The two added
 conditions, the \texttt{nli-deberta-v3-large} backend, the probes and P(True)
 are not in the sweep. The sweep ran with probe-feature
 collection switched off, and that switch introduced a defect whose reach is
@@ -745,7 +746,8 @@ Appendix~\ref{app:reproducibility} lists the manifest digests.
 Chapter~\ref{ch:results} is recomputed from the saved per-record files by one
 aggregation step, with nothing carried over from an intermediate table, so an
 error in an earlier aggregation cannot reach a reported figure. Each
-reclustering job also checks its own output before exiting: if any record's
-clustering rule, closure, clustering input, entailment input format or
-question-conditioning flag differs from what the job was asked for, the job
-fails rather than writing a cell that is quietly off-protocol.
+reclustering job also checks its own output before it exits. It compares five
+fields on every record against what the job was asked for: the clustering rule,
+the closure, the clustering input, the entailment input format and the
+question-conditioning flag. If any of them differs, the job fails rather than
+writing a cell that is quietly off-protocol.

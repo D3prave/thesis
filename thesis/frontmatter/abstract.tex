@@ -12,44 +12,44 @@ if they scatter across incompatible meanings it is probably not.
 
 This thesis does not propose a new method. It reimplements the published one
 against the authors' released code, on three open generators, three
-short-answer benchmarks and a long-form biography task, and uses that setup to
-ask three questions: whether semantic entropy detects confabulations better
-than the baselines the original paper evaluates, whether its advantage is
-attributable to the clustering step in particular, and how far the answer moves
-when measurement choices the literature treats as configuration are varied
-instead of fixed.
+short-answer benchmarks and a long-form biography task. That setup is used to
+ask three questions. Does semantic entropy detect confabulations better than
+the baselines the original paper evaluates? Is its advantage due to the
+clustering step in particular? And how far does the answer move when
+measurement choices the literature treats as settings are varied instead of
+fixed?
 
 To the first question the answer is yes. On sentence-length answers, semantic
-entropy leads every comparator the original study uses, reaching AUROC 0.758
+entropy leads every comparator the original study uses. It reaches AUROC 0.758,
 against 0.714 for self-evaluation and 0.694 for entropy over sequence
-log-likelihoods, and its headline margin over the latter reproduces.
+log-likelihoods, and its headline margin over the second of those reproduces.
 
 The second question is the thesis's contribution. Every baseline the original
 study uses differs from semantic entropy in more than one respect at once, so
 that design cannot attribute the margin to any one component, although it is
-routinely read as crediting one in particular. Decomposing the method into four
-steps, each differing from the one below it in exactly one respect, does
-attribute it. The step that carries the reliable gain is not the clustering. Normalizing the answer strings before counting them is worth
+routinely read as crediting one in particular. Breaking the method into four steps,
+each differing from the one below it in essentially one respect, does attribute
+it. The step that carries the reliable gain is not the clustering. Normalizing the answer strings before counting them is worth
 $+0.040$ AUROC and is positive and resolved in all 24 slices of the evaluation
 grid, the only step above the run-to-run noise. Grouping those normalized
 strings by meaning adds nothing measurable on the entailment model the released
-code loads: across four prompting conditions and two independent LLM judges,
-eight paired comparisons produce margins between $-0.002$ and $+0.022$ AUROC
-and a bootstrap resampling both the nine independent task units and the records
+code loads. Across four prompting conditions and two independent LLM judges,
+eight paired comparisons give margins between $-0.002$ and $+0.022$ AUROC. A
+bootstrap that resamples both the nine independent task units and the records
 within them resolves none of them. The clustering-free comparator also passes
 every comparison the original study runs, with no slice anywhere going the other
 way. The result is conditional in
 two ways that are stated rather than hedged. Substituting a
-72-billion-parameter entailment model produces a resolved margin of $+0.087$;
-and on paragraph-length output, where no two samples are ever identical and the
-string-based scores are constant, clustering is not an improvement but a
+72-billion-parameter entailment model produces a resolved margin of $+0.087$.
+And on paragraph-length output no two samples are ever identical, so the
+string-based scores are constant and clustering is not an improvement but a
 precondition.
 
 To the third question the answer is that measurement choices move the result by
 more than the choice of method does. On one fixed set of generations the
-entailment model spans 0.751 to 0.823, three times the margin between the
-methods; the sampling temperature reorders the families of detector, and the
-conventional setting is the most favorable point in the range; and the standard
+entailment model spans 0.751 to 0.823, which is three times the margin between
+the methods. The sampling temperature reorders the families of detector, and
+the usual setting is the most favorable point in the range. And the standard
 token-overlap correctness rule reverses the sign of the headline contrast.
 Two limitations bound all of this: the correctness judges were never validated
 against human labels, and the entailment model and the judge answer versions of
