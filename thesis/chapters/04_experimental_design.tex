@@ -689,10 +689,8 @@ Section~\ref{sec:datasets}.
 Facts about the recorded data, not conclusions.
 
 \begin{itemize}
-  \item \textbf{Probe feature coverage} is 41{,}399 of 41{,}400 records
-    ($100.0\,\%$).
   \item \textbf{The LLM entailment backend is not bitwise reproducible.}
-    Batching in the inference engine moved about $0.02\,\%$ of entailment
+    Batching in the inference engine moves a small fraction of entailment
     verdicts between two runs of the same cell. The cross-encoders are
     deterministic.
   \item \textbf{Truncation.} A sample that reaches its 50-token ceiling before

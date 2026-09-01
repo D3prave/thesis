@@ -103,25 +103,9 @@ answer length differs by a factor of 3.7 and the margin falls from $+0.021$ to
 $+0.006$. Across all four corners the margin rises with length, and worked
 examples enter only by shortening answers.
 
-Three things stop that from being a mechanism.
+Two things stop that from being a mechanism.
 
-First, the relationship does not survive conditioning intact. These next figures
-are the one place this chapter leaves the published measurement package: they
-are computed per record, and the package holds cell-level summaries, so they
-come from the record-level analysis and cannot be recomputed from the files
-released with this thesis. Pooled across the four conditions, the Spearman
-correlation between log answer length and the margin over surface entropy is
-$+0.475$ under the Llama judge and $+0.482$ under the Qwen judge. Within \texttt{chat\_0shot} alone it weakens to $+0.319$
-and $+0.244$. It does not reverse. That distinction matters, because against
-\emph{naive} entropy the same conditioning does reverse it, from about
-$+0.55$ pooled to $-0.515$ and $-0.629$ within the condition. Only the second is
-a Simpson reversal. Against the clustering-free comparator the correct word is
-attenuation: the advantage tracks the prompting condition, length varies with
-the condition, and conditioning on the condition removes most of the apparent
-relationship. That is enough to deny length the status of mechanism, and not
-enough to claim it runs the other way.
-
-Second, and decisively, there is a within-condition contrast on identical
+First, and decisively, there is a within-condition contrast on identical
 generations. Table~\ref{tab:backend-by-model} splits the sentence-length margin
 by generator. On the canonical cross-encoder the generator with by far the
 longest answers, Llama-3.1-8B at 667 mean characters, has the \emph{smallest}
@@ -134,7 +118,7 @@ about the answers changed between those columns. If swapping the entailment
 model reverses which answer length benefits, length cannot be the variable that
 matters.
 
-Third, there is the long-form arm, taken up next.
+Second, there is the long-form arm, taken up next.
 
 What survives is weaker and more useful. Length modulates the size of the gain
 once a strong enough entailment model is in place. The Qwen advantage is seven
@@ -237,11 +221,9 @@ token-overlap rule the released code applies by default.
 The token-overlap rule is visibly doing something odd in that condition. It
 scores the generators at 0.344 mean accuracy where the judges score them at
 0.623 and 0.677, and in six of the 27 cells it marks under 5\,\% of answers
-correct. In three of them that is three or four answers out of 378. Answer length
-alone predicts the token-F1 label at AUROC 0.779, against 0.584 under the
-judge: under that rule, ``incorrect'' substantially means ``verbose''. That
-pair, like the correlations above, is a record-level figure and is not
-recomputable from the released measurement package.
+correct. In three of them that is three or four answers out of 378. The rule
+penalizes long answers, because a correct answer padded with extra words loses
+overlap against a short reference.
 
 It would be convenient to conclude that the token-F1 result is an artifact and
 the LLM-graded numbers are the real ones. That is not available here, for two
@@ -287,12 +269,16 @@ reported figures.
 
 Two further findings reproduce. Discrete and likelihood-weighted semantic
 entropy are interchangeable, differing by $-0.0015$ on average over 648 cells.
-That is the most stable contrast measured anywhere here. And the probes behave as
-Kossen et al.\ describe: both lose accuracy out of distribution, by 0.061 to
-0.105 AUROC, and the correctness-trained probe's in-distribution advantage
-shrinks in one condition and reverses in the other. Kossen et al.\ also state
-that probes cannot match sampling-based methods, which is what
-Section~\ref{sec:paper-baselines} finds.
+That is the most stable contrast measured anywhere here. And the probes lose accuracy
+out of distribution, by 0.061 to 0.105 AUROC, with the correctness-trained
+probe's in-distribution advantage shrinking in one condition and reversing in
+the other. That reversal is the direction Kossen et
+al.~\cite{kossen_semantic_entropy_probes_2024} predict, since their claim is
+that semantic entropy probes generalize better out of distribution than probes
+trained directly on accuracy. Their stronger claim, that the probes retain high
+performance, is not what Section~\ref{sec:paper-baselines} finds here: both
+probes sit below the sampling-based estimators in every slice where each was
+measured.
 
 \subsection{What does not}
 
