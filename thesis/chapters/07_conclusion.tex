@@ -13,10 +13,11 @@ and used that setup to ask three questions.
 \textbf{Does semantic entropy detect confabulations better than the baselines
 the original paper uses?} Yes. On sentence-length answers under the canonical
 entailment model and an LLM judge, likelihood-weighted semantic entropy reaches
-AUROC 0.758 and the discrete variant 0.757. The comparators reach 0.718 for a
-correctness-trained hidden-state probe, 0.714 for P(True), 0.694 for entropy
-over sequence log-likelihoods and 0.672 for the semantic entropy probe. That
-ordering holds in every slice where each comparator was measured. The headline
+AUROC 0.758 and the discrete variant 0.757, against 0.714 for P(True) and
+0.694 for entropy over sequence log-likelihoods. The two hidden-state probes
+were collected on a different backend, \texttt{nli-deberta-v3-large}, and reach
+0.718 for the correctness-trained probe and 0.672 for the semantic entropy
+probe. That ordering holds in every slice where each comparator was measured. The headline
 comparison against naive predictive entropy reproduces at $+0.063$ to $+0.162$
 on the canonical backend, against the $+0.099$ the original's own reported
 figures imply.
@@ -97,10 +98,13 @@ the margin is usually credited to is not the part that produces it.
     methods, and that three implementations of ``bidirectional entailment
     clustering'' agree on cluster count for only 60--73\,\% of records.
   \item \textbf{A $2\times2$ separating instruction wording from worked-example
-    count}, which the original's two conditions mix together. No corner resolves,
-    so the design shows that the two factors interact rather than adding, and
-    that the demonstrations are the variable that matters, rather than isolating a
-    main effect.
+    count}, which the original's two conditions mix together. The two factors
+    interact on answer length rather than adding: with no worked examples,
+    changing the instruction moves mean answer length by a factor of 3.7; with
+    five examples, the same change moves it by 0.2 characters. The worked
+    examples, not the instruction, are what governs length. No corner resolves a
+    semantic-minus-surface margin, so the factorial shows that contrast staying
+    small across the whole range of answer lengths rather than locating it.
   \item \textbf{Three correctness rules applied to identical answers}, two of
     them independent LLM judges, and the finding that the ranking of methods
     depends on which is used.

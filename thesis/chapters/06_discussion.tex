@@ -55,9 +55,11 @@ once the between-unit component is carried, seven of those resolutions
 disappear and the surviving majority points the other way.
 
 There is a limit on the other side too. With only nine independent units, the
-smallest effect this design could reliably detect is about 0.028 AUROC, against
-an average effect size of 0.023. An effect much smaller than 0.028 would
-therefore not show up dependably. Some of the intervals actually computed are
+smallest effect this design could reliably detect is about 0.028 AUROC. The
+margins actually observed sit below that: 0.023 as a mean absolute margin over
+all 24 slices, and 0.008 over the canonical eight, which are the slices this
+null is claimed on. An effect much smaller than 0.028 would therefore not show
+up dependably. Some of the intervals actually computed are
 tighter than that: across the canonical eight they range from about 0.016 wide
 in the short-phrase conditions to about 0.10 wide in the sentence-length ones.
 So the bound worth defending is roughly 0.01 AUROC where the data are tightest
