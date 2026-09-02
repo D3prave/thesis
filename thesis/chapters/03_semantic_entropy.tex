@@ -58,10 +58,12 @@ $M$ & number of sampled answers drawn from the model per prompt \\
 $y_i$ & the $i$-th sampled answer, $i \in \{1,\ldots,M\}$ \\
 $Y(x)$ & the multiset of all $M$ sampled answers for prompt $x$ \\
 $\ell_i$ & length-normalized sequence log-likelihood of $y_i$ \\
-$e(y_i, y_j)$ & NLI entailment decision: 1 if the entailment model labels
-                        the pair $y_i \to y_j$ as \emph{entailment},
-                        0 if it labels it \emph{neutral} or
-                        \emph{contradiction} \\
+$e(y_i, y_j \mid x)$ & NLI entailment decision \emph{in the context of
+                        prompt $x$}: 1 if the entailment model labels the pair
+                        $y_i \to y_j$ as \emph{entailment}, 0 if it labels it
+                        \emph{neutral} or \emph{contradiction}. In practice $x$
+                        enters by prefixing the question to each answer before
+                        the pair is passed to the model \\
 $\sim_{\mathrm{sem}}$ & semantic equivalence relation used by the
                         clustering step (see Section~\ref{sec:clustering}) \\
 $C(x)$ & the set of clusters $\{c_1,\ldots,c_K\}$ induced on $Y(x)$ \\
@@ -129,11 +131,36 @@ and the regenerated answers are grouped by meaning.
 \label{sec:sampling-setup}
 
 For each prompt the model is sampled $M$ times under one decoding
-configuration, giving $Y(x) = \{y_1,\ldots,y_M\}$. Two parameters control the
-randomness. \emph{Temperature} $T$ divides the token logits before the softmax.
-Low $T$ gives little variety, high $T$ gives more. \emph{Nucleus sampling}
-(top-$p$) keeps only the smallest set of tokens whose probability adds up to at
-least $p$.
+configuration, giving $Y(x) = \{y_1,\ldots,y_M\}$. Three parameters control the
+randomness, and all three act on one step at a time: the choice of the next
+token, given everything generated so far.
+
+At that step the model produces one real number, a \emph{logit} $z_v$, for every
+token $v$ in its vocabulary $V$. \emph{Temperature} $T > 0$ divides those logits
+before the softmax turns them into a distribution:
+\[
+  P_T(v) \;=\; \frac{\exp(z_v / T)}{\sum_{w \in V} \exp(z_w / T)} .
+\]
+Setting $T = 1$ leaves the model's own distribution unchanged. Small $T$ spreads
+the logits apart, so the highest-scoring token takes almost all the mass and
+repeated samples come out nearly identical; as $T \to 0$ this approaches always
+picking the single most likely token. Large $T$ pulls the logits together toward
+a uniform choice, so samples vary more.
+
+The other two parameters restrict which tokens can be drawn at all.
+\emph{Nucleus sampling} (top-$p$) sorts the vocabulary by $P_T$ in decreasing
+order and keeps the shortest prefix whose probability reaches $p$,
+\[
+  V_p \;=\; \text{the smallest } S \subseteq V \text{ in that order with}
+  \sum_{v \in S} P_T(v) \;\ge\; p ,
+\]
+while \emph{top-$k$} keeps the $k$ tokens with the highest $P_T$ instead. When
+both are set, the kept set is the intersection. Sampling then draws from $P_T$
+renormalized over that set, so tokens outside it have probability zero. The
+effect is to cut off the long tail of individually unlikely tokens, which
+together can still carry enough mass to derail a generation, without fixing how
+many tokens survive in advance: a confident step keeps few, an uncertain step
+keeps many.
 
 Because the estimators read nothing but these samples, the temperature decides
 how much signal there is to measure at all.
@@ -165,8 +192,11 @@ hold, they are the same semantic answer:
 \[
   y_i \sim_{\mathrm{sem}} y_j
   \quad\Longleftrightarrow\quad
-  e(y_i,y_j)=1 \ \text{and}\ e(y_j,y_i)=1.
+  e(y_i, y_j \mid x) = 1 \ \text{and}\ e(y_j, y_i \mid x) = 1 ,
 \]
+where $e(y_i, y_j \mid x) = 1$ reads: $y_i$ entails $y_j$ when both are judged
+in the context of the prompt $x$ they answer.
+
 Farquhar et al.~\cite{semantic_entropy_nature_2024} define equivalence
 \emph{in the context of the question}, and give the reason: ``Paris'' does not
 entail ``The capital of France is Paris'' on its own, but in the context of the
@@ -186,7 +216,7 @@ entailment model reads is a pair of question-prefixed strings.
 The rule approximates equivalence rather than defining it, because judgments
 from a small cross-encoder can be noisy. It may split answers that differ only
 in harmless detail, and merge answers that hide real differences. Four backends
-compute $e(\cdot,\cdot)$:
+compute $e(\cdot,\cdot \mid x)$:
 
 \begin{itemize}
   \item \texttt{microsoft/deberta-v2-xlarge-mnli}, the model the released code
@@ -289,6 +319,51 @@ A low score means the samples mostly agree on one meaning; a high score means
 they spread across several. The maximum is $\log K \le \log M$. The experiments
 use $M=10$, so at most $\ln 10 \approx 2.30$; the worked example below uses
 $M=5$, so at most $\ln 5 \approx 1.61$.
+
+\paragraph{Why entropy and not another impurity measure.}
+\label{sec:why-entropy}
+Shannon entropy is not the only function that measures how spread out the
+cluster shares are. The other standard choice is the Gini impurity
+$G = 1 - \sum_k \hat{p}_k^2$, which rises and falls with the same kind of
+spread. Three things decide the question here.
+
+First, Shannon entropy is what Farquhar et
+al.~\cite{semantic_entropy_nature_2024} define, and this thesis measures their
+method as published, so changing the function would break the comparison this
+work exists to make. Second, entropy is additive: the entropy of two
+independent draws is the sum of their entropies. That is what lets the score be
+read as a quantity in nats, on a scale where a given value means the same thing
+from one record to the next. Gini impurity is not additive, so it is an index
+rather than a measured amount.
+
+Third, and most usefully, the choice can be checked rather than argued. The
+score depends only on the cluster-size vector, so with $M$ samples the set of
+inputs it can ever receive is exactly the set of integer partitions of $M$. At
+$M=10$ there are $42$ of them, which is small enough to enumerate completely,
+so the two functions can be compared over every configuration a record can
+take rather than over a sample of them. Of the $840$ pairs that both functions
+order strictly, $812$, or $96.7\,\%$, are ordered the same way. At the $M=5$ of
+the worked example the two agree on all $21$ pairs.
+
+The $28$ disagreements are not scattered. In all $28$, the configuration that
+entropy calls more uncertain is the one with the larger dominant cluster, and
+in $27$ of the $28$ it also has more clusters. The reason is that Gini impurity
+is governed by the share of the single biggest group, while entropy also counts
+how many separate meanings turned up at all. Comparing $(5,5)$ with $(7,1,1,1)$
+makes the difference concrete: entropy calls the second more uncertain ($0.94$
+against $0.69$ nats) because four distinct meanings appeared, while Gini calls
+the first more uncertain ($0.50$ against $0.48$) because no meaning holds more
+than half the samples. For a signal that is meant to fire when a model produces
+several incompatible answers, entropy's reading is the one that matches the
+construct.
+
+This does not make the choice free. AUROC reads only the ranking, so swapping
+the function could move a reported number, but only through those $28$
+configurations. How often they actually occur together is not something the
+published measurement package can answer, because it records per-slice scores
+rather than per-record cluster vectors, so the size of that effect is not
+quantified here. The enumeration is reproduced by
+\texttt{scripts/impurity\_choice\_ranking.py}.
 
 \paragraph{The estimator family.}\label{sec:estimator-family}
 The grid reports this count-based estimator, the probability-weighted variant
