@@ -29,14 +29,12 @@ This follows the semantic uncertainty framing of Kuhn et
 al.~\cite{kuhn_semantic_uncertainty_2023}.
 Figure~\ref{fig:intro-schematic} shows the idea on a small example.
 
-One point is worth making early, because it is easy to misread. Semantic
+Semantic
 entropy is not a training objective. It is not added to a loss function, it
 does not fine-tune anything, and it never changes the model's weights. The
 generator is an ordinary trained model used exactly as it comes. Everything
 here happens after the model has answered. Ask the same question a few times,
-look at the answers, turn them into a risk score. Two of the extra estimators
-in Chapter~\ref{ch:semantic_entropy} also read the model's internal state, but
-they only read it.
+look at the answers, turn them into a risk score.
 
 \begin{figure*}[!ht]
 \centering
@@ -47,15 +45,14 @@ they only read it.
   capital\ldots'' count as different answers. The right path groups the samples
   by \emph{meaning} instead, using a Natural Language Inference (NLI) model
   that is asked whether each pair of answers implies the other. Grouped that
-  way, the model has mostly settled on one answer. The same example is worked
-  through with numbers in Chapter~\ref{ch:semantic_entropy}.}
+  way, the model has mostly settled on one answer.
 \label{fig:intro-schematic}
 \end{figure*}
 
 \section{Research questions}
 \label{sec:research-questions}
 
-This thesis is first a reproduction. The method, the evaluation protocol, the
+The method, the evaluation protocol, the
 datasets and the question selection all come from Farquhar et
 al.~\cite{semantic_entropy_nature_2024} and their released
 code~\cite{kossen_semantic_uncertainty_code_2024}. Where the paper and the code
@@ -63,7 +60,7 @@ disagree, the code is followed and the disagreement is recorded. The
 reproduction serves three questions.
 
 \paragraph{RQ1. Does semantic entropy detect confabulations better than the
-baselines the original paper uses?} This is the replication question. The
+baselines the original paper uses?} The
 target is \emph{confabulation}, defined in Chapter~\ref{ch:background}. It
 means an answer whose meaning changes across samples drawn from the same
 prompt. Errors the model repeats every time are out of scope by
@@ -82,14 +79,12 @@ isolates a single step. So that design cannot say which part earns the gain,
 even though it is usually read as crediting one part in particular, the
 grouping of answers by meaning.
 
-Breaking the method into steps can say. Semantic entropy differs from the
-crudest string baseline in four steps. Count repeated strings instead of
+Breaking the method into steps can say. Semantic entropy differs from the string baseline in four steps. Count repeated strings instead of
 reading likelihoods. Normalize those strings before counting. Group the answers
 by meaning instead of by exact match. Weight the resulting groups by
 likelihood. Comparing each step against the one below it gives the value of
 that step on its own, because neighbouring comparisons then differ in
-essentially one way. Section~\ref{sec:ladder} notes the one place where that
-is approximate rather than exact. The third step is the one the method is named after. Its
+essentially one way. The third step is the one the method is named after. Its
 comparator is \emph{surface entropy}, the entropy over distinct normalized
 answer strings. It keeps the sampling, the counting and the entropy, and drops
 only the judgment of meaning. It costs no model call.
