@@ -25,7 +25,8 @@ original evaluates. On sentence-length answers it reaches AUROC 0.758, against
 and the advantage over that last baseline, which is the comparison the original
 leads with, reproduces.
 
-The second question is the thesis's contribution. Every baseline the original
+Attributing that advantage to a single step is the thesis's contribution.
+Every baseline the original
 study uses differs from semantic entropy in more than one respect at once, so
 that design cannot attribute the margin to any one component, although it is
 routinely read as crediting one in particular. Breaking the method into four steps,
@@ -46,8 +47,7 @@ And on paragraph-length output no two samples are ever identical, so the
 string-based scores are constant and clustering is not an improvement but a
 precondition.
 
-To the third question the answer is that measurement choices move the result by
-more than the choice of method does. On one fixed set of generations the
+Measurement choices move the result by more than the choice of method does. On one fixed set of generations the
 entailment model spans 0.751 to 0.823, which is three times the margin between
 the methods. The sampling temperature reorders the families of detector, and
 the usual setting is the most favorable point in the range. And the standard
