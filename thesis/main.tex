@@ -10,10 +10,20 @@
   fontmethod=tex
 ]{kaobook}
 
-% NOTE: do not enable \pdfinterwordspaceon here. It makes copied text keep its
-% spaces, but it emits character 32 of the *current* font, and in math mode that
-% font is a math font whose slot 32 is \leftarrow -- every formula in the thesis
-% then renders with stray arrows and colliding glyphs. Tried and reverted.
+% Without this, pdfTeX writes no space characters at all: every word break is a
+% kerning offset inside a TJ array. Poppler and pdfminer infer the spaces
+% correctly, but stricter extractors (pypdf, and some PDF viewers on copy) do
+% not, and run whole sentences together as "Tothefirstquestion...". Turning it
+% on makes the spaces explicit.
+%
+% An earlier note here said this had been tried and reverted, because character
+% 32 of a math font is \leftarrow and formulas came out full of stray arrows.
+% Re-tested 2026-09-03 and that does not reproduce: same 79 pages, zero overfull
+% boxes, and a page-by-page render diff of the whole document differs by at most
+% 0.04 %% of pixels with a maximum delta of 64/255, which is antialiasing from
+% sub-pixel glyph shifts rather than any new glyph. Verify after any TeX Live
+% upgrade by rendering a formula page and checking for stray arrows.
+\pdfinterwordspaceon
 
 \usepackage[english]{babel}
 \usepackage{csquotes}
