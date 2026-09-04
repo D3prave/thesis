@@ -3,13 +3,13 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Sentence-length answers (\texttt{chat\_0shot}), Qwen judge, $T=1.0$. AUROC against answer incorrectness, averaged over the nine (dataset, model) units. Intervals resample those units. Each estimator is shown on the backend it was collected under: the entropy estimators on the canonical \texttt{deberta-v2-xlarge-mnli}, P(True) on the same, and both probes on \texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.}
+\caption{Sentence-length answers (\texttt{chat\_0shot}), Qwen judge, $T=1.0$. AUROC against answer incorrectness, averaged over nine dataset--model combinations. These combinations are the statistical units resampled for the intervals. Methods that need entailment clusters use the released-code default \texttt{deberta-v2-xlarge-mnli}; both probes use \texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.}
 \label{tab:sentence-length}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccr@{}}
 \toprule
-Method & AUROC & 95\,\% CI & Units \\
+Method & AUROC & 95\,\% CI & Statistical units \\
 \midrule
 Semantic entropy, likelihood-weighted & 0.758 & [0.714, 0.801] & 9 \\
 Discrete semantic entropy & 0.757 & [0.711, 0.800] & 9 \\

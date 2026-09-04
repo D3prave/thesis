@@ -8,38 +8,33 @@ Chapter~\ref{ch:background} makes it precise. The problem is not only that some
 answers are wrong. A useful system should also say \emph{when} its answer is
 unreliable, so that a person or a later check can decide whether to trust it.
 
-The risk is real. Under adversarial prompting, hallucination rates in clinical
-decision support have been measured as high as
-50--82\,\%~\cite{omar_adversarial_hallucination_clinical_2025}. That is an
-upper bound rather than a typical rate. But factuality failures are common
-enough that checking them automatically is still
-hard~\cite{augenstein_factuality_challenges_2024}. The reason matters more here
-than the rate. Language has many ways to say the same thing. Two samples can
-use different words for one claim, and two similar-looking answers can
-contradict each other. Any method that judges reliability by comparing answer
-strings has to separate differences in wording from differences in meaning.
+Studies of adversarial prompts in clinical decision support illustrate the
+risk~\cite{omar_adversarial_hallucination_clinical_2025}. Checking factual
+claims automatically remains
+difficult~\cite{augenstein_factuality_challenges_2024}. Language has many ways to
+say the same thing. Two samples can use different words for one claim, and two
+similar-looking answers can contradict each other. Any method that judges
+reliability by comparing answer strings has to separate differences in wording
+from differences in meaning.
 
 This thesis builds on Farquhar et al.~\cite{semantic_entropy_nature_2024}, who
-introduced \emph{semantic entropy} as a warning signal that needs no training.
+studied \emph{semantic entropy} as a warning signal that needs no training.
 The idea is to measure how much the \emph{meanings} of repeated samples vary
 rather than how much the strings vary. If repeated samples mostly say the same
 thing, the model may be unsure only about wording. If they split across
 different meanings, it is unsure about the content, and the answer is riskier.
-This follows the semantic uncertainty framing of Kuhn et
-al.~\cite{kuhn_semantic_uncertainty_2023}.
+Kuhn et al.\ call this idea semantic
+uncertainty~\cite{kuhn_semantic_uncertainty_2023}.
 Figure~\ref{fig:intro-schematic} shows the idea on a small example.
 
-Semantic
-entropy is not a training objective. It is not added to a loss function, it
-does not fine-tune anything, and it never changes the model's weights. The
-generator is an ordinary trained model used exactly as it comes. Everything
-here happens after the model has answered. Ask the same question a few times,
-look at the answers, turn them into a risk score.
+Semantic entropy does not train or alter the language model. It is calculated
+after the model has answered: ask the same question several times, compare the
+answers, and turn their disagreement into a risk score.
 
 \begin{figure*}[!ht]
 \centering
 \includegraphics[width=\linewidth]{method_schematic.png}
-\caption{The semantic entropy pipeline on a small example. The model is
+\caption{The semantic entropy process on a small example. The model is
   sampled several times for one question. Counting distinct \emph{wordings}
   (left) makes it look very unsure, because ``Canberra'' and ``Canberra is the
   capital\ldots'' count as different answers. The right path groups the samples
@@ -52,133 +47,100 @@ look at the answers, turn them into a risk score.
 \section{Research questions}
 \label{sec:research-questions}
 
-The method, the evaluation protocol, the
-datasets and the question selection all come from Farquhar et
-al.~\cite{semantic_entropy_nature_2024} and their released
-code~\cite{kossen_semantic_uncertainty_code_2024}. Where the paper and the code
-disagree, the code is followed and the disagreement is recorded. The
-reproduction serves three questions.
+The method, evaluation procedure, datasets, and question selection follow
+Farquhar et al.~\cite{semantic_entropy_nature_2024} and their released
+code~\cite{kossen_semantic_uncertainty_code_2024}. Where the paper and code
+disagree, this thesis follows the code and records the difference. The
+reproduction answers three questions.
 
-\paragraph{RQ1. Does semantic entropy detect confabulations better than the
-baselines the original paper uses?} The
-target is \emph{confabulation}, defined in Chapter~\ref{ch:background}. It
-means an answer whose meaning changes across samples drawn from the same
-prompt. Errors the model repeats every time are out of scope by
-construction~\cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}.
-The comparators are the paper's own. They are entropy over sequence
-log-likelihoods, the self-evaluation baseline P(True), and a regression from
-the model's hidden state to correctness. Semantic entropy probes from Kossen et
-al.~\cite{kossen_semantic_entropy_probes_2024} are added to those.
+The first question is whether semantic entropy detects confabulations better
+than the comparison methods in the original paper. Here, a
+\emph{confabulation} is a wrong answer whose meaning changes across repeated
+samples from the same prompt. A wrong answer that the model repeats every time
+creates no disagreement between samples, so semantic entropy cannot detect
+it~\cite{kalai_why_language_models_hallucinate_2025,simhi_choke_2025}. The
+comparison methods are entropy over sequence log-likelihoods, the
+self-evaluation method P(True), and a regression from the model's hidden state
+to correctness. Semantic entropy probes from Kossen et
+al.~\cite{kossen_semantic_entropy_probes_2024} are also included.
 
-\paragraph{RQ2. Which part of the method earns the advantage?} Every baseline
-in the original evaluation differs from semantic entropy in more than one way
-at once. Entropy over log-likelihoods reads a different quantity \emph{and}
-does no grouping. P(True) asks the model about its own answer instead of
-sampling. The probes read hidden states rather than outputs. None of them
-isolates a single step. So that design cannot say which part earns the gain,
-even though it is usually read as crediting one part in particular, the
-grouping of answers by meaning.
+The second question is which part of semantic entropy explains any improvement.
+Each original comparison method differs from semantic entropy in several ways.
+Entropy over log-likelihoods reads a different quantity and does not group
+answers. P(True) asks the model to judge its own answer using sampled
+alternatives as context. The probes read hidden states rather than answers.
+These comparisons can show whether the complete method performs better, but they
+cannot show which step is responsible.
 
-Breaking the method into steps can say. Semantic entropy differs from the string baseline in four steps. Count repeated strings instead of
-reading likelihoods. Normalize those strings before counting. Group the answers
-by meaning instead of by exact match. Weight the resulting groups by
-likelihood. Comparing each step against the one below it gives the value of
-that step on its own, because neighbouring comparisons then differ in
-essentially one way. The third step is the one the method is named after. Its
-comparator is \emph{surface entropy}, the entropy over distinct normalized
-answer strings. It keeps the sampling, the counting and the entropy, and drops
-only the judgment of meaning. It costs no model call.
+This thesis therefore compares the estimators one step at a time. It starts
+with entropy over sequence log-likelihoods, then counts repeated answer strings,
+normalizes the strings before counting them, groups answers by meaning, and
+weights the meaning groups by likelihood. Each comparison changes one main
+step. The effect of grouping is tested by comparing discrete semantic entropy
+with \emph{surface entropy}, which counts distinct normalized strings but does not
+judge whether differently worded answers mean the same thing. Surface entropy
+requires no extra model call.
 
-\paragraph{RQ3. How much do measurement choices move the answer?} Three choices
-that the literature treats as configuration are varied here on otherwise
-identical data. They are the model that decides whether two answers mean the
-same thing, the rule that decides whether an answer is correct, and the
-temperature the answers are sampled at.
+The third question is how strongly the result depends on three evaluation
+choices: the model that decides whether two answers mean the same thing, the
+rule that decides whether an answer is correct, and the temperature used to
+sample answers. The first two choices can be compared on the same stored
+answers. Changing the temperature requires generating new samples.
 
 \section{What the study finds}
 \label{sec:what-the-study-finds}
 
-\textbf{To RQ1, yes.} On sentence-length answers, semantic entropy leads every
-baseline the paper uses. Under the entailment model the released code loads and
-an LLM judge for correctness, likelihood-weighted semantic entropy reaches
-AUROC 0.758. The comparators reach 0.694 for entropy over log-likelihoods and
-0.714 for P(True). The two hidden-state probes were collected on a different
-backend, \texttt{nli-deberta-v3-large}, and reach 0.718 for the
-correctness-trained probe and 0.672 for the semantic entropy probe. That ordering holds in every slice of the data where
-each comparator was measured.
+On sentence-length answers, semantic entropy performs better than every
+comparison method from the original paper. This reproduces the paper's main
+comparison. The hidden-state probes were evaluated with a different entailment
+model, so their results do not provide a comparison under identical settings.
 
-\textbf{To RQ2, normalization rather than grouping by meaning.} Of the four
-steps, one is clearly worth something. Normalizing the answer strings before
-counting them is worth $+0.040$ AUROC. Normalizing means lowercasing, dropping
-punctuation and articles, and pulling out the number on the arithmetic task. It
-is positive in all 24 slices of the grid and resolved in all 24. It is also the
-only step whose margin is larger than the variation between run seeds. Counting
-raw strings instead of reading likelihoods is positive in 4 slices of 24.
-Weighting the meaning-groups by likelihood adds $+0.002$.
+The step-by-step comparison points to answer normalization rather than grouping
+by meaning. Normalization means lowercasing, removing punctuation and articles,
+and extracting the number from an answer to an arithmetic problem. It is the
+only step that improves the result consistently across the main short-answer
+comparisons and by more than the variation between random seeds.
 
-The step the method is named after adds nothing measurable. On the entailment
-model the released code actually loads, grouping answers by meaning does not
-beat counting normalized strings. The evidence is eight slices, being four
-prompting conditions crossed with two independent LLM judges. A paired
-bootstrap that resamples both the nine independent (dataset, model) units and
-the records inside them resolves none of them. The margins run from $-0.002$ to
-$+0.022$ AUROC and every interval covers zero. This is a tested null, not an
-underpowered one. Pairing the two methods on the same records was the analysis
-that could have found a small consistent effect, and it does not.
+With the entailment model loaded by the released code, grouping by meaning gives
+no clear improvement over counting normalized strings. This does not show
+that the true effect is exactly zero: small effects may go undetected. Even so,
+surface entropy, which never groups by meaning, performs
+better than every original comparison method wherever both were tested.
 
-The same point can be made without any test. The clustering-free comparator
-passes every comparison the original study runs. It beats entropy over
-log-likelihoods in 24 slices of 24, P(True) in 6 of 6, and both hidden-state
-probes in 6 of 6. No slice anywhere goes the other way. So the evidence the
-original assembles is also produced by a method that never judges meaning.
+A larger entailment model does show a clear benefit from grouping
+sentence-length answers by meaning. The result therefore depends on which
+model makes the grouping decisions.
 
-Two conditions change the verdict, and both are stated here so that no later
-chapter appears to contradict this one. Substituting a 72-billion-parameter
-model as the entailment judge gives a resolved margin of $+0.087$ on
-sentence-length answers. And on paragraph-length output no two samples are ever
-identical, so every sample forms its own group and the string scores sit at
-chance. There, grouping by meaning is not an improvement but a precondition for
-measuring anything. The size of the design bounds the null from the other side
-too. With nine units the minimum detectable effect is about 0.028 AUROC, and
-the intervals computed here reach roughly 0.01 only in the tightest slices.
-
-\textbf{To RQ3, more than the choice of method does.} Holding the generations
-fixed and changing only the entailment model moves discrete semantic entropy
-from 0.751 to 0.823. That spread is larger than the method's whole margin over
-the clustering-free comparator. Sampling temperature reorders the methods.
-Diversity-based detectors fall from 0.757 at $T=1.0$ to 0.568 at $T=0.1$, while
-the likelihood-based one is nearly flat. The usual setting of $T=1.0$ is the
-most favorable point in the range for the sampling-based approach. The
-correctness rule flips the sign of the headline contrast. In one condition
-semantic entropy leads surface entropy by $+0.020$ under LLM grading and trails
-it by $0.051$ under the token-overlap rule the released code uses by default.
-This thesis has no human correctness labels to settle which rule is right.
-Chapters~\ref{ch:discussion} and~\ref{ch:conclusion} treat that as a limit on
-every number here.
+Evaluation choices change the result more than the choice between semantic and
+surface entropy. Changing only the entailment model on the same generated
+answers changes the score substantially. Sampling temperature changes the
+ranking of the methods, and the correctness rule changes which method performs
+better. The study has no human correctness labels with which to choose between
+the correctness rules. This limits every reported result.
 
 \section{The experimental grid at a glance}
 \label{sec:grid-at-a-glance}
 
-Table~\ref{tab:grid-at-a-glance} lists what was varied. The design is not a
-full crossing. The two prompting conditions added here exist on one entailment
-backend and one temperature. The temperature sweep covers the entropy
-estimators only, and only the original's two prompting conditions on two of the
-three entailment backends. The probes and P(True) were collected on different backends,
-so those two are never compared directly. Each table in
-Chapter~\ref{ch:results} states its own coverage.
+Table~\ref{tab:grid-at-a-glance} lists what was varied in the short-answer study.
+Not every factor was tested in every combination. The two new prompting
+conditions were tested with one entailment model and one temperature. The
+temperature experiment includes only the entropy-based methods and the original two prompting conditions, using
+two of the three entailment models. The probes and P(True) do not share the same
+evaluation settings, so they are not compared directly. Each table in
+Chapter~\ref{ch:results} states which settings it covers.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{The factors varied in the study. Clustering is applied afterwards to
-  one stored set of generations, so the entailment backend is the only
-  difference between backend conditions, and all three correctness rules score
-  identical answers. Together the arms give 10{,}350 recorded measurements.}
+\caption{The factors varied in the short-answer study. For each generation
+  condition, clustering is applied to stored answers. Comparisons between
+  entailment models therefore change only the model used for grouping, and all three
+  correctness rules score the same answers. Not every combination was tested.}
 \label{tab:grid-at-a-glance}
 \begingroup
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}c@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}c@{}}
 \toprule
 Factor & Levels & Count \\
 \midrule
@@ -191,50 +153,49 @@ Generator &
   Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct, Llama-3.1-70B-Instruct & 3 \\
 Run seed &
   42, 43, 44, varying sampling only & 3 \\
-Entailment backend &
-  \texttt{deberta-v2-xlarge-mnli} (canonical), \texttt{nli-deberta-v3-large},
-  \texttt{nli-deberta-v3-base} (long-form only),
-  \texttt{Qwen2.5-72B-Instruct} & 4 \\
+Entailment model &
+  \texttt{deberta-v2-xlarge-mnli} (released-code default),
+  \texttt{nli-deberta-v3-large}, \texttt{Qwen2.5-72B-Instruct} & 3 \\
 Correctness rule &
   SQuAD token-F1, and LLM judges Qwen2.5-72B-Instruct and
   Llama-3.1-70B-Instruct & 3 \\
 Sampling temperature &
   0.1, 0.3, 0.5, 0.7, 1.0 & 5 \\
-Long-form arm &
-  FactScore-style biographies, 500 records per cell, scored at paragraph and
-  at claim level & 9 cells \\
 \bottomrule
 \end{tabular}
 \endgroup
 \end{table}
 
-One property of the grid matters for every comparison in
-Chapter~\ref{ch:results}. The short-answer grid holds nine independent units,
-not twenty-seven. The three run seeds sit inside each (dataset, generator) pair
-and vary sampling alone. Seeds account for about 15\,\% of the variance of the
-semantic-minus-surface contrast, and the differences between units for the
-rest. A test that treats the twenty-seven cells as independent overstates the
-number of resolved contrasts by roughly a third. Every paired test here resamples units
-as well as records.
+The short-answer study treats its nine dataset--generator pairs as independent
+statistical units. The three random seeds are repeated runs within each pair,
+not separate independent observations. The main paired bootstrap accounts for
+both these pairs and the records within them. The limited number of independent
+pairs restricts how precisely small differences can be estimated.
+
+A separate biography experiment is exploratory and is reported in
+Appendix~\ref{app:secondary-results}. Its incomplete provenance and different
+clustering rule limit the conclusions, so it is not part of the main evidence.
 
 \section{Contributions}
 \label{sec:contributions}
 
-The method itself is Farquhar et al.'s. What this thesis adds is a
-reimplementation faithful to their released
-code~\cite{kossen_semantic_uncertainty_code_2024}, together with comparisons
-their design does not make. The main one is a four-step decomposition in which
-neighbouring steps differ in essentially one way, so the value of each step is
-measured on its own. It supplies the comparator the original evaluation leaves
-out, and it locates the reliable gain in answer normalization rather than in
-grouping by meaning.
+The thesis does not introduce semantic entropy. It makes four contributions:
 
-Several smaller additions sit beside it: the paired bootstrap that respects the
-nine independent units, the entailment model varied afterwards on identical
-generations, the $2\times2$ separating instruction wording from worked-example
-count, three correctness rules on the same answers, a five-point temperature
-sweep, and two findings about the metrics rather than the methods.
-Section~\ref{sec:conclusion-contributions} states all nine in full.
+\begin{enumerate}
+  \item A comparison of semantic entropy with the original study's baselines
+    on selected open language models.
+  \item A step-by-step comparison that separates the effect of answer
+    normalization from the effect of grouping by meaning.
+  \item Tests of how the results depend on the entailment model, correctness
+    rule, and sampling temperature.
+  \item A documented implementation and evaluation procedure that make the
+    recorded results traceable and state the limits of their precision.
+\end{enumerate}
+
+The implementation follows the released
+code~\cite{kossen_semantic_uncertainty_code_2024}, with differences documented.
+Checks of prompting choices and the AURAC evaluation metric are secondary
+analyses, not separate headline contributions.
 
 \section{Reader's guide}
 \label{sec:readers-guide}
@@ -250,20 +211,22 @@ released code performs it rather than as it is usually described.
 
 Chapter~\ref{ch:experimental_design} specifies the experiment. It covers
 datasets and question selection, the prompting conditions, the generators and
-decoding budgets, the entailment backends, the correctness rules, the metrics,
-and a register of every point where this study departs from the original.
+decoding budgets, the entailment models, the correctness rules, and the metrics.
+Appendix~\ref{app:method-details} gives the detailed implementation choices,
+execution procedure, and differences from the original study.
 
-Chapter~\ref{ch:results} reports the measurements without interpreting them.
-It gives the two answer-length regimes, a scorecard setting each claim of the
-original beside what was measured here, and then the decomposition.
+Chapter~\ref{ch:results} reports the main short-answer results. It compares the
+original methods, tests the individual steps, and examines the evaluation
+choices. Appendix~\ref{app:secondary-results} contains the complete comparison
+table, secondary analyses, and exploratory biography results.
 
-Chapter~\ref{ch:discussion} interprets them, in three arguments. Which step
-earns the advantage and what it depends on. How much of the reported margin
-belongs to the measurement setup rather than the method. What does and does not
-reproduce.
+Chapter~\ref{ch:discussion} explains which step improves the results, what that
+improvement depends on, how strongly the evaluation setup affects the reported
+scores, and which original findings reproduce.
 
 Chapter~\ref{ch:conclusion} summarizes and states the limitations. Two of those
 bear on every number here. No human labels were collected to check the
 correctness judges against. And the entailment model and the judge answer
-versions of the same question, so a method that groups by meaning is favored
-exactly when correctness is scored by meaning.
+versions of the same question, so a method that groups by meaning may be favored
+when correctness is also judged through meaning. Without human labels, this
+study cannot separate that dependence from genuine improvement.

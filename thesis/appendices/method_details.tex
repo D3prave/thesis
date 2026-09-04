@@ -1,0 +1,384 @@
+\chapter{Additional Method and Implementation Details}
+\label{app:method-details}
+
+This appendix preserves the technical details behind
+Chapters~\ref{ch:semantic_entropy} and~\ref{ch:experimental_design}. The
+long-form setup and the Gini-impurity comparison are supplementary; they are
+not part of the main evidence for the short-answer findings.
+
+\section{Exact order of random selections}
+\label{app:random-selection}
+
+The question selection follows the released
+\texttt{generate\_answers.py}~\cite{kossen_semantic_uncertainty_code_2024}.
+Three selections share one random sequence: worked examples, P(True)
+examples, and evaluation questions. Their order matters because each draw
+advances that sequence. The excerpt below shows the selection order using this
+study's values; the surrounding loader supplies the eligible indices for each
+split.
+
+\begin{quote}\footnotesize
+\begin{verbatim}
+random.seed(10)
+prompt_indices = random.sample(answerable_indices, 5)
+remaining = list(set(answerable_indices)
+                 - set(prompt_indices))
+p_true_indices = random.sample(answerable_indices, 20)
+remaining = list(set(remaining) - set(p_true_indices))
+for split in ("train", "validation"):
+    indices = random.sample(list(possible_indices),
+                            min(400, len(dataset)))
+\end{verbatim}
+\end{quote}
+
+This selects 400 questions per split, except for SVAMP's validation split,
+which contains only 300. Selection is fixed across generation seeds. Every
+model and seed therefore answers the same questions, allowing paired
+comparisons. The duplicate-removal step for TriviaQA is described in
+Section~\ref{sec:datasets}.
+
+\section{A worked example of order-dependent clustering}
+\label{app:order-dependence}
+\label{sec:order_dependence_example}
+
+The main worked example in Section~\ref{sec:worked_example} has a transitive
+entailment relation, so the released anchor scan and connected-components
+grouping return the same clusters. This constructed example shows why that
+agreement is not guaranteed.
+
+Take four sampled answers to the same question:
+
+\begin{center}
+\begin{tabular}{cl}
+\hline
+Index & Sampled answer \\
+\hline
+$a$ & \emph{Canberra} \\
+$b$ & \emph{Canberra, the capital} \\
+$c$ & \emph{The capital city} \\
+$d$ & \emph{Sydney} \\
+\hline
+\end{tabular}
+\end{center}
+
+Suppose the entailment model labels $a \leftrightarrow b$ and
+$b \leftrightarrow c$ as mutual entailment, but not
+$a \leftrightarrow c$. These are hypothetical model judgments, not a claim
+that the answers truly have this relation. An entailment model can produce
+inconsistent judgments even when the question is supplied, because the pairwise
+test does not enforce transitivity.
+
+Connected-components grouping joins $a$, $b$ and $c$ through $b$, producing
+$\{a,b,c\},\{d\}$ in every order. Algorithm~\ref{alg:clustering} instead gives:
+
+\begin{center}
+\begin{tabular}{lll}
+\hline
+Order presented & Resulting clusters & Entropy \\
+\hline
+$a,b,c,d$ & $\{a,b\},\{c\},\{d\}$ & $1.04$ nats \\
+$b,a,c,d$ & $\{a,b,c\},\{d\}$ & $0.56$ nats \\
+$a,c,b,d$ & $\{a\},\{b,c\},\{d\}$ & $1.04$ nats \\
+\hline
+\end{tabular}
+\end{center}
+
+The same four answers and the same entailment judgments produce two different
+entropy values. The third row shows reassignment: $a$ first assigns $b$ to its
+cluster. The scan then reaches the unassigned answer $c$, which becomes an
+anchor and assigns $b$ again. Answer $a$ is left alone, even though it matches
+$b$.
+
+The reported score therefore depends on answer order as well as entailment
+judgments. A normal-looking score does not reveal whether another order would
+have produced a different value. This example establishes the possibility, not
+its frequency or size in the experiments. The entailment-model comparison in
+Section~\ref{sec:clustering-sensitivity} changes a different factor and does
+not bound the effect of sample order.
+
+\section{Optional comparison with Gini impurity}
+\label{app:gini-analysis}
+\label{sec:why-entropy}
+
+Shannon entropy is used in the main study because it is the quantity defined
+by Farquhar et al.~\cite{semantic_entropy_nature_2024}. Gini impurity,
+\[
+  G = 1 - \sum_k \hat{p}_k^2 ,
+\]
+is another way to summarize the spread of cluster shares. The following
+mathematical check is not an experiment on hallucination detection and is not
+used as a thesis contribution.
+
+For $M$ sampled answers, every possible cluster-size vector is an integer
+partition of $M$. At $M=10$ there are 42 such vectors. Among the 840 pairs that
+both measures rank without a tie, 812 (96.7\,\%) have the same ordering and 28
+have opposite orderings. A further 21 pairs are tied under exactly one
+measure. At $M=5$, both measures agree on all 21 pairs, with no one-sided ties.
+The deterministic script \texttt{scripts/impurity\_choice\_ranking.py}
+reproduces these counts using only the Python standard library.
+
+In all 28 reversed pairs, the vector that entropy ranks higher has the larger
+dominant cluster; in 27 it also has more clusters. For example, compare
+$(5,5)$ with $(7,1,1,1)$. Entropy is higher for the second vector, about
+$0.94$ rather than $0.69$ nats. Gini impurity is higher for the first, $0.50$
+rather than $0.48$. The two measures therefore place different weights on
+these cluster patterns. Shannon entropy also has the additivity property for
+independent variables; Gini impurity does not have the same additive form.
+
+Changing the score could alter AUROC through either reversed rankings or
+changed ties. This enumeration does not show how often those patterns occur
+in the recorded answers. The exported measurement package does not contain
+the per-record cluster-size vectors needed to test that question, so no
+detection-performance claim is made from this comparison.
+
+\section{Exploratory long-form design and provenance}
+\label{app:longform-details}
+
+The long-form experiment is a FactScore-style biography
+task~\cite{min_factscore_2023}. The prompt is
+\emph{Tell me a bio of \{entity\}.} The reference is the subject's pinned
+English Wikipedia lead section, fetched from the MediaWiki summary endpoint.
+Three generators and three seeds give nine cells, each containing 500 records.
+Collection checks require the median sampled-answer length to be at least 300
+characters. Uncertainty is computed over the whole paragraph;
+Qwen2.5-72B-Instruct judges correctness claim by claim.
+
+\paragraph{Incomplete provenance.}
+The subject list stored in the repository contains 308 entries, fewer than the
+500 records per cell in the measurement package. The prepared data files are
+also absent. The measurements are recorded, but the exact subjects used to
+produce them cannot be recovered from the repository. This limits
+reproducibility and is a reason to treat the experiment as exploratory.
+
+Only the Qwen correctness grader is available. When Qwen is also used for
+entailment, the same model performs both roles. Unlike the short-answer
+comparison, there is no second grader with which to check that overlap.
+
+\paragraph{Different paragraph clustering rule.}
+Farquhar et al.~\cite{semantic_entropy_nature_2024} use a relaxed,
+\emph{non-defeating} bidirectional entailment rule for paragraphs: at least
+one direction must indicate entailment and neither may indicate
+contradiction. Their Methods section and Supplementary Figure~1 describe this
+rule for the DeBERTa paragraph result.
+
+The released \texttt{get\_semantic\_ids} function has a
+\texttt{strict\_entailment} flag. When enabled, both directions must return
+entailment. With the default relaxed setting, neither direction may return
+contradiction and the two directions may not both be neutral. This study
+enables the strict setting in every experiment, including biographies. It also
+clusters whole paragraphs rather than following the original claim-based
+regeneration procedure illustrated in Figure~\ref{fig:method-schematic}.
+
+The difference is a configuration choice, not just a wording difference.
+Consequently, this comparison does not reproduce the original paragraph
+result. A weak result for a cross-encoder may reflect the stricter rule rather
+than the model alone. The incomplete provenance, different method and single
+grader prevent the long-form experiment from supporting the main conclusions.
+
+\section{Complete deviation registers}
+\label{app:deviation-registers}
+
+Table~\ref{tab:code-divergence} records where the released code differs from,
+or clarifies, the published description. Table~\ref{tab:deviation-register}
+records this study's changes to the original setup. The main chapter retains
+the changes that affect interpretation; the full register is preserved here.
+
+\begin{table}[p]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Implementation details where the released code differs from, or
+  clarifies, the published description. The final column states the behavior
+  reproduced here and the exception for the most-likely-answer token budget.}
+\label{tab:code-divergence}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{7.6cm}@{}}
+\toprule
+Point & What the code does, and what is followed here \\
+\midrule
+Clustering rule & An order-dependent anchor scan with unconditional
+  reassignment, not a transitive closure over mutually entailed answers
+  (Section~\ref{sec:clustering}) \\
+\addlinespace[2pt]
+P(True) scoring & \texttt{get\_p\_true} returns the raw log-probability of the
+  token \texttt{"~A"}; the final score is $1-P(\texttt{A})$, without
+  renormalizing over the two answer options \\
+\addlinespace[2pt]
+Log-likelihood span & \texttt{HuggingfaceModel.predict} passes a stopping
+  criterion to \texttt{generate} \emph{and} trims per-token log-likelihoods
+  to the stop-truncated answer \\
+\addlinespace[2pt]
+Probe feature location & The embedding is read at
+  \texttt{hidden[n\_generated - 1]}, where \texttt{n\_generated} comes from
+  the stop sequence; no end-of-sequence token is required \\
+\addlinespace[2pt]
+Evaluation set & A seeded random sample of 400 drawn \emph{after} the few-shot
+  and P(True) draws have consumed the random stream, not a prefix of the
+  split \\
+\addlinespace[2pt]
+F1 threshold & $\mathrm{F1} \ge 50.0$, inclusive \\
+\addlinespace[2pt]
+Most-likely answer & A temperature-$0.1$ sample with
+  \texttt{do\_sample=True}, not a greedy decode \\
+\addlinespace[2pt]
+Token budgets & The paper states 50 new tokens and the code's default is also
+  50, which is what the ten samples use here; only the most-likely answer
+  departs, at 256, inherited from the probe-feature path \\
+\addlinespace[2pt]
+Correctness metric & The code supports
+  \texttt{--metric \{squad, llm, llm\_gpt-3.5, llm\_gpt-4\}}; the paper
+  reports the \texttt{squad} path for the short-phrase condition \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+\begin{table}[p]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{Where this study departs from the original. The first group was
+  forced by cost or access, the second is what the study adds, and the third
+  is a divergence in the algorithm itself.}
+\label{tab:deviation-register}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{4.0cm}@{}}
+\toprule
+Original & This study & Reason \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Forced by cost or access}}\\
+LLaMA-2 Chat at 7B, 13B and 70B; Falcon Instruct at 7B and 40B; Mistral
+  Instruct 7B &
+  three newer open models &
+  compute; the size range is comparable and Mistral 7B Instruct overlaps \\
+\addlinespace[2pt]
+GPT-4 decides which answers are correct in the sentence-length condition &
+  two open LLM judges, reported alongside token-F1 &
+  paid API access out of scope; the original validates its choice of judge
+  against human annotation, and this study cannot \\
+\addlinespace[2pt]
+GPT-3.5 as the sentence-length entailment model &
+  Qwen2.5-72B-Instruct &
+  open model available for this study \\
+\addlinespace[2pt]
+Five question sets &
+  the three shared with this study &
+  SQuAD~\cite{rajpurkar_squad_2016} withholds its own passages artificially;
+  BioASQ~\cite{tsatsaronis_bioasq_2015} differs from the two kept mainly in
+  subject matter \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Added here}}\\
+No clustering-free entropy baseline &
+  two: over raw strings and over normalized strings &
+  tests whether grouping by meaning improves the score \\
+\addlinespace[2pt]
+One entailment model &
+  four, applied post hoc to identical generations &
+  makes the choice measurable rather than assumed \\
+\addlinespace[2pt]
+One correctness rule per condition &
+  three, on identical answers &
+  the rule turns out to change the ranking \\
+\addlinespace[2pt]
+$T=1.0$ fixed &
+  five temperatures &
+  the parameter controls the signal the method reads \\
+\addlinespace[2pt]
+Two prompting conditions differing in two factors &
+  all four combinations &
+  separates instruction from demonstrations \\
+\addlinespace[2pt]
+Seed variability not reported &
+  three seeds, spread reported throughout &
+  shows variation caused by sampling \\
+\midrule
+\multicolumn{3}{@{}l}{\emph{Divergence in the algorithm}}\\
+Non-defeating bidirectional entailment for paragraphs &
+  strict bidirectional entailment everywhere &
+  the long-form comparison does not reproduce Supplementary Figure~1;
+  a weak cross-encoder result may reflect the stricter rule rather than the
+  model alone
+  (Section~\ref{sec:longform-design}) \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+\clearpage
+\section{Additional collection checks}
+\label{app:collection-checks}
+
+\paragraph{Answer length and token budgets.}
+The most-likely answer has a 256-token budget, while each of the ten entropy
+samples has a 50-token budget. Sentence-length answers average 255.2 characters
+here, compared with 95.6 in the original study. The largest cell mean, 826.3
+characters, occurs for Llama-3.1-8B. These observations describe a difference in
+the collected answers; the study does not isolate the token budget's causal
+effect on their length.
+
+\paragraph{Temperature-sweep label checks.}
+The LLM correctness labels are joined by \texttt{prompt\_id} from the main
+collection. They are bit-identical across all 108 checked cells, so all sweep
+temperatures are judged against the same temperature-$0.1$ answer. Token-F1
+labels instead use the modal sampled answer because the sweep did not save a
+separate most-likely answer. Their accuracy differs from the main run in all
+54 checked cells, by 0.015 on average in absolute terms and at most 0.262.
+These checks support the restriction in Section~\ref{sec:temperature-sweep}:
+only LLM correctness labels are used to interpret the sweep, and its
+answer-length fields are not compared across temperatures.
+
+\section{Implementation and HPC execution}
+\label{app:hpc-details}
+
+The experiments used the NHR@FAU computing center. Its GPU cluster
+\emph{Alex}, with NVIDIA A100 nodes, handled generation and GPU-heavy steps.
+Its CPU cluster \emph{Fritz} handled later cross-encoder clustering.
+
+\paragraph{Code and libraries.}
+The Python package targets Python~3.11+ and is installed with \texttt{uv}.
+Generation uses Hugging Face \texttt{transformers} so that hidden states for
+the probes can be saved in the same pass. The study's vLLM path is used for
+LLM entailment and correctness judgments, where only generated text is needed.
+The probes use scikit-learn.
+
+The processing steps read a prepared dataset, sample $M$ answers per prompt,
+group them with the chosen entailment model, compute the entropy scores,
+attach correctness labels and write one JSONL record per prompt.
+Appendix~\ref{app:schema} describes the exported measurement format.
+
+\paragraph{Resources.}
+Generation for the 7B and 8B models used one A100 GPU. The 70B model used four
+A100-80GB GPUs with its weights divided between them; the cross-encoder ran on
+CPU to leave GPU memory available. Later cross-encoder clustering ran on
+Fritz. The Qwen2.5-72B entailment model and correctness grader ran on Alex.
+GPU jobs were submitted through Slurm.
+
+\paragraph{Job metadata and checks.}
+Collection jobs require a pinned code commit, check that the repository HEAD
+matches it, and refuse to start with changes to tracked files. Their
+\texttt{job\_meta.json} records the code commit as
+\texttt{analysis\_code\_commit}, together with the Slurm job identifier, host,
+model, dataset, decoding parameters, seed and input path. Later processing
+steps can record their own revision while retaining the upstream generation
+revision. These records should not be read as a claim that every processing
+step ran at one commit.
+
+Code, configuration, result tables and figures are version-controlled. Model
+caches, raw generations and hidden states are stored separately. The missing
+long-form inputs described in Section~\ref{app:longform-details} remain a
+provenance gap; metadata checks do not recover them.
+
+\paragraph{Analysis and validation.}
+Clustering jobs check five output fields against the requested settings: the
+clustering rule, closure rule, clustering input, entailment input format and
+question-conditioning flag. A mismatch fails the job. These checks catch
+configuration errors but do not validate the entailment model's judgments.
+
+Analysis is separated from generation so saved outputs can be analyzed again.
+Most Results tables are generated from \texttt{measurements.csv}; imported
+record-level analyses and the hand-written reproduction scorecard have
+separate provenance, as stated at the start of Chapter~\ref{ch:results}.
+Rebuilding a table from the measurement package is therefore not the same as
+recomputing every value from raw answers.

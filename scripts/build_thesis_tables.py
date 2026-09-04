@@ -165,13 +165,13 @@ def t_sentence_length():
         AUDIT.append(('5.1 sentence-length', m, b, round(mu, 4)))
     return table(
         'Sentence-length answers (\\texttt{chat\\_0shot}), Qwen judge, $T=1.0$. AUROC '
-        'against answer incorrectness, averaged over the nine (dataset, model) units. '
-        'Intervals resample those units. Each estimator is shown on the backend it was '
-        'collected under: the entropy estimators on the canonical '
-        '\\texttt{deberta-v2-xlarge-mnli}, P(True) on the same, and both probes on '
+        'against answer incorrectness, averaged over nine dataset--model combinations. '
+        'These combinations are the statistical units resampled for the intervals. '
+        'Methods that need entailment clusters use the released-code default '
+        '\\texttt{deberta-v2-xlarge-mnli}; both probes use '
         '\\texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.',
         'tab:sentence-length', '@{}lccr@{}',
-        'Method & AUROC & 95\\,\\% CI & Units \\\\', rows)
+        'Method & AUROC & 95\\,\\% CI & Statistical units \\\\', rows)
 
 
 # ---------------------------------------------------------------- 5.2 short-phrase
@@ -190,11 +190,12 @@ def t_short_phrase():
                     f'{fmtpm(mu,4)} & [{fmtpm(lo,3)}, {fmtpm(hi,3)}] \\\\')
         AUDIT.append(('5.2 short-phrase', g, 'gap', round(mu, 4)))
     return table(
-        'Short-phrase answers (\\texttt{default\\_5shot}), canonical backend, $T=1.0$, '
-        'under all three correctness rules. The final column is the paired '
-        'semantic-minus-surface margin with its unit-resampled interval.',
+        'Short-phrase answers (\\texttt{default\\_5shot}), released-code entailment '
+        'model, $T=1.0$, under all three correctness rules. The final two columns give '
+        'the paired AUROC difference (discrete semantic entropy minus surface entropy) '
+        'and its interval, which resamples the nine statistical units.',
         'tab:short-phrase', '@{}lccccc@{}',
-        'Correctness rule & Discrete SE & Surface & Naive pred. & Margin & 95\\,\\% CI \\\\',
+        r'Correctness rule & Discrete SE & Surface & Naive pred. & \makecell{AUROC\\difference} & 95\,\% CI \\',
         rows)
 
 
@@ -210,18 +211,19 @@ def t_canonical_eight():
             r = r.iloc[0]
             rows.append(f'{COND[cond]} & {GRADER[g]} & {fmtpm(r.delta,4)} & '
                         f'[{fmtpm(r.hier_lo,3)}, {fmtpm(r.hier_hi,3)}] & '
-                        f'{r.hier_p:.2f} & not resolved \\\\')
+                        f'{r.hier_p:.2f} & includes zero \\\\')
             AUDIT.append(('5.3 canonical8', f'{cond}|{g}', 'delta/hier',
                           [round(float(r.delta), 4), round(float(r.hier_lo), 4),
                            round(float(r.hier_hi), 4)]))
     return table(
         'Discrete semantic entropy against surface entropy on the entailment model the '
         'released code loads, under LLM grading: four prompting conditions crossed with '
-        'two independent judges. Margins and 95\\,\\% intervals from the hierarchical '
+        'two independent judges. AUROC differences and 95\\,\\% intervals come from the '
+        'hierarchical '
         'paired bootstrap, which resamples both the nine (dataset, model) units and the '
         'records within them. Not one of the eight intervals excludes zero.',
         'tab:canonical-eight', '@{}llcccl@{}',
-        'Condition & Judge & Margin & 95\\,\\% CI (hierarchical) & $p$ & Verdict \\\\',
+        r'Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & $p$ & CI result \\',
         rows)
 
 
@@ -243,14 +245,14 @@ def t_resampling_schemes():
         AUDIT.append(('5.3 schemes', sch, 'resolved/SE/surface/width',
                       [se + sf, se, sf, round(w, 4)]))
     return table(
-        'The same 24 slices under three resampling schemes. Resampling records '
-        'alone makes 18 of 24 slices look resolved on intervals roughly three '
-        'times too narrow; carrying the between-unit component leaves 11, and '
-        'inverts the direction of the majority.',
+        'The same 24 comparisons under three resampling schemes. When only records are '
+        'resampled, 18 of 24 confidence intervals exclude zero and the intervals are '
+        'roughly three times narrower. Resampling the statistical units as well leaves '
+        '11 intervals that exclude zero and changes which method is favored most often.',
         'tab:resampling-schemes', '@{}llcccc@{}',
-        r'& & & \multicolumn{2}{c}{Direction} & \\'
+        r'& & & \multicolumn{2}{c}{Favored method} & \\'
         '\n\\cmidrule(lr){4-5}\n'
-        'Scheme & What it varies & Resolved & SE & Surface & CI width \\\\',
+        r'Scheme & What it varies & \makecell{CIs excluding\\zero} & SE & Surface & \makecell{Mean CI\\width} \\',
         rows)
 
 
@@ -272,19 +274,19 @@ def t_all_slices():
                 AUDIT.append(('5.3 all slices', f'{cond}|{b}|{g}', 'delta',
                               round(float(r.delta), 4)))
     return table(
-        'All 24 slices: discrete semantic entropy minus surface entropy, with '
+        'All 24 comparisons: discrete semantic entropy minus surface entropy, with '
         'hierarchical intervals resampling both the nine units and the records '
         'within them. The final column names the direction where the interval '
-        'excludes zero. Every slice resolved in favor of semantic entropy is a '
-        'Qwen-backend slice; every slice resolved in favor of surface entropy is '
-        'a token-F1 slice.',
+        'excludes zero. Every comparison favoring semantic entropy uses the Qwen '
+        'entailment model; every comparison favoring surface entropy uses token-F1 '
+        'grading.',
         'tab:all-slices', '@{}lllccl@{}',
-        'Condition & Backend & Grader & Margin & 95\\,\\% CI (hier.) & Resolved \\\\',
+        r'Condition & \makecell{Entailment\\model} & Grader & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & \makecell{Supported\\direction} \\',
         rows)
 
 
 def t_ladder():
-    """The four-rung decomposition: each rung differs from the one below in one respect."""
+    """Compare four consecutive method changes, one change at a time."""
     import itertools
     rungs = [('naive_sample_entropy', 'naive_entropy',
               'count strings instead of reading likelihoods'),
@@ -315,16 +317,16 @@ def t_ladder():
         AUDIT.append(('5.x ladder', desc, 'mean/pos/for/against',
                       [round(float(mus.mean()), 4), pos, res_for, res_against]))
     return table(
-        'What each step of the method is worth. Each rung differs from the one '
-        'below it in essentially one respect, so the value of each step is separately '
-        'identified. Computed over all 24 (condition, backend, grader) slices at '
-        '$T=1.0$, with intervals resampling the nine units. Only the '
-        'normalization step is positive in every slice, and it is the only one '
-        'whose margin exceeds the seed noise floor of 0.025.',
-        'tab:ladder', '@{}p{5.6cm}cccc@{}',
-        r'Step & Mean & Positive in & \multicolumn{2}{c}{Resolved} \\'
+        'Four comparisons between consecutive methods. The semantic-versus-surface '
+        'comparison also changes whether answers are normalized before grouping. '
+        'The counts cover all 24 prompting-condition, entailment-model, and grading-rule '
+        'comparisons at $T=1.0$; intervals resample the nine statistical units. Only '
+        'answer normalization improves the mean AUROC in every comparison, and it is the '
+        'only change whose mean difference exceeds the mean range across generation seeds.',
+        'tab:ladder', '@{}p{4.8cm}cccc@{}',
+        r'Change & \makecell{Mean AUROC\\difference} & \makecell{Positive\\comparisons} & \multicolumn{2}{c}{95\,\% CI} \\'
         '\n\\cmidrule(lr){4-5}\n'
-        r' & & & for & against \\', rows)
+        r' & & & \makecell{above\\zero} & \makecell{below\\zero} \\', rows)
 
 
 # ---------------------------------------------------------------- 5.4 paper baselines
@@ -347,10 +349,10 @@ def t_paper_baselines():
                           round(float(np.mean(margins)), 4)))
     return table(
         'Discrete semantic entropy against the comparators the original study evaluates, '
-        'over the slices in which each comparator was collected. Semantic entropy leads '
+        'over the comparisons in which each comparator was collected. Semantic entropy leads '
         'in every one.',
         'tab:paper-baselines', '@{}lccc@{}',
-        'Comparator & Slices & Mean margin & Range across slices \\\\', rows)
+        r'Comparator & Comparisons & \makecell{Mean AUROC\\difference} & \makecell{Range across\\comparisons} \\', rows)
 
 
 def t_ptrue_size():
@@ -385,17 +387,18 @@ def t_backend():
         srf = unit_stat(cells(sub[sub.method == 'surface_entropy']))
         gap = paired(sub, 'discrete_semantic_entropy', 'surface_entropy')
         mu, lo, hi = unit_ci(gap)
-        nm = BACKEND[b] + (r' \textbf{(canonical)}' if b == XL else '')
+        nm = (r'\makecell[l]{' + BACKEND[b] + r'\\\textbf{released-code default}}'
+              if b == XL else BACKEND[b])
         rows.append(f'{nm} & {fmt(dse,4)} & {fmt(srf,4)} & {fmtpm(mu,4)} & '
                     f'[{fmtpm(lo,3)}, {fmtpm(hi,3)}] \\\\')
         AUDIT.append(('5.5 backend', b, 'dse', round(dse, 4)))
     return table(
-        'The entailment backend on identical generations '
+        'Changing the entailment model while keeping the generated answers fixed '
         '(\\texttt{chat\\_0shot}, Qwen judge, $T=1.0$). Surface entropy is invariant to '
         'four decimal places across all three, as it must be: it never consults an '
         'entailment model.',
         'tab:backend', '@{}lcccc@{}',
-        'Backend & Discrete SE & Surface & Margin & 95\\,\\% CI \\\\', rows)
+        r'Entailment model & Discrete SE & Surface & \makecell{AUROC\\difference} & 95\,\% CI \\', rows)
 
 
 def t_backend_grader_check():
@@ -412,11 +415,12 @@ def t_backend_grader_check():
                       [round(float(c), 4) for c in cells_]))
     return table(
         'The independent-grader check. The Qwen configuration uses one model as both '
-        'entailment backend and correctness judge; re-grading the identical answers with '
-        'Llama-3.1-70B leaves the ranking and the magnitudes unchanged, so the backend '
-        'effect is not an artifact of one model occupying both roles.',
+        'entailment model and correctness judge; re-grading the identical answers with '
+        'Llama-3.1-70B gives the same ranking and very similar differences. The effect of '
+        'changing the entailment model is therefore not caused only by one model filling '
+        'both roles.',
         'tab:grader-check', '@{}lcc@{}',
-        'Backend & Margin, Qwen judge & Margin, Llama judge \\\\', rows)
+        r'Entailment model & \makecell{AUROC difference\\Qwen judge} & \makecell{AUROC difference\\Llama judge} \\', rows)
 
 
 def t_backend_by_model():
@@ -441,8 +445,9 @@ def t_backend_by_model():
         AUDIT.append(('5.5 backend x model', nice[mdl], 'xlarge/qwen',
                       [round(float(v), 4) for v in vals]))
     return table(
-        'The semantic-minus-surface margin per generator in \\texttt{chat\\_0shot} '
-        'under the Llama judge, on the canonical backend and on the 72B entailment '
+        'The discrete-semantic-entropy minus surface-entropy AUROC difference for each '
+        'generator in \\texttt{chat\\_0shot} under the Llama judge, using the '
+        'released-code default and the 72B entailment '
         'model. On the released cross-encoder the longest-answer generator gains '
         'least; on the 72B model the same generator gains most. The ordering '
         'inverts with the entailment model on identical generations.',
@@ -462,11 +467,11 @@ def t_cluster_counts():
                       f'{100*r.identical_cluster_count:.1f}\\,\\%'
                       for _, r in ba.iterrows()) + '.')
     return table(
-        'Mean clusters per record by backend, out of ten samples. The three '
+        'Mean clusters per record by entailment model, out of ten samples. The three '
         'implementations of ``bidirectional entailment clustering\'\' do not agree on '
         'how many meanings a set of samples contains.',
         'tab:cluster-counts', '@{}llc@{}',
-        'Condition & Backend & Mean clusters \\\\', rows, note=note)
+        'Condition & Entailment model & Mean clusters \\\\', rows, note=note)
 
 
 # ---------------------------------------------------------------- 5.6 the 2x2
@@ -491,11 +496,12 @@ def t_factorial():
                     f'[{fmtpm(lo,3)}, {fmtpm(hi,3)}] \\\\')
         AUDIT.append(('5.6 factorial', cond, 'mean of two judges', round(mu, 4)))
     return table(
-        'The $2\\times2$ on the canonical backend, mean of the two LLM judges. The '
-        'isolating contrast is the pair of 0-shot corners, where demonstrations are held '
-        'at zero and only the instruction changes. Every interval spans zero.',
+        'Secondary prompting analysis using the released-code entailment model, averaged '
+        'over the two LLM judges. The clearest instruction comparison is between the two '
+        'zero-shot conditions: both have no examples, so only the instruction changes. '
+        'Every interval includes zero.',
         'tab:factorial', '@{}lccrc@{}',
-        'Condition & Mean chars & Demos & SE $-$ surface & 95\\,\\% CI (units) \\\\', rows)
+        'Condition & Mean characters & Examples & AUROC difference & 95\\,\\% CI (units) \\\\', rows)
 
 
 # ---------------------------------------------------------------- 5.7 long-form
@@ -515,19 +521,21 @@ def t_longform():
         AUDIT.append(('5.7 long-form', b, 'dse',
                       round(float(v['discrete_semantic_entropy']), 4)))
     acc = lf.accuracy.mean()
-    note = (f'Mean claim accuracy {acc:.3f} over the nine cells. Surface and naive sample '
-            'entropy are constant across backends because they never consult one; they '
-            'are not performing badly but are structurally degenerate, since ten sampled '
-            'biographies are never string-identical and every sample forms its own '
-            'cluster. The canonical \\texttt{deberta-v2-xlarge-mnli} was not applied to '
-            'this arm.')
+    note = (f'Mean claim accuracy {acc:.3f} over the nine model--seed runs. '
+            'Surface and naive sample entropy do not use an entailment model, so their '
+            'results are unchanged across those models. Their AUROCs are near chance. '
+            'When all ten sampled biographies differ, every sample forms its own string '
+            'group and the string-based entropy is constant. The released-code default '
+            '\\texttt{deberta-v2-xlarge-mnli} was not '
+            'applied in this exploratory experiment.')
     return table(
-        'The long-form arm: nine cells, 500 biographies each, claim-level grading by the '
+        'Exploratory long-form experiment: nine model--seed runs, 500 '
+        'biographies each, and claim-level grading by the '
         'Qwen judge. Strict bidirectional entailment throughout, which is not the rule '
         'the original study applies to paragraphs '
         '(Section~\\ref{sec:longform-design}).',
         'tab:longform', '@{}lccc@{}',
-        'Backend & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
+        'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
 
 
 # ---------------------------------------------------------------- 5.8 temperature
@@ -546,10 +554,11 @@ def t_temperature():
         AUDIT.append(('5.8 temperature', m, 'T=0.1..1.0',
                       [None if pd.isna(v) else round(float(v), 4) for v in vals]))
     return table(
-        'Sampling temperature, sentence-length answers, canonical backend, Qwen judge. '
-        'The judge labels are the canonical ones joined by \\texttt{prompt\\_id} and are '
-        'identical at all five temperatures, so this is a labels-fixed, estimator-varies '
-        'comparison. The sweep is quoted only under LLM grading, for the reason given in '
+        'Sampling temperature, sentence-length answers, released-code entailment model, '
+        'and Qwen judge. Correctness labels from the main run are matched by '
+        '\\texttt{prompt\\_id} and reused at all five temperatures. Thus this comparison '
+        'changes the uncertainty score while holding the labels fixed. The sweep is '
+        'reported only under LLM grading, for the reason given in '
         'Section~\\ref{sec:temperature-sweep}.',
         'tab:temperature', '@{}lccccc@{}',
         'Method & $T=0.1$ & $0.3$ & $0.5$ & $0.7$ & $1.0$ \\\\', rows)
@@ -575,9 +584,10 @@ def t_correctness():
         AUDIT.append(('5.9 correctness', cond, 'acc f1/qwen/llama',
                       [round(float(c), 4) for c in cellsf]))
     return table(
-        'Generator accuracy and the semantic-minus-surface margin under each correctness '
-        'rule, canonical backend, $T=1.0$. The same answers are graded three ways. The '
-        'margin changes sign between the token-overlap rule and either LLM judge.',
+        'Generator accuracy and the discrete-semantic-entropy minus surface-entropy AUROC '
+        'difference under each correctness rule, using the released-code entailment model '
+        'at $T=1.0$. The same answers are graded three ways. The difference changes sign '
+        'between the token-overlap rule and either LLM judge.',
         'tab:correctness', '@{}lcccccc@{}',
         r'& \multicolumn{3}{c}{Accuracy} & \multicolumn{3}{c}{SE $-$ surface} \\'
         '\n\\cmidrule(lr){2-4}\\cmidrule(lr){5-7}\n'
@@ -597,8 +607,8 @@ def t_degenerate_cells():
                       round(float(r.accuracy), 4)))
     return table(
         'Cells in which the token-overlap rule labels almost nothing correct '
-        '(\\texttt{chat\\_0shot}, $T=1.0$). An AUROC computed against three positive '
-        'examples is not a measurement of a detector. No LLM-graded cell in the study '
+        '(\\texttt{chat\\_0shot}, $T=1.0$). When only a few answers are correct, '
+        'AUROC is highly uncertain. No LLM-graded cell in the study '
         'falls below 0.36 accuracy.',
         'tab:degenerate-cells', '@{}llccc@{}',
         'Dataset & Generator & Seed & token-F1 accuracy & Correct / records \\\\', rows)
@@ -629,18 +639,18 @@ def t_aurac():
     z = T1[T1.method == 'discrete_semantic_entropy'][['accuracy', 'aurac_paper']].dropna()
     r = float(np.corrcoef(z.accuracy, z.aurac_paper)[0, 1])
     AUDIT.append(('5.10 aurac', 'aurac_paper~accuracy', 'r', round(r, 4)))
-    note = (f'Over the {len(z)} discrete-semantic-entropy cells of the short-answer arm at '
+    note = (f'Over the {len(z)} discrete-semantic-entropy short-answer results at '
             f'$T=1.0$, '
             f'\\texttt{{aurac\\_paper}} correlates with the generating model\'s own '
             f'accuracy at $r={r:.3f}$. It is largely reporting how often the model is '
             'right, not how well the detector ranks.')
     return table(
-        'The same 24 slices scored with three headline metrics: how many favor discrete '
-        'semantic entropy over surface entropy, and the mean margin. Switching from '
-        'AUROC to either rejection-accuracy summary moves the verdict from a majority '
-        'for semantic entropy to a majority for surface entropy.',
+        'Secondary metric analysis of the same 24 comparisons. The table reports how '
+        'many favor discrete semantic entropy over surface entropy and the mean score '
+        'difference. With AUROC, most comparisons favor semantic entropy; with either '
+        'rejection-accuracy summary, most favor surface entropy.',
         'tab:aurac', '@{}lcc@{}',
-        'Metric & Slices favoring SE & Mean margin \\\\', rows, note=note)
+        'Metric & Comparisons favoring SE & Mean score difference \\\\', rows, note=note)
 
 
 # ---------------------------------------------------------------- 5.11 probes
@@ -667,8 +677,8 @@ def t_probes():
                           [round(float(a), 4), round(float(p_), 4)]))
             lbl = ''
     return table(
-        "The two hidden-state probes, on \\texttt{nli-deberta-v3-large}, the backend "
-        "whose clustering supplied the semantic entropy probe's training target. "
+        "The two hidden-state probes use \\texttt{nli-deberta-v3-large}. Clusters from "
+        "this entailment model supplied the semantic entropy probe's training target. "
         'In distribution, the probe is trained and scored on disjoint question '
         'sets from the same task. Out of distribution, it is trained on the '
         'pooled prompts of the other two short-answer tasks and scored on the '
@@ -693,9 +703,9 @@ def t_seed_noise():
         AUDIT.append(('5.0 seed noise', m, 'mean range',
                       round(float(s.mean_seed_range.mean()), 4)))
     return table(
-        'The noise floor. AUROC range across the three run seeds, averaged over '
-        '(dataset, model) configurations. A margin smaller than these values is inside '
-        'the variation produced by resampling alone.',
+        'Variation across generation seeds. The table gives the AUROC range across the '
+        'three seeds, averaged over dataset--model combinations. An AUROC difference '
+        'smaller than these values falls within the variation caused by generation sampling.',
         'tab:seed-noise', '@{}lcc@{}',
         'Method & Mean seed range & Max seed range \\\\', rows)
 
@@ -746,9 +756,10 @@ def figures(outdir='figures'):
     R = R[['condition', 'b', 'g', 'mu', 'lo', 'hi']].rename(
         columns={'condition': 'cond'}).copy()
     R['grp'] = np.where(R.g == F1, 'token-F1 grading',
-                        np.where(R.b == QW, 'Qwen backend, LLM grading',
-                                 'released cross-encoders, LLM grading'))
-    order = ['released cross-encoders, LLM grading', 'Qwen backend, LLM grading',
+                        np.where(R.b == QW, 'Qwen entailment model, LLM grading',
+                                 'released entailment models, LLM grading'))
+    order = ['released entailment models, LLM grading',
+             'Qwen entailment model, LLM grading',
              'token-F1 grading']
     R['k'] = R.grp.map({g: i for i, g in enumerate(order)})
     R = R.sort_values(['k', 'mu']).reset_index(drop=True)
@@ -800,9 +811,8 @@ def figures(outdir='figures'):
     fig.savefig(f'{outdir}/temperature.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/temperature.pdf')
 
-    # --- backend ladder, short and long form -------------------------------
-    fig, axes = plt.subplots(1, 2, figsize=(5.6, 2.7))
-    ax = axes[0]
+    # --- entailment-model comparison for the main short-answer experiment --
+    fig, ax = plt.subplots(figsize=(4.4, 2.9))
     bs = [LG, XL, QW]
     ys = [unit_stat(cells(T1[(T1.condition == 'chat_0shot') & (T1.entailment_backend == b) &
                              (T1.grader == QJ) & (T1.method == 'discrete_semantic_entropy')]))
@@ -812,23 +822,10 @@ def figures(outdir='figures'):
     ax.plot(range(3), ys, '-o', ms=4, lw=1.2, color=INK)
     ax.axhline(srf, color=HL, lw=1.0, ls='--')
     ax.text(2.05, srf, ' surface\n entropy', fontsize=6.2, color=HL, va='center')
-    ax.set_xticks(range(3)); ax.set_xticklabels(['v3-large', 'xlarge\n(canonical)', 'Qwen-72B'],
+    ax.set_xticks(range(3)); ax.set_xticklabels(['v3-large', 'xlarge\n(default)', 'Qwen-72B'],
                                                 fontsize=6.6)
     ax.set_ylabel('AUROC'); ax.set_title('sentence-length answers', fontsize=7.4)
     ax.set_xlim(-0.35, 2.75); ax.tick_params(length=2)
-    ax = axes[1]
-    lbs = ['exact-match', 'posthoc-nli-deberta-v3-base', 'posthoc-nli-deberta-v3-large',
-           'posthoc-llm-judge-qwen2.5-72b-instruct']
-    ys = [lf[(lf.entailment_backend == b) &
-             (lf.method == 'discrete_semantic_entropy')].auroc.mean() for b in lbs]
-    srf = lf[lf.method == 'surface_entropy'].auroc.mean()
-    ax.plot(range(4), ys, '-o', ms=4, lw=1.2, color=INK)
-    ax.axhline(srf, color=HL, lw=1.0, ls='--')
-    ax.text(3.05, srf, ' surface\n entropy', fontsize=6.2, color=HL, va='center')
-    ax.set_xticks(range(4))
-    ax.set_xticklabels(['exact\nmatch', 'v3-base', 'v3-large', 'Qwen-72B'], fontsize=6.6)
-    ax.set_title('paragraph-length answers', fontsize=7.4)
-    ax.set_xlim(-0.35, 3.85); ax.tick_params(length=2)
     fig.savefig(f'{outdir}/backend_ladder.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/backend_ladder.pdf')
 
@@ -851,28 +848,24 @@ def figures(outdir='figures'):
         rows.append(dict(lab=lab,mean=mus.mean(),pos=int((mus>0).sum()),n=len(mus),rf=rf,ra=ra))
     R=pd.DataFrame(rows)
 
-    fig,ax=plt.subplots(figsize=(5.6,2.9))
+    fig,ax=plt.subplots(figsize=(4.8,2.3))
     y=np.arange(len(R))[::-1]
-    XR=0.0505   # x where the resolution column starts
     for i,(yy,r) in enumerate(zip(y,R.itertuples())):
         hot = r.lab.startswith('normalize')
         ax.barh(yy, r.mean, height=0.52, color=ACCENT if hot else INK,
                 edgecolor=SURF, linewidth=1.0, zorder=3)
         ax.text(r.mean+0.0012, yy, f'{r.mean:+.4f}', va='center', ha='left',
-                fontsize=7.6, color=ACCENT if hot else INK,
+                fontsize=9, color=ACCENT if hot else INK,
                 fontweight='bold' if hot else 'normal', zorder=4)
-        txt = f'{r.rf}/{r.n} resolved' + (f', {r.ra} against' if r.ra else '')
-        ax.text(XR, yy, txt, va='center', ha='left', fontsize=6.6,
-                color=ACCENT if hot else MUTE, zorder=4)
     ax.axvline(NOISE, color=MUTE, lw=0.9, ls=(0,(4,2)), zorder=2)
-    ax.annotate('seed noise floor', xy=(NOISE, len(R)-0.45), xytext=(NOISE, len(R)-0.15),
-                fontsize=6.6, color=MUTE, ha='center', va='bottom', annotation_clip=False)
+    ax.annotate('mean seed range', xy=(NOISE, len(R)-0.45), xytext=(NOISE, len(R)-0.15),
+                fontsize=9, color=INK, ha='center', va='bottom', annotation_clip=False)
     ax.axvline(0, color=INK, lw=0.7, zorder=2)
-    ax.set_yticks(y); ax.set_yticklabels(R.lab, fontsize=7.4)
-    ax.set_xlim(-0.004, 0.0445)
+    ax.set_yticks(y); ax.set_yticklabels(R.lab, fontsize=9)
+    ax.set_xlim(-0.004, 0.048)
     ax.set_xticks([0,0.01,0.02,0.03,0.04])
-    ax.set_xlabel('mean AUROC gain over the step below, across 24 slices')
-    ax.tick_params(length=2); ax.spines['left'].set_visible(False)
+    ax.set_xlabel('mean AUROC change, across 24 comparisons', fontsize=9)
+    ax.tick_params(length=2, labelsize=9); ax.spines['left'].set_visible(False)
     fig.savefig(f'{outdir}/ladder.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/ladder.pdf')
 
@@ -907,10 +900,10 @@ def figures(outdir='figures'):
         ax.text(v+0.003, yy, f'{v:.3f}', va='center', ha='left', fontsize=7.4,
                 color=ACCENT if step else INK, zorder=4)
     ax.axvline(NOISE, color=MUTE, lw=0.9, ls=(0,(4,2)), zorder=2)
-    ax.text(NOISE+0.002, -0.55, 'seed noise floor 0.025', fontsize=6.6, color=MUTE,
+    ax.text(NOISE+0.002, -0.55, 'mean seed range 0.025', fontsize=6.6, color=MUTE,
             va='center', ha='left')
     ax.set_yticks(y); ax.set_yticklabels([e[0] for e in eff], fontsize=7.4)
-    ax.set_xlim(0, 0.225); ax.set_xlabel('AUROC moved, on identical generations')
+    ax.set_xlim(0, 0.225); ax.set_xlabel('change in AUROC on the same generated answers')
     ax.tick_params(length=2); ax.spines['left'].set_visible(False)
     ax.legend(handles=[Patch(facecolor=ACCENT,hatch='////',edgecolor=SURF,label='a step of the method'),
                        Patch(facecolor=INK,edgecolor=SURF,label='a measurement or data choice')],

@@ -4,176 +4,82 @@
 \section{Summary}
 \label{sec:conclusion-summary}
 
-This thesis reimplemented the semantic entropy method of Farquhar et
-al.~\cite{semantic_entropy_nature_2024} against their released
-code~\cite{kossen_semantic_uncertainty_code_2024}, ran it on three open
-generators and three short-answer benchmarks plus a long-form biography task,
-and used that setup to ask three questions.
+This thesis reimplemented semantic entropy using the method of Farquhar et
+al.~\cite{semantic_entropy_nature_2024} and its released
+code~\cite{kossen_semantic_uncertainty_code_2024}. It compared the method with
+the original baselines and with surface entropy, a simpler method that counts
+normalized answer strings. The main evaluation uses short-answer benchmarks
+and open generating models.
 
-\textbf{Does semantic entropy detect confabulations better than the baselines
-the original paper uses?} Yes. On sentence-length answers under the canonical
-entailment model and an LLM judge, likelihood-weighted semantic entropy reaches
-AUROC 0.758 and the discrete variant 0.757, against 0.714 for P(True) and
-0.694 for entropy over sequence log-likelihoods. The two hidden-state probes
-were collected on a different backend, \texttt{nli-deberta-v3-large}, and reach
-0.718 for the correctness-trained probe and 0.672 for the semantic entropy
-probe. That ordering holds in every slice where each comparator was measured. The headline
-comparison against naive predictive entropy reproduces at $+0.063$ to $+0.162$
-on the canonical backend, against the $+0.099$ the original's own reported
-figures imply.
+Semantic entropy performs well against the original baselines. However, those
+comparisons alone do not show that grouping answers by meaning causes the
+improvement. Normalizing answer strings gives the most consistent improvement
+in the tested decomposition. With the released entailment models, grouping by
+meaning does not show a clear further benefit over surface entropy under LLM
+grading. This does not establish that the methods are equivalent or that a
+small benefit is absent.
 
-\textbf{Which part of the method earns the advantage?} Normalization, not
-grouping by meaning. Every baseline the original uses differs from semantic
-entropy in more than one way at once, so that design cannot attribute the
-margin to any single part. Breaking the method into four steps, each differing
-from the one below it in essentially one way, does attribute it. Of the four, only
-normalizing the answer strings before counting them is clearly worth anything:
-$+0.040$ AUROC, positive and resolved in all 24 slices of the grid, and the
-only step above the seed noise floor. Counting raw strings rather than reading
-likelihoods is positive in 4 slices of 24. Weighting the meaning-groups by
-likelihood adds $+0.002$.
+Changing the entailment model changes the conclusion. With the tested Qwen
+entailment model, semantic entropy improves on surface entropy under both LLM
+judges. Sampling temperature also changes which detector leads, and the
+correctness rule can reverse the semantic-versus-surface comparison. The
+method's reported performance therefore needs to be read together with its
+entailment model, sampling settings, and grading rule.
 
-The step the method is named after is not beaten by its own comparator. Eight
-slices spanning four prompting conditions and two independent LLM judges give
-margins between $-0.0020$ and $+0.0223$, and a hierarchical paired bootstrap
-resampling both the nine independent units and the records within them resolves
-none of them. Pairing on records was the analysis that could have rescued a
-small consistent effect; it narrows the intervals threefold and changes no
-verdict. The same conclusion follows without any test: the clustering-free
-comparator passes every comparison the original study runs, with no slice
-anywhere going the other way.
-
-That answer is conditional in two specific ways, and neither is a hedge.
-Substituting a 72-billion-parameter model as the entailment judge, on identical
-generations, gives a resolved margin of $+0.087$ on sentence-length answers and
-$+0.012$ to $+0.014$ on short phrases. And on paragraph-length output every
-sampled answer is unique, so the string estimators are constant across records
-and sit at chance. There, grouping is not an improvement over them but a
-precondition for measuring anything at all. The scale of the design bounds the
-null from the other side as well: with nine units the minimum detectable effect
-is about 0.028 AUROC, reaching roughly 0.01 only in the tightest slices, so what
-is established is the absence of a measurable benefit rather than of any
-benefit.
-
-\textbf{How much do measurement choices move the answer?} More than the choice
-of method does. On one fixed set of generations the entailment model moves
-discrete semantic entropy from 0.751 to 0.823, a spread three times the 0.020
-margin between semantic and surface entropy on the canonical backend. Sampling
-temperature reorders the families of detector, with diversity-based estimators
-falling from 0.757 to 0.568 between $T=1.0$ and $T=0.1$ while a
-likelihood-based one moves only from 0.694 to 0.644. The conventional $T=1.0$
-is the most favorable point in the measured range for the sampling-based
-approach. The correctness rule reverses the sign of the headline
-contrast, from $+0.020$ under LLM grading to $-0.051$ under the token-overlap
-rule the released code applies by default. And the choice between AUROC and the
-rejection-accuracy summary reported beside it moves the verdict from a bare
-majority for semantic entropy to a majority for surface entropy.
-
-Taken together: the method is sound and it reproduces, but the number attached
-to it measures the setup as much as the method, and the part of the method that
-the margin is usually credited to is not the part that produces it.
+The main conclusion is not that semantic grouping is unnecessary. It is that
+its added value must be tested against normalized-string counting and cannot
+be assumed from a comparison with weaker baselines.
 
 \section{Contributions}
 \label{sec:conclusion-contributions}
 
 \begin{enumerate}
-  \item \textbf{A four-step decomposition of the method}, in which neighbouring
-    steps differ in essentially one way, so the value of each is measured on
-    its own. It locates the reliable gain in answer normalization rather than in
-    grouping by meaning, and it supplies the comparator the original evaluation
-    leaves out.
-  \item \textbf{The finding that the clustering-free comparator passes every
-    comparison the original study runs}. That is 24 slices of 24 against entropy
-    over log-likelihoods, 6 of 6 against P(True) and against each probe, with none
-    going the other way. That evidence base therefore does not separate
-    semantic entropy from a method that never judges meaning.
-  \item \textbf{A hierarchical paired bootstrap over 24 slices}, with the
-    demonstration that the natural analysis, resampling records with the
-    task units held fixed, gives intervals three times too narrow and flips
-    the direction of the conclusion. The grid holds nine independent units, not
-    twenty-seven cells, and treating the cells as independent inflates the
-    count of significant contrasts by roughly a third.
-  \item \textbf{The entailment model varied afterwards on identical
-    generations}, showing that choice is worth more than the choice between
-    methods, and that three implementations of ``bidirectional entailment
-    clustering'' agree on cluster count for only 60--73\,\% of records.
-  \item \textbf{A $2\times2$ separating instruction wording from worked-example
-    count}, which the original's two conditions mix together. The two factors
-    interact on answer length rather than adding: with no worked examples,
-    changing the instruction moves mean answer length by a factor of 3.7; with
-    five examples, the same change moves it by 0.2 characters. The worked
-    examples, not the instruction, are what governs length. No corner resolves a
-    semantic-minus-surface margin, so the factorial shows that contrast staying
-    small across the whole range of answer lengths rather than locating it.
-  \item \textbf{Three correctness rules applied to identical answers}, two of
-    them independent LLM judges, and the finding that the ranking of methods
-    depends on which is used.
-  \item \textbf{A five-point temperature sweep}, showing that diversity-based
-    and likelihood-based detectors part ways as temperature falls, and that the
-    conventional setting is the most favorable one for the sampling-based
-    family.
-  \item \textbf{Two findings about the metrics rather than the methods}: the
-    two rejection-accuracy definitions rank the methods differently from AUROC
-    and from each other, and both track the generating model's own accuracy at
-    $r \approx 0.97$ against $r = 0.50$ for AUROC, so neither isolates the
-    detector.
-  \item \textbf{An implementation faithful to the released code rather than to
-    its description}, including the order-dependent anchor scan the code
-    performs, with a register of the nine points where the code departs from
-    its published description or settles what that description leaves open.
+  \item \textbf{A comparison with the original baselines.}
+    The study tests the published method on open generating models and
+    separates findings that reproduce from differences caused by the tested
+    setting.
+  \item \textbf{A comparison of normalization and meaning-based grouping.}
+    The added surface-entropy baseline separates the consistent benefit of
+    string normalization from the more conditional benefit of semantic
+    grouping.
+  \item \textbf{A test of the main evaluation choices.}
+    The study varies the entailment model, correctness rule, and sampling
+    temperature, showing where the method ranking depends on those choices.
+  \item \textbf{A documented implementation and uncertainty analysis.}
+    The repository records implementation choices and deviations from the
+    published description. The paired analysis accounts for variation between
+    dataset--model units as well as between question records, and states the
+    limits of the available evidence.
 \end{enumerate}
 
-\section{Limitations}
+The prompting-factorial and rejection-accuracy comparisons are secondary
+analyses. The biography experiment is exploratory because of its incomplete
+provenance and different clustering rule. Their detailed results remain in
+the appendices and do not support the main contributions.
+
+\section{Limitations and next steps}
 \label{sec:conclusion-limitations}
 
-Two limitations are not qualifications on individual tables. They condition
-every number here, and they are stated in full because a reader who took the
-conclusions above without them would be taking more than the data support.
-Chapter~\ref{ch:discussion} states both where the results are interpreted; they
-are repeated because they belong to the conclusions as much as to the analysis.
+The most important limitation is the absence of human correctness labels.
+Token overlap and LLM judgments are the only grading rules used here. The
+LLM judges agree closely, but they may share mistakes. Using a different model
+for grading reduces concern about one model serving in both roles; it does
+not establish that the grades are correct or remove possible shared biases
+between grading and semantic clustering.
 
-\paragraph{The correctness judges were never validated against human labels.}
-Every AUROC here is computed against a correctness label, and every label came
-either from a token-overlap rule or from a language model asked to grade. The
-two LLM judges agree on 93.7\,\% of records in the sentence-length condition,
-and that figure is easy to over-read: it bounds how consistent the judges are
-with each other, not how often they are both wrong. Two models of similar
-construction, given the same prompt, can agree closely and be wrong in the same
-direction. Farquhar et al.\ run exactly this check against human annotation on
-100 questions in their Supplementary Note~6. This study runs no equivalent, so
-every accuracy figure, and therefore every AUROC, rests on an unvalidated
-judge.
+The number of independent dataset--model units is also limited. Repeated
+seeds and more question records do not provide the same evidence as testing
+more datasets and generating models. The study can therefore report that it
+did not detect a benefit in some conditions, but cannot rule out small
+improvements or generalize to all language-model tasks.
 
-\paragraph{The entailment model and the grader answer the same question.} Both
-are asked, in effect, whether two texts mean the same thing, and both are
-models of the same kind. A method that groups by meaning is therefore favored
-exactly when correctness is scored by meaning, for reasons unrelated to whether
-it detects confabulation. The data carry the fingerprint: semantic entropy's
-margin over surface entropy is $+0.020$ under LLM grading and $-0.051$ under
-token-F1 in the same condition, and the 72B entailment backend gains $+0.065$
-under LLM grading while losing $0.015$ under token-F1. Each estimator does best
-where its notion of sameness matches the grader's.
+Further limits include different answer lengths from the original study,
+different token limits for uncertainty samples and graded answers,
+order-dependent clustering, and incomplete coverage of detector and
+entailment-model combinations. The full discussion is in
+Section~\ref{sec:threats}.
 
-Without human labels this cannot be settled, and the thesis does not settle it.
-In particular it does not treat the LLM-graded numbers as the true ones and the
-token-F1 numbers as an artifact. Surface entropy resolvably beats semantic
-entropy under token-F1 in seven slices, and under the LLM judges the two are
-indistinguishable on the canonical backend. So the judges do not vindicate
-semantic entropy, they fail to separate the methods. What can be said is that
-the ranking depends on which definition of correctness is adopted, and that
-this study has no way to choose between them. The narrower circularity check of
-Section~\ref{sec:clustering-sensitivity} does not cover this: it rules out one
-particular model favoring its own output, and finds that it does not, but the
-concern is the class of judge rather than the identity of the model.
-
-\paragraph{Further limitations.} Six more qualify particular results and are
-set out in Section~\ref{sec:threats}. The sentence-length condition here is not
-the original's, averaging 255.2 characters against 95.6. Nine independent units
-give a minimum detectable effect of about 0.028 AUROC, and reach roughly 0.01
-only in the tightest slices. The clustering step is
-order-dependent by construction. The long-form arm has degenerate string
-baselines, one grader that is also one of its backends, and a stricter
-clustering rule than the original uses for paragraphs. The probes and P(True)
-sit on different backends and are never directly comparable. And the two added
-prompting conditions exist on one backend, so the $2\times2$ cannot be
-estimated on the backend most favorable to semantic entropy.
+The clearest next step is to obtain human correctness labels for a sample of
+the existing answers and repeat the main semantic-versus-surface comparison
+against those labels. Broader dataset--model coverage would then help determine
+whether the conditional benefit found here holds beyond this evaluation.

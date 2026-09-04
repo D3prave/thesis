@@ -1,23 +1,19 @@
 \chapter{Semantic Entropy and Related Estimators}
 \label{ch:semantic_entropy}
 
-This chapter defines the method: discrete semantic entropy over sampled
-answers. The aim is to keep the central idea of Farquhar et
-al.~\cite{semantic_entropy_nature_2024}, which is to measure uncertainty over
-meanings rather than over strings, while stating the procedure precisely enough that
-the numbers in Chapter~\ref{ch:results} can be traced to specific steps of it.
-The meaning-level framing follows Kuhn et
-al.~\cite{kuhn_semantic_uncertainty_2023}.
+This chapter defines discrete semantic entropy over sampled answers. It follows
+the central idea of Farquhar et al.~\cite{semantic_entropy_nature_2024}: measure
+uncertainty over meanings rather than wordings. The meaning-level framing
+follows Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023}.
 
-Two commitments run through the chapter. Where the published description and
-the released code~\cite{kossen_semantic_uncertainty_code_2024} disagree, the
-code is what gets described, because a reader reproducing the result runs the
-code and not the prose. The clustering step in Section~\ref{sec:clustering} is
-where that matters. And the pipeline is kept in separable pieces, namely sampling,
-grouping and scoring, so Chapter~\ref{ch:experimental_design} can vary one
-while holding the others fixed. The last sections
-(\ref{sec:related-estimators}--\ref{sec:other-estimators}) define the three
-estimators compared against it.
+When the published description and released
+code~\cite{kossen_semantic_uncertainty_code_2024} disagree, this thesis follows
+the code. Section~\ref{sec:clustering} explains the important difference in
+clustering. The method is divided into sampling, grouping and scoring so that
+Chapter~\ref{ch:experimental_design} can vary each step separately. The final
+section, Section~\ref{sec:related-estimators}, defines the three comparison
+estimators. These definitions make every number in
+Chapter~\ref{ch:results} traceable to a stated procedure.
 
 \section{Entropy as a measure of uncertainty}
 \label{sec:entropy-measure}
@@ -29,12 +25,11 @@ entropy is
 \]
 It is small when almost all the mass sits on one outcome and large when the
 mass spreads over many. The maximum is $\log K$, at the uniform distribution.
-The base of the logarithm changes the unit but not the ordering, so it does not
-affect AUROC. This thesis uses the natural logarithm, so values are in nats.
+Changing the logarithm base rescales every entropy value but leaves their order
+unchanged, so it cannot affect AUROC. This thesis uses the natural logarithm,
+so values are in nats.
 Entropy is used because it is the quantity this literature defines and
 reports~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-Nothing turns on the choice: AUROC depends only on the ranking, so any
-increasing measure of spread would give similar results.
 
 For semantic entropy the same formula applies, but the outcomes are not raw
 strings. They are groups of strings taken to mean the same thing, so the
@@ -99,13 +94,12 @@ model and only read what it produces; none of them changes its weights.
         $\widehat{H}_{\mathrm{sem}}(x)=-\sum_k \hat{p}_k\log\hat{p}_k$.
 \end{enumerate}
 
-Attaching a correctness label and using the score to decide what to answer
-belongs to the \emph{evaluation}, not to the method, and
-Chapter~\ref{ch:experimental_design} handles it separately. Keeping that line
-is what makes the comparisons in Chapter~\ref{ch:results} possible: clustering
-consumes stored samples, so the entailment model can be swapped without
-regenerating anything, and correctness labelling consumes a finished answer, so
-the grading rule can be swapped without touching the estimators.
+Correctness labeling and decisions based on the uncertainty score belong to the
+\emph{evaluation}, not to the method. Chapter~\ref{ch:experimental_design}
+handles them separately. Clustering reuses stored samples, so the entailment
+model can change without generating new answers. Likewise, the same finished
+answer can be graded under different correctness rules without changing an
+estimator.
 
 Figure~\ref{fig:method-schematic} reproduces the original illustration. Panel
 (a) makes the point on a short question: counting raw strings treats ``Paris''
@@ -147,20 +141,19 @@ repeated samples come out nearly identical; as $T \to 0$ this approaches always
 picking the single most likely token. Large $T$ pulls the logits together toward
 a uniform choice, so samples vary more.
 
-The other two parameters restrict which tokens can be drawn at all.
-\emph{Nucleus sampling} (top-$p$) sorts the vocabulary by $P_T$ in decreasing
-order and keeps the shortest prefix whose probability reaches $p$,
+The other two parameters restrict which tokens can be drawn.
+\emph{Nucleus sampling} (top-$p$) sorts the vocabulary by $P_T$ from highest to
+lowest probability. It keeps the shortest prefix whose total probability
+reaches $p$,
 \[
   V_p \;=\; \text{the smallest } S \subseteq V \text{ in that order with}
   \sum_{v \in S} P_T(v) \;\ge\; p ,
 \]
-while \emph{top-$k$} keeps the $k$ tokens with the highest $P_T$ instead. When
-both are set, the kept set is the intersection. Sampling then draws from $P_T$
-renormalized over that set, so tokens outside it have probability zero. The
-effect is to cut off the long tail of individually unlikely tokens, which
-together can still carry enough mass to derail a generation, without fixing how
-many tokens survive in advance: a confident step keeps few, an uncertain step
-keeps many.
+while \emph{top-$k$} keeps only the $k$ most probable tokens. When both are
+used, a token must pass both filters. The remaining probabilities are scaled to
+sum to one, and every excluded token has probability zero. These filters remove
+very unlikely tokens while allowing the number of available tokens to change at
+each generation step.
 
 Because the estimators read nothing but these samples, the temperature decides
 how much signal there is to measure at all.
@@ -181,9 +174,10 @@ evaluation protocol, so ``The Eiffel Tower!'' and ``eiffel tower'' become the
 same string. For the arithmetic dataset it extracts the final number, so ``The
 answer is 7 apples'' becomes ``7''. This is a surface grouping: it collapses
 spelling and formatting and nothing else. The entropy over these groups is
-called \emph{surface entropy}, and it is the clustering-free comparator that
-RQ2 turns on. A cruder companion, \emph{naive sample entropy}, counts the raw
-strings without normalizing first.
+called \emph{surface entropy}. It is the direct baseline for testing whether
+semantic grouping adds value, because it changes the grouping rule while
+leaving the count-based entropy calculation unchanged. A cruder companion,
+\emph{naive sample entropy}, counts the raw strings without normalizing first.
 
 \paragraph{Bidirectional entailment.} Instead of string identity, this rule
 asks whether two answers entail each other. For $y_i$ and $y_j$ it asks
@@ -201,81 +195,69 @@ Farquhar et al.~\cite{semantic_entropy_nature_2024} define equivalence
 \emph{in the context of the question}, and give the reason: ``Paris'' does not
 entail ``The capital of France is Paris'' on its own, but in the context of the
 question it does. The short-answer results here follow that definition. Every
-entailment query in the canonical configuration is prefixed with the question,
-and the LLM backend is given the question alongside both answers for the same
+short-answer entailment query is prefixed with the question,
+and the LLM entailment model is given the question alongside both answers for the same
 reason. The one exception is the whole-paragraph biography protocol, which is
 answer-only, because a generated paragraph is not a response to a single
 question.
 
-Two details of the input are easy to assume wrongly. The entailment step
-consumes the \emph{raw} generations, not the normalized strings above:
-normalization belongs to the comparator, and applying it first would mix the
-two together. And the question is joined to each answer as plain text, so what the
-entailment model reads is a pair of question-prefixed strings.
+Clustering uses the \emph{raw} generations, not their normalized forms.
+Normalization is used only for the surface-entropy baseline. Each entailment
+input contains the question followed by one answer, so the model reads a pair
+of question-prefixed strings.
 
 The rule approximates equivalence rather than defining it, because judgments
 from a small cross-encoder can be noisy. It may split answers that differ only
-in harmless detail, and merge answers that hide real differences. Four backends
+in harmless detail, and merge answers that hide real differences. Four models
 compute $e(\cdot,\cdot \mid x)$:
 
 \begin{itemize}
   \item \texttt{microsoft/deberta-v2-xlarge-mnli}, the model the released code
     loads by default~\cite{he_deberta_2021,williams_multinli_2018}. This is the
-    \emph{canonical} backend: results reported without a named backend use it,
-    because it is what a reader running the published code would get.
-  \item \texttt{cross-encoder/nli-deberta-v3-large}, a current
+    \emph{default short-answer entailment model}: it is what a reader running
+    the published code would get.
+  \item \texttt{nli-deberta-v3-large}, an alternative
     cross-encoder~\cite{sentence_transformers_nli_deberta_v3_large_2022,%
     he_debertav3_2021}.
-  \item \texttt{cross-encoder/nli-deberta-v3-base}, a smaller
+  \item \texttt{nli-deberta-v3-base}, a smaller
     cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}, used
-    on the long-form arm only.
+    in the long-form experiment only.
   \item \texttt{Qwen/Qwen2.5-72B-Instruct}~\cite{yang_qwen25_2024}, an open
     stand-in for the proprietary judge Farquhar et al.\ use on sentence-length
     answers. It is prompted with the entailment instruction taken verbatim from
     the released code.
 \end{itemize}
 
-Every backend is applied afterwards to one stored set of generations, so the
-entailment model is the only thing that differs between them and any change in
-the scores comes from it alone. Section~\ref{sec:clustering-sensitivity}
-quantifies how much that choice matters, and it turns out to matter more than
-the difference between the estimators.
+Within each experiment, the entailment models use the same stored generations. The model
+is therefore the only difference between these comparisons.
+Section~\ref{sec:clustering-sensitivity} reports how much the scores change.
 
 \subsection{The grouping procedure as implemented}
 \label{sec:anchor-scan}
 
-The grouping follows the released
-code~\cite{kossen_semantic_uncertainty_code_2024} rather than a tidier
-equivalent. Answers are scanned in generation order. The first answer without a
+Grouping follows the released
+code~\cite{kossen_semantic_uncertainty_code_2024}. Answers are scanned in
+generation order. The first answer without a
 cluster identifier becomes an \emph{anchor} and gets a new identifier, and
 every later answer mutually entailed with that anchor gets the same one. The
 scan then moves to the next unassigned answer.
 
-Two properties matter, and neither is incidental.
+Two properties matter. First, the outer loop checks whether an answer already
+has a cluster, but the inner loop does not. A later anchor can therefore
+overwrite an earlier assignment. The last matching anchor, rather than the
+first, decides the answer's final cluster.
 
-First, the assignment in the inner loop is unconditional. The released routine
-guards only the \emph{outer} loop, which decides whether an answer becomes an
-anchor; the inner assignment carries no such test. An answer a previous anchor
-already claimed is therefore \emph{reassigned} when a later anchor also matches
-it, so its final cluster is decided by the last anchor that matches rather than
-the first.
-
-Second, the procedure computes no transitive closure. If A is mutually entailed
-with B, and B with C, but A and C are not, then A, B and C need not end up in
-one group; whether they do depends on which the scan reaches first. The result
-is \emph{order-dependent}: permuting the samples can change the number of
-clusters, and so the entropy, without changing a single entailment judgment.
-
-An earlier version of this work grouped answers by the connected components of
-the mutual-entailment graph, using union-find. That is the natural reading of
-``group answers that mean the same thing'', it is order-independent, and it
-merges transitively. It is also not what the code does, and the two procedures
-give different cluster counts on the same entailment matrix whenever the
-relation is not transitive, which for a noisy neural model is common.
-The point of this thesis is to measure the method as published, so the anchor
-scan is used throughout and its order dependence is carried as a property of
-the method under study. Algorithm~\ref{alg:clustering} states it
-exactly.
+Second, the algorithm does not enforce transitivity. If A matches B and B
+matches C, it does not automatically group A with C. Changing the order of the
+same answers can therefore change the clusters and their entropy without
+changing any entailment judgment. An earlier implementation joined answers
+through such chains, but the released code does not. This thesis uses the
+released anchor scan throughout. Algorithm~\ref{alg:clustering} states the
+procedure exactly, and Appendix~\ref{app:order-dependence} gives a complete
+worked example of its order dependence.
+The experiments do not measure the size of this order effect. Changing the
+entailment model, as in Section~\ref{sec:clustering-sensitivity}, tests a
+different factor and does not bound sensitivity to sample order.
 
 \begin{algorithm}
 \caption{Bidirectional-entailment clustering by order-dependent anchor scan,
@@ -320,53 +302,13 @@ they spread across several. The maximum is $\log K \le \log M$. The experiments
 use $M=10$, so at most $\ln 10 \approx 2.30$; the worked example below uses
 $M=5$, so at most $\ln 5 \approx 1.61$.
 
-\paragraph{Why entropy and not another impurity measure.}
-\label{sec:why-entropy}
-Shannon entropy is not the only function that measures how spread out the
-cluster shares are. The other standard choice is the Gini impurity
-$G = 1 - \sum_k \hat{p}_k^2$, which rises and falls with the same kind of
-spread. Three things decide the question here.
+Shannon entropy is used because it is the quantity defined by Farquhar et
+al.~\cite{semantic_entropy_nature_2024}. An optional mathematical comparison
+with Gini impurity is kept in Appendix~\ref{app:gini-analysis}; it is not part
+of the main evaluation.
 
-First, Shannon entropy is what Farquhar et
-al.~\cite{semantic_entropy_nature_2024} define, and this thesis measures their
-method as published, so changing the function would break the comparison this
-work exists to make. Second, entropy is additive: the entropy of two
-independent draws is the sum of their entropies. That is what lets the score be
-read as a quantity in nats, on a scale where a given value means the same thing
-from one record to the next. Gini impurity is not additive, so it is an index
-rather than a measured amount.
-
-Third, and most usefully, the choice can be checked rather than argued. The
-score depends only on the cluster-size vector, so with $M$ samples the set of
-inputs it can ever receive is exactly the set of integer partitions of $M$. At
-$M=10$ there are $42$ of them, which is small enough to enumerate completely,
-so the two functions can be compared over every configuration a record can
-take rather than over a sample of them. Of the $840$ pairs that both functions
-order strictly, $812$, or $96.7\,\%$, are ordered the same way. At the $M=5$ of
-the worked example the two agree on all $21$ pairs.
-
-The $28$ disagreements are not scattered. In all $28$, the configuration that
-entropy calls more uncertain is the one with the larger dominant cluster, and
-in $27$ of the $28$ it also has more clusters. The reason is that Gini impurity
-is governed by the share of the single biggest group, while entropy also counts
-how many separate meanings turned up at all. Comparing $(5,5)$ with $(7,1,1,1)$
-makes the difference concrete: entropy calls the second more uncertain ($0.94$
-against $0.69$ nats) because four distinct meanings appeared, while Gini calls
-the first more uncertain ($0.50$ against $0.48$) because no meaning holds more
-than half the samples. For a signal that is meant to fire when a model produces
-several incompatible answers, entropy's reading is the one that matches the
-construct.
-
-This does not make the choice free. AUROC reads only the ranking, so swapping
-the function could move a reported number, but only through those $28$
-configurations. How often they actually occur together is not something the
-published measurement package can answer, because it records per-slice scores
-rather than per-record cluster vectors, so the size of that effect is not
-quantified here. The enumeration is reproduced by
-\texttt{scripts/impurity\_choice\_ranking.py}.
-
-\paragraph{The estimator family.}\label{sec:estimator-family}
-The grid reports this count-based estimator, the probability-weighted variant
+\paragraph{The estimator family.}
+The experiments report this count-based estimator, the probability-weighted variant
 of Farquhar et al.~\cite{semantic_entropy_nature_2024,%
 kossen_semantic_uncertainty_code_2024}, and two clustering-free scores. Two
 axes separate them: whether answers are grouped by meaning, and whether the
@@ -389,25 +331,20 @@ Meaning judgment & \makecell[l]{discrete semantic entropy\\
 \end{tabular}}
 \end{center}
 
-Two of the four ignore meaning and read only the strings: \emph{naive sample
-entropy} counts the raw strings, \emph{surface entropy} counts them after
-normalization. A third, the paper's \emph{naive entropy}, ignores meaning
-in a different way. It does no grouping at all, and is the mean negative
-length-normalized sequence log-likelihood over the $M$ samples, so it reads how
-confident the model was rather than how often an answer recurred. The two
-semantic scores group first: \emph{discrete semantic entropy} counts the
-groups, \emph{full semantic entropy} weights them by the summed likelihood of
-their members. When the samples are equally likely the full version reduces
-exactly to the discrete one, which is a useful check on the implementation.
+Two scores ignore meaning and use answer counts. \emph{Naive sample entropy}
+counts raw strings, while \emph{surface entropy} counts normalized strings.
+The paper's \emph{naive entropy} also ignores meaning, but it uses the mean
+negative length-normalized sequence log-likelihood instead of counts. The two
+semantic scores group answers by meaning. \emph{Discrete semantic entropy}
+counts those groups, while \emph{full semantic entropy} weights them by the
+summed likelihood of their members. When all samples are equally likely, the
+full version equals the discrete version.
 
-The distinction between naive entropy and the two string scores is what RQ2
-rests on, and it is easy to lose. Naive entropy differs from discrete semantic
-entropy in \emph{two} ways: it reads likelihoods rather than counts, and it does
-no grouping. Surface entropy differs in \emph{one}: it counts exactly as the
-discrete estimator does, but groups by string identity rather than by meaning.
-So a comparison against naive entropy cannot separate the contribution of the
-grouping from the contribution of counting. A comparison against surface
-entropy can.
+Testing whether semantic grouping adds value requires a comparison that changes
+only the grouping rule. Naive entropy cannot isolate that effect because it
+also replaces counts with likelihoods. Surface entropy is the direct baseline:
+both scores use counts, but one groups normalized strings and the other groups
+meanings.
 
 Algorithm~\ref{alg:scoring} gives the procedure. Note the ordering: clustering
 consumes the raw answers, and normalization is applied only on the branch that
@@ -512,8 +449,8 @@ partition a connected-components grouping would. This yields $K=3$ clusters:
   c_2 = \{y_3\},\quad
   c_3 = \{y_4\}.
 \]
-Section~\ref{sec:order_dependence_example} shows a case in which that
-agreement fails.
+Appendix~\ref{app:order-dependence} explains why that agreement can
+fail.
 
 \paragraph{Step 3: Empirical probabilities.}
 \[
@@ -531,9 +468,8 @@ agreement fails.
 \end{align*}
 
 \paragraph{The clustering-free comparator.}
-This is not a step of the semantic-entropy method but the comparator RQ2
-turns on, computed from the same five samples. It treats each distinct
-normalized string as its own outcome. With strings
+The same five samples also provide a baseline without semantic grouping. It
+treats each distinct normalized string as its own outcome. With strings
 $\{$\emph{Canberra}$\times 2$, \emph{Canberra is the capital city of
 Australia}$\times 1$, \emph{Sydney}$\times 1$, \emph{Melbourne}$\times 1\}$,
 the surface entropy is
@@ -556,125 +492,47 @@ clustering the correct answer class accounts for 60\,\% of the samples, and
 the entropy is correspondingly lower. This is the mechanism the method is
 named for, and the example is constructed to display it. Whether it produces a
 measurable advantage on real data, once both scores are computed over tens of
-thousands of records, is the question Chapter~\ref{ch:results} settles;
+thousands of records, is the question Chapter~\ref{ch:results} examines;
 the example establishes what is being claimed, not that the claim holds.
-
-\subsection{When the grouping depends on the order}
-\label{sec:order_dependence_example}
-
-The example above is well behaved: its entailment relation happens to be
-transitive, so the anchor scan of Algorithm~\ref{alg:clustering} and a
-connected-components grouping return the same three clusters. That is not
-guaranteed, and when it fails the consequences are larger than they might
-appear. The following case shows why.
-
-Take four sampled answers to the same question:
-
-\begin{center}
-\begin{tabular}{cl}
-\hline
-Index & Sampled answer \\
-\hline
-$a$ & \emph{Canberra} \\
-$b$ & \emph{Canberra, the capital} \\
-$c$ & \emph{The capital city} \\
-$d$ & \emph{Sydney} \\
-\hline
-\end{tabular}
-\end{center}
-
-Suppose the entailment model judges $a \leftrightarrow b$ mutually entailed
-and $b \leftrightarrow c$ mutually entailed, but \emph{not}
-$a \leftrightarrow c$: ``Canberra'' on its own does not entail ``the capital
-city'', and vice versa, without the question supplying the link that $b$
-states explicitly. This is not a contrived failure. It is the ordinary
-behavior of a relation that is symmetric by construction but not transitive,
-and a neural entailment model has no mechanism enforcing transitivity.
-
-Grouping by connected components merges all three through the bridge $b$,
-giving $\{a,b,c\},\{d\}$ regardless of the order the samples arrived in. The
-anchor scan does not, and what it returns depends on that order:
-
-\begin{center}
-\begin{tabular}{lll}
-\hline
-Order presented & Resulting clusters & $\widehat{H}_{\mathrm{sem}}$ \\
-\hline
-$a,b,c,d$ & $\{a,b\},\{c\},\{d\}$      & $1.04$ nats \\
-$b,a,c,d$ & $\{a,b,c\},\{d\}$          & $0.56$ nats \\
-$a,c,b,d$ & $\{a\},\{b,c\},\{d\}$      & $1.04$ nats \\
-\hline
-\end{tabular}
-\end{center}
-
-Three permutations of the same four answers give the same entailment judgments
-throughout, but two different partitions. One of them assigns nearly twice the
-entropy of the other.
-
-The third row is the more striking case, and it is the reassignment rule at
-work. Answer $a$ anchors first and claims $b$. The scan then reaches $c$,
-which is still unassigned, so $c$ becomes an anchor in its own right and
-claims $b$ a second time and overwrites $b$'s existing identifier. Answer $a$ is
-left in a cluster by itself, even though it is mutually entailed with an answer
-it originally grouped with.
-
-Two points follow. First, the reported entropy is a property of the generation
-order as well as of the entailment judgments, which is worth knowing when the
-estimator is described as measuring ``the number of distinct meanings''.
-Second, the effect is invisible in aggregate: the partition is well defined
-and the entropy is finite, so nothing downstream signals that a different
-ordering would have produced a different number.
-
-Whether this matters empirically is a separate question from whether it
-occurs, and it is settled by measurement rather than argument. The
-disagreement between entailment backends reported in
-Section~\ref{sec:clustering-sensitivity} bounds how much the clustering step
-moves the results, and order effects are one component of that. This example
-establishes only that the estimator as published is order-dependent. A reader
-who assumes otherwise, as the natural reading of ``cluster by meaning''
-invites, would be mistaken.
 
 \section{Method contract}
 \label{sec:method-contract}
 
-The algorithm itself needs little. It takes a prompt $x$ with $M$ sampled
-answers drawn under a fixed decoding configuration, and optionally their
-length-normalized sequence log-likelihoods. It groups the \emph{raw} answers
-with the configured equivalence relation, each entailment query prefixed with
-$x$ in the question-conditioned configuration, applying no normalization first.
-It returns the cluster assignments and the discrete semantic entropy over
-cluster frequencies, plus the full semantic entropy when log-likelihoods are
-supplied. From the same samples it also applies the dataset's answer-cleaning
-and returns the surface entropy over distinct normalized strings.
+The method takes a prompt $x$ and $M$ sampled answers. It may also receive each
+answer's length-normalized sequence log-likelihood. It clusters the \emph{raw}
+answers with the selected equivalence rule and does not normalize them first.
+In the question-conditioned setting, every entailment query includes $x$. The
+method returns cluster assignments and discrete semantic entropy, plus full
+semantic entropy when log-likelihoods are available. It separately normalizes
+the same answers to compute surface entropy.
 
-Correctness labelling and evaluation consume those outputs but are not part of
-the method. That separation is what lets
-Chapter~\ref{ch:experimental_design} apply four entailment backends and three
-correctness rules to one stored set of generations.
+Correctness labeling and evaluation use these outputs but are not part of the
+method. Sections~\ref{sec:backends} and~\ref{sec:correctness} explain how four
+entailment models and three correctness rules are applied to one stored set of
+generations.
 
 \section{Related estimators evaluated alongside}
 \label{sec:related-estimators}
 
-The remaining estimators are published baselines, defined here only as far as
-Chapter~\ref{ch:results} needs. One of them, the Semantic Entropy Probe,
+The remaining estimators are published baselines. The Semantic Entropy Probe
 addresses the main method's cost: discrete semantic entropy needs $M$ samples
-per question and up to $M^2$ pairwise entailment checks. The other two, P(True)
-and embedding regression, are simple and widely used.
+per question and up to $M^2$ pairwise entailment checks. P(True) and embedding
+regression provide two simpler comparisons.
 
-All three read a single answer per question rather than the ten the entropy
-estimators use. That answer is called the \emph{most-likely answer} throughout,
-and it is also what correctness is scored on. It is not a greedy decode:
+All three score one answer per question, called the \emph{most-likely answer}.
+The probes read its hidden state, while P(True) also receives the stored
+alternative answers. Correctness is judged on the same most-likely answer.
+Despite its name, it is not a greedy decode:
 following the released code, it is a sample drawn at temperature $0.1$, under a
-token budget four times larger than the samples get.
+token budget of 256 tokens, compared with 50 for each entropy sample.
 Section~\ref{sec:sampling-settings} gives the details.
 
 \subsection{Semantic Entropy Probes}
 \label{sec:sep-method}
 
 A Semantic Entropy Probe (SEP)~\cite{kossen_semantic_entropy_probes_2024}
-attacks the cost problem from the other end: it reads uncertainty off the
-model's internal state, so at test time one forward pass is enough, with no
-multi-sampling and no entailment comparisons.
+predicts uncertainty from the model's internal state. At test time it uses one
+generated answer, with no repeated sampling or entailment comparisons.
 
 For each training question, the most-likely answer supplies a hidden state,
 read at the last generated token as fixed by the stop sequence. Separately, ten
@@ -700,13 +558,14 @@ limited to what is linearly readable from one hidden state.
 \textbf{P(True)} asks the model to grade itself. It is shown the question, a
 set of brainstormed alternative answers, and its own most-likely answer, and is
 then asked whether that answer is true, with the options presented as letters.
-A twenty-shot prefix drawn from the training split comes first. What the released code
-records is the raw log-probability the model puts on the token for the ``true''
-option, not a probability renormalized over the two options, which is what the
-published description suggests. This thesis follows the code, and
-Section~\ref{sec:deviation-register} records the difference. The score is
-oriented like every other score here, larger meaning riskier. P(True) needs no
-extra samples and no probe training, which makes it a natural cheap reference.
+A twenty-shot prefix drawn from the training split comes first. The released
+\texttt{get\_p\_true} function extracts the raw log-probability of the
+``true'' option, \texttt{A}. The final uncertainty score is
+$1-\exp(\log P(\texttt{A})) = 1-P(\texttt{A})$, so larger values mean
+greater uncertainty. This probability is not renormalized over the two answer
+options. This thesis follows that scoring procedure, and
+Section~\ref{sec:deviation-register} records the difference from the published
+description. P(True) reuses the stored samples and needs no probe training.
 
 \textbf{Embedding regression} is a close cousin of the SEP probe: the same kind
 of linear model on the same hidden states of the same most-likely answers, but
@@ -715,5 +574,5 @@ It is reported in two forms. \emph{In-distribution} means trained and tested on
 the same task. \emph{Out-of-distribution} means trained on the pooled prompts of
 the other two short-answer tasks and scored on the held-out one. Together they
 measure how well such a probe transfers between datasets.
-Chapter~\ref{ch:results} calls it the \emph{accuracy probe}, since its training
-target is what distinguishes it from SEP.
+It is called the \emph{accuracy probe} because its training target is what
+distinguishes it from SEP.

@@ -1,0 +1,134 @@
+\chapter{Secondary and Exploratory Results}
+\label{app:secondary-results}
+
+This appendix gives the complete results behind the secondary and exploratory
+analyses summarized in Chapter~\ref{ch:results}. The same aggregation script
+used for the main results assembles the tables. Point estimates come from
+\texttt{measurements.csv}. The hierarchical confidence intervals in
+Table~\ref{tab:all-slices} are imported from the record-level paired-bootstrap
+analysis because they cannot be recomputed from the exported measurement table
+alone.
+
+As in the main Results chapter, a comparison is one reported combination of
+prompting condition, entailment model, correctness rule, and pair of methods.
+An AUROC difference is the first method's AUROC minus the second's, so a
+positive value favors the first method.
+
+\section{All semantic-versus-surface comparisons}
+\label{app:all-comparisons}
+
+Table~\ref{tab:all-slices} and Figure~\ref{fig:comparison-forest} report all 24
+comparisons. Eleven hierarchical intervals exclude zero. Four favor semantic
+entropy, and all four use the Qwen entailment model. Seven favor surface
+entropy, and all seven use token-F1 correctness labels.
+
+The two smaller Qwen-entailment-model differences that favor semantic entropy are below
+the 0.025 variation observed across generation seeds. This is not a
+contradiction. The seed range describes how much one method's AUROC changes
+across seeds. A paired test compares two methods on the same generated answers,
+so variation shared by both methods cancels when their scores are subtracted.
+The seed range is therefore useful for judging one AUROC value, while the paired
+interval is the correct check for a difference between methods.
+
+\input{includes/t_all_slices.tex}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\linewidth]{margin_forest.pdf}
+\caption{All 24 semantic-versus-surface comparisons. The hierarchical
+  intervals resample both the nine (dataset, model) units and the records within
+  them. Filled markers identify the eleven intervals that exclude zero. The
+  twelve comparisons that use a released cross-encoder with an LLM correctness
+  judge appear at the bottom; none of their intervals excludes zero.}
+\label{fig:comparison-forest}
+\end{figure}
+
+One token-F1 comparison does not exclude zero:
+\texttt{default\_5shot} on the Qwen entailment model, with an interval of
+$[-0.017, +0.004]$. This condition has the shortest answers and the strongest
+entailment model, leaving little room for the two estimators to differ.
+
+Every point estimate in Table~\ref{tab:all-slices} agrees to four decimal
+places with the cell-level values behind Table~\ref{tab:sentence-length}. The
+two tables are produced through different code paths, so this agreement checks
+both paths.
+
+\section{Secondary prompting-factorial analysis}
+\label{sec:factorial-results}
+
+Table~\ref{tab:factorial} reports the four prompting combinations on the
+default entailment model, averaged over the two LLM correctness judges. The AUROC
+difference between semantic entropy and surface entropy is $+0.021$ at 255.2
+mean characters, $+0.006$ at 69.8, $-0.001$ at 11.4, and $+0.002$ at 11.2.
+Every interval includes zero, and the largest difference is below the
+seed-variation range.
+
+\input{includes/t_factorial.tex}
+
+The two zero-shot conditions isolate the instruction because both omit worked
+examples. Changing only the instruction changes mean answer length by a factor
+of 3.7, while the AUROC difference falls from $+0.021$ to $+0.006$. In the two
+five-shot conditions, changing only the instruction changes mean answer length
+by 0.2 characters.
+
+Two limits from Section~\ref{sec:conditions} make this a secondary analysis.
+Both short-answer conditions are five-shot, so the design separates length from
+example count only among the longer answers. The added conditions also exist
+only on the default entailment model, so the factorial cannot test the entailment model with
+the largest AUROC differences in Section~\ref{sec:clustering-sensitivity}.
+
+\section{Exploratory long-form experiment}
+\label{sec:longform-results}
+
+This experiment is exploratory. It covers one biography task and one
+correctness judge. The recorded results contain 500 biographies in each of nine
+model--seed runs, but Section~\ref{sec:longform-design} explains that the exact entity list
+cannot be recovered from the stored repository. The default entailment model was not
+run, and this study uses a stricter paragraph-clustering rule than the original
+study.
+
+Table~\ref{tab:longform} reports those runs under claim-level grading by the
+Qwen judge. Mean claim accuracy is 0.375.
+
+\input{includes/t_longform.tex}
+
+Surface entropy scores 0.4965 and naive sample entropy 0.4973 under every
+entailment model. Both are near chance. These baselines have a structural limit
+for varied paragraph outputs: whenever all ten samples are different strings,
+each forms its own group and the entropy reaches the same maximum value. The
+aggregate AUROC values do not show that every record has a constant score.
+In particular, a fully constant score would give AUROC exactly 0.5 with
+average-rank handling of ties. These near-chance baselines provide only a weak
+test of the semantic estimator.
+
+The results also show that the choice of entailment model matters.
+Discrete semantic entropy has an AUROC of 0.5245 with the base DeBERTa-v3 model,
+0.6703 with the large variant, and 0.7084 with Qwen-72B.
+This 0.184 range shows strong dependence on the entailment model,
+but it is not a clean ranking of paragraph-entailment models. The experiment
+uses \texttt{strict\_entailment} throughout, while the original paragraph
+experiment uses the relaxed rule. A strict rule with a lower-recall model can
+split answers too aggressively. The single Qwen correctness judge is also used
+for clustering, so this experiment lacks a check with a different grader.
+The original study reports its strongest paragraph result with DeBERTa, but
+the different clustering rules mean that the current result is not a direct
+test of that ranking.
+
+\section{Secondary comparison of AUROC and AURAC}
+\label{sec:aurac-disagreement}
+
+AUROC is the primary metric in this thesis. Table~\ref{tab:aurac} provides a
+secondary sensitivity analysis using the two rejection-accuracy definitions.
+With AUROC, discrete semantic entropy leads surface entropy in 14 of 24
+comparisons, with a mean difference of $+0.0016$. With the released
+\texttt{aurac\_paper} definition, it leads in 8 of 24 and the mean difference
+is $-0.0015$. With \texttt{aurac\_mean\_retained}, it leads in 6 of 24 and the
+mean difference is $-0.0033$.
+
+\input{includes/t_aurac.tex}
+
+Across the 648 discrete-semantic-entropy cells at $T=1.0$,
+\texttt{aurac\_paper} correlates with the generating model's accuracy at
+$r = 0.971$, and \texttt{aurac\_mean\_retained} correlates at $r = 0.965$.
+The corresponding correlation for AUROC is $r = 0.502$. The two AURAC measures
+therefore reflect the model's accuracy much more strongly than AUROC does.

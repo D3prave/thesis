@@ -1,62 +1,42 @@
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
 
-Large language models often produce fluent answers that are wrong or
-unsupported, and they rarely warn the reader when this happens. Semantic
-entropy, introduced by Farquhar et al.\ in \emph{Nature} in 2024, is a
-training-free signal for that failure. The model is asked the same question
-several times, the sampled answers are grouped so that answers meaning the same
-thing count as one, and the spread over those meaning-groups is measured with
-Shannon entropy. If the samples agree in meaning the answer is probably safe;
-if they scatter across incompatible meanings it is probably not.
+Large language models often give fluent answers that are wrong or unsupported.
+They also rarely warn the reader when this happens. Semantic entropy can flag
+some of these failures without retraining the model. The model answers the same
+question several times, and answers that mean the same thing are placed in one
+group.
+Shannon entropy then measures how widely the samples are spread across the
+groups. Agreement in meaning suggests lower risk, while conflicting meanings
+suggest higher risk.
 
-This thesis does not propose a new method. It reimplements the published one
-against the authors' released code, on three open generators, three
-short-answer benchmarks and a long-form biography task. That setup is used to
-ask three questions. Does semantic entropy detect confabulations better than
-the baselines the original paper evaluates? Is its advantage due to the
-clustering step in particular? And how far does the answer move when
-measurement choices the literature treats as settings are varied instead of
-fixed?
+This thesis does not propose a new method. It reimplements the published method
+by following the authors' released code. The experiments use three open
+language models and three short-answer benchmarks. They ask whether semantic
+entropy performs better than the methods in the original study, which step
+explains any improvement, and how strongly the result depends on evaluation
+choices.
 
-Semantic entropy does detect confabulations better than the baselines the
-original evaluates. On sentence-length answers it reaches AUROC 0.758, against
-0.714 for self-evaluation and 0.694 for entropy over sequence log-likelihoods,
-and the advantage over that last baseline, which is the comparison the original
-leads with, reproduces.
+On sentence-length answers, semantic entropy performs better than the original
+comparison methods, so the main result reproduces. A step-by-step comparison,
+however, shows that the consistent gain comes from normalizing answer strings
+before counting them. With the entailment model loaded by the released code,
+grouping by meaning gives no clear benefit over counting normalized strings. A
+simpler method without this grouping also performs better than the original
+comparison methods wherever both were tested here.
 
-Attributing that advantage to a single step is the thesis's contribution.
-Every baseline the original
-study uses differs from semantic entropy in more than one respect at once, so
-that design cannot attribute the margin to any one component, although it is
-routinely read as crediting one in particular. Breaking the method into four steps,
-each differing from the one below it in essentially one respect, does attribute
-it. The step that carries the reliable gain is not the clustering. Normalizing the answer strings before counting them is worth
-$+0.040$ AUROC and is positive and resolved in all 24 slices of the evaluation
-grid, the only step above the run-to-run noise. Grouping those normalized
-strings by meaning adds nothing measurable on the entailment model the released
-code loads. Across four prompting conditions and two independent LLM judges,
-eight paired comparisons give margins between $-0.002$ and $+0.022$ AUROC. A
-bootstrap that resamples both the nine independent task units and the records
-within them resolves none of them. The clustering-free comparator also passes
-every comparison the original study runs, with no slice anywhere going the other
-way. The result is conditional in
-two ways that are stated rather than hedged. Substituting a
-72-billion-parameter entailment model produces a resolved margin of $+0.087$.
-And on paragraph-length output no two samples are ever identical, so the
-string-based scores are constant and clustering is not an improvement but a
-precondition.
+The finding depends on the entailment model. A much larger model does show a
+clear benefit from grouping by meaning. The absence of a clear benefit with the
+released-code model does not establish that the methods are equivalent.
 
-Measurement choices move the result by more than the choice of method does. On one fixed set of generations the
-entailment model spans 0.751 to 0.823, which is three times the margin between
-the methods. The sampling temperature reorders the families of detector, and
-the usual setting is the most favorable point in the range. And the standard
-token-overlap correctness rule reverses the sign of the headline contrast.
-Two limitations bound all of this: the correctness judges were never validated
-against human labels, and the entailment model and the judge answer versions of
-the same question, so a method that groups by meaning is favored exactly when
-correctness is scored by meaning.
+Evaluation choices change the result more than the choice between the two
+methods. Changing the entailment model on the same generated answers changes the
+reported score substantially. Sampling temperature changes the ranking of the
+methods, and the correctness rule changes which method performs better. These
+results have two further limits. The correctness judges were not checked against
+human labels. In addition, the entailment model and the correctness judge both
+compare meaning, which may favor a method that also groups answers by meaning.
 
-The method reproduces. The number attached to it is a measurement of the
-apparatus as much as of the method, and the component the margin is usually
-credited to is not the component that produces it.
+Overall, the original comparison reproduces, but its size depends strongly on
+the evaluation setup. For short answers, normalization rather than
+meaning-based grouping produces the consistent gain.

@@ -3,13 +3,13 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{The long-form arm: nine cells, 500 biographies each, claim-level grading by the Qwen judge. Strict bidirectional entailment throughout, which is not the rule the original study applies to paragraphs (Section~\ref{sec:longform-design}).}
+\caption{Exploratory long-form experiment: nine model--seed runs, 500 biographies each, and claim-level grading by the Qwen judge. Strict bidirectional entailment throughout, which is not the rule the original study applies to paragraphs (Section~\ref{sec:longform-design}).}
 \label{tab:longform}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccc@{}}
 \toprule
-Backend & Discrete SE & Surface & Naive sample \\
+Entailment model & Discrete SE & Surface & Naive sample \\
 \midrule
 \texttt{exact-match} & 0.4965 & 0.4965 & 0.4973 \\
 \texttt{nli-deberta-v3-base} & 0.5245 & 0.4965 & 0.4973 \\
@@ -18,5 +18,5 @@ Backend & Discrete SE & Surface & Naive sample \\
 \bottomrule
 \end{tabular}
 \endgroup
-\par\vspace{2pt}\footnotesize Mean claim accuracy 0.375 over the nine cells. Surface and naive sample entropy are constant across backends because they never consult one; they are not performing badly but are structurally degenerate, since ten sampled biographies are never string-identical and every sample forms its own cluster. The canonical \texttt{deberta-v2-xlarge-mnli} was not applied to this arm.
+\par\vspace{2pt}\footnotesize Mean claim accuracy 0.375 over the nine model--seed runs. Surface and naive sample entropy do not use an entailment model, so their results are unchanged across those models. Their AUROCs are near chance. When all ten sampled biographies differ, every sample forms its own string group and the string-based entropy is constant. The released-code default \texttt{deberta-v2-xlarge-mnli} was not applied in this exploratory experiment.
 \end{table}

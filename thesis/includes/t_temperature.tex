@@ -3,7 +3,7 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Sampling temperature, sentence-length answers, canonical backend, Qwen judge. The judge labels are the canonical ones joined by \texttt{prompt\_id} and are identical at all five temperatures, so this is a labels-fixed, estimator-varies comparison. The sweep is quoted only under LLM grading, for the reason given in Section~\ref{sec:temperature-sweep}.}
+\caption{Sampling temperature, sentence-length answers, released-code entailment model, and Qwen judge. Correctness labels from the main run are matched by \texttt{prompt\_id} and reused at all five temperatures. Thus this comparison changes the uncertainty score while holding the labels fixed. The sweep is reported only under LLM grading, for the reason given in Section~\ref{sec:temperature-sweep}.}
 \label{tab:temperature}
 \begingroup
 \setlength{\tabcolsep}{3pt}

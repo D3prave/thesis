@@ -3,15 +3,15 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{What each step of the method is worth. Each rung differs from the one below it in essentially one respect, so the value of each step is separately identified. Computed over all 24 (condition, backend, grader) slices at $T=1.0$, with intervals resampling the nine units. Only the normalization step is positive in every slice, and it is the only one whose margin exceeds the seed noise floor of 0.025.}
+\caption{Four comparisons between consecutive methods. The semantic-versus-surface comparison also changes whether answers are normalized before grouping. The counts cover all 24 prompting-condition, entailment-model, and grading-rule comparisons at $T=1.0$; intervals resample the nine statistical units. Only answer normalization improves the mean AUROC in every comparison, and it is the only change whose mean difference exceeds the mean range across generation seeds.}
 \label{tab:ladder}
 \begingroup
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}p{5.6cm}cccc@{}}
+\begin{tabular}{@{}p{4.8cm}cccc@{}}
 \toprule
-Step & Mean & Positive in & \multicolumn{2}{c}{Resolved} \\
+Change & \makecell{Mean AUROC\\difference} & \makecell{Positive\\comparisons} & \multicolumn{2}{c}{95\,\% CI} \\
 \cmidrule(lr){4-5}
- & & & for & against \\
+ & & & \makecell{above\\zero} & \makecell{below\\zero} \\
 \midrule
 count strings instead of reading likelihoods & +0.0067 & 4 / 24 & 3 & 8 \\
 \textbf{normalize the strings before counting} & \textbf{+0.0398} & \textbf{24 / 24} & \textbf{24} & \textbf{0} \\

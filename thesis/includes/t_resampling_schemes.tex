@@ -3,15 +3,15 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{The same 24 slices under three resampling schemes. Resampling records alone makes 18 of 24 slices look resolved on intervals roughly three times too narrow; carrying the between-unit component leaves 11, and inverts the direction of the majority.}
+\caption{The same 24 comparisons under three resampling schemes. When only records are resampled, 18 of 24 confidence intervals exclude zero and the intervals are roughly three times narrower. Resampling the statistical units as well leaves 11 intervals that exclude zero and changes which method is favored most often.}
 \label{tab:resampling-schemes}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llcccc@{}}
 \toprule
-& & & \multicolumn{2}{c}{Direction} & \\
+& & & \multicolumn{2}{c}{Favored method} & \\
 \cmidrule(lr){4-5}
-Scheme & What it varies & Resolved & SE & Surface & CI width \\
+Scheme & What it varies & \makecell{CIs excluding\\zero} & SE & Surface & \makecell{Mean CI\\width} \\
 \midrule
 \texttt{records} & records, units fixed & 18 / 24 & 10 & 8 & 0.0153 \\
 \texttt{units} & the 9 units & 11 / 24 & 4 & 7 & 0.0435 \\

@@ -1,36 +1,45 @@
 \chapter{Results}
 \label{ch:results}
 
-This chapter reports what was measured. Interpretation waits for
-Chapter~\ref{ch:discussion}. Every table here except the reproduction scorecard
-of Table~\ref{tab:reproduction}, which is written out by hand, is generated from
-the measurement package by one script. Two sets of rows are the exception to
-that: the hierarchical intervals and the out-of-distribution probe figures are
-quoted from two record-level scripts that the published package cannot rerun.
+This chapter reports the measurements; Chapter~\ref{ch:discussion} interprets
+them. Except for the hand-written reproduction scorecard in
+Table~\ref{tab:reproduction}, one aggregation script assembles every table from
+the measurement package described in Appendix~\ref{app:schema}. Most values
+come from \texttt{measurements.csv}. The hierarchical confidence intervals and
+the out-of-distribution probe rows are imported from two record-level analyses
+that the published package cannot rerun without the underlying record data.
 
 \section{How to read the numbers}
 \label{sec:how-to-read}
 
-Three conventions apply throughout, and each changes what a margin means. A
-fourth, on the two rejection-accuracy metrics, is set out in
-Section~\ref{sec:aurac-disagreement}.
+The following conventions apply throughout. A \emph{comparison} is one reported
+combination of prompting condition, entailment model, correctness rule, and
+pair of methods. An \emph{AUROC difference} is the first method's AUROC minus
+the second's, so a positive value favors the first method. The secondary
+analysis of the two rejection-accuracy metrics is reported in
+Appendix~\ref{sec:aurac-disagreement}.
 
-\paragraph{Nine units, not twenty-seven cells.} An aggregate figure is the mean
-over the nine independent (dataset, model) units of the mean over that unit's
-three seeds. Intervals labelled \emph{units} resample those nine units, 2{,}000
-times. Intervals labelled \emph{hierarchical} resample the units and then the
-records inside each drawn cell.
+\paragraph{Nine units, not twenty-seven cells.} An aggregate first averages the
+three seeds within each of the nine independent (dataset, model) units. It then
+averages those nine values. Intervals labeled \emph{units} resample the nine
+units 2{,}000 times. Intervals labeled \emph{hierarchical} also resample the
+records within each selected cell. When an interval excludes zero, the data
+distinguish the two methods under that resampling scheme.
 
-\paragraph{The backend is always named.} Discrete semantic entropy ranges from
+\paragraph{The entailment model is always named.} Discrete semantic entropy ranges from
 0.751 to 0.823 on the same set of generations, depending only on which model
-judges entailment. A semantic-entropy number without a backend attached is not
-well defined, and none is quoted here.
+judges entailment. Each semantic-entropy result therefore names its entailment
+model.
 
-\paragraph{The noise floor.} Table~\ref{tab:seed-noise} gives the AUROC range
-across the three run seeds: 0.024 to 0.030 for the entropy estimators, 0.047
-for P(True). Where a single figure is quoted below, it is $0.025$, the range for
-discrete semantic entropy itself, which is the estimator the comparisons are
-about. A smaller unpaired margin is inside the variation from resampling alone.
+\paragraph{Correctness is judged automatically.} The labels come from token-F1
+or an LLM grader. There are no human labels in this study. Agreement between the
+two LLM graders does not establish that either is correct.
+
+\paragraph{Variation across generation seeds.} Table~\ref{tab:seed-noise} gives
+the AUROC range across the three run seeds: 0.024 to 0.030 for the entropy
+estimators and 0.047 for P(True). For discrete semantic entropy, the relevant
+range is 0.025. An unpaired AUROC difference smaller than 0.025 is therefore no
+larger than the variation caused by changing the generation seed.
 
 \input{includes/t_seed_noise.tex}
 
@@ -39,9 +48,9 @@ about. A smaller unpaired margin is inside the variation from resampling alone.
 
 Table~\ref{tab:sentence-length} gives the sentence-length condition
 (\texttt{chat\_0shot}) under the Qwen judge at $T=1.0$. Likelihood-weighted
-semantic entropy reaches 0.758 and the discrete variant 0.757 on the canonical
-backend, against 0.736 for the clustering-free comparator. Every comparator the
-original uses falls below both semantic estimators.
+semantic entropy reaches 0.758 and the discrete variant 0.757 on the default
+entailment model, against 0.736 for the clustering-free comparator. Every comparator
+used in the original study falls below both semantic estimators.
 
 \input{includes/t_sentence_length.tex}
 
@@ -53,10 +62,11 @@ contrast measured anywhere in this study.
 \label{sec:short-phrase-results}
 
 Table~\ref{tab:short-phrase} gives the short-phrase condition
-(\texttt{default\_5shot}) on the canonical backend under all three correctness
+(\texttt{default\_5shot}) on the default entailment model under all three correctness
 rules. The ordering depends on the rule. Under token-F1, surface entropy leads
-discrete semantic entropy by 0.0133. Under the Qwen judge the margin is
-$+0.0005$ and under the Llama judge $+0.0027$, and both intervals cover zero.
+discrete semantic entropy by 0.0133. Under the Qwen judge the AUROC difference
+is $+0.0005$ and under the Llama judge it is $+0.0027$; both intervals include
+zero.
 Naive predictive entropy moves the same way: second-best under token-F1 at
 0.789, and last of the three under either judge.
 
@@ -69,10 +79,11 @@ estimators under the judges is 0.003 AUROC, against a seed range of
 \section{What reproduces from the original study}
 \label{sec:reproduction}
 
-Table~\ref{tab:reproduction} sets each claim of the original beside what was
-measured here. The reimplementation follows the released code, so a failure to
-reproduce is a finding about the published result rather than about this
-implementation.
+Table~\ref{tab:reproduction} compares selected findings from the original study
+with the measurements here. The reimplementation follows the released
+procedure, but the datasets, models, and grading rules differ. This tests
+whether the reported patterns hold in the current setting, not whether an
+exact repeat gives the same results.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}
@@ -83,35 +94,31 @@ implementation.
   the probe rows follow Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}.
   Absolute levels are not comparable across the two columns, because the
   datasets, generators and correctness judge all differ. What is compared is
-  the ordering and the size of each margin. Values here are measured on three open
+  the ordering and the size of each difference. Values here are measured on three open
   generators two model generations newer.}
 \label{tab:reproduction}
 \begingroup
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}p{4.0cm}p{1.8cm}p{2.2cm}p{1.8cm}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.0cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{1.8cm}@{}}
 \toprule
 Claim & Original & This study & Verdict \\
 \midrule
 Semantic entropy beats entropy over sequence log-likelihoods &
   $0.790$ vs $0.691$ & $+0.063$ to $+0.162$ & reproduces \\
 \addlinespace[2pt]
-\ldots\ beats P(True) & $0.790$ vs $0.698$ & $+0.025$, 6/6 slices & reproduces \\
+\ldots\ beats P(True) & $0.790$ vs $0.698$ & $+0.025$, 6/6 comparisons & reproduces \\
 \addlinespace[2pt]
-\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.050$, 6/6 slices & reproduces \\
+\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.050$, 6/6 comparisons & reproduces \\
 \addlinespace[2pt]
-\ldots\ beats the semantic entropy probe & leads & $+0.051$, 6/6 slices & reproduces \\
+\ldots\ beats the semantic entropy probe & leads & $+0.051$, 6/6 comparisons & reproduces \\
 \addlinespace[2pt]
-Discrete and likelihood-weighted variants are interchangeable &
+Discrete and likelihood-weighted variants perform similarly on average &
   stated & $-0.0015$ over 648 cells & reproduces \\
 \addlinespace[2pt]
 Probes lose accuracy out of distribution & $\approx 0.09$ & $\approx 0.09$ & reproduces \\
 \midrule
 P(True) improves with model size & ``seems to'' &
   flat or inverted within the Llama family & \textbf{does not} \\
-\addlinespace[2pt]
-DeBERTa is the best paragraph entailment model &
-  reported best & 0.525, against 0.708 for the LLM judge &
-  \textbf{not comparable}: different clustering rule \\
 \addlinespace[2pt]
 Sentence-length answers average 95.6 characters &
   95.6 & 255.2 & \textbf{different regime} \\
@@ -120,32 +127,31 @@ Sentence-length answers average 95.6 characters &
 \endgroup
 \end{table}
 
-The six reproducing rows are the substance of the original's evidence, and they
-reproduce on models it did not use. The three that do not are different in
-kind. The P(True) size trend is a real non-reproduction, on a weaker test. The
-paragraph-entailment row is not a disagreement at all, because the two studies
-apply different clustering rules to paragraphs
-(Section~\ref{sec:longform-design}). The answer-length row is a property of
-this collection, caused by the token-budget asymmetry inherited from the code.
-Two defects were reproduced along with the method because the code contains
-them: token-F1 grading, and the TriviaQA split contamination.
+Six findings reproduce on models that the original study did not use.
+The remaining two need different interpretations. The P(True) model-size
+trend does not reproduce, although two sizes from one model family provide only
+a limited test. The answer-length difference is partly related to
+the different token limits inherited from the released code. The
+reimplementation also retains two defects from that code: token-F1 grading and
+the TriviaQA split contamination documented in Appendix~\ref{app:dedup}.
+The exploratory paragraph experiment is reported separately in
+Appendix~\ref{sec:longform-results}.
 
-What the scorecard cannot contain is the claim the original is most often read
-as making, that grouping by meaning earns the margin. Its design has no
-comparison that would test it. That is the next section.
+The original study is often read as showing that grouping answers by meaning
+produces the improvement. Its design does not isolate that step.
+Section~\ref{sec:se-vs-surface} adds the required comparison.
 
-\section{Decomposing the method: what each step is worth}
+\section{Separating the steps of the method}
 \label{sec:se-vs-surface}
 
 \subsection{The four steps}
 \label{sec:ladder}
 
-Semantic entropy differs from the crudest string baseline in four steps, and
-each can be isolated because neighbouring steps differ in essentially one way.
+The comparison separates the method into four consecutive changes.
 Naive predictive entropy reads sequence likelihoods without grouping. Naive
 sample entropy counts raw strings. Surface entropy counts them after
 normalization. Discrete semantic entropy groups the samples by meaning, and the
-full estimator weights those groups by likelihood.
+likelihood-weighted estimator weights those groups by likelihood.
 
 The third step needs one qualification. Following the released code, the
 clustering is run on the raw answers, while surface entropy counts the
@@ -153,15 +159,13 @@ normalized ones. So that step changes two things at the same time: how two
 answers are judged to mean the same thing, and whether the text was cleaned up
 first.
 
-It is worth saying which way that cuts. Cleaning up an answer merges variants
-like different capitalization and punctuation. If the entailment model does not
-also merge them, then the clustering step gets \emph{less} credit than it
-deserves, not more. The imperfection can therefore only understate the value of
-that step, never manufacture one. In practice the model does merge most of these
-variants, but the comparison is not perfectly clean, and the margins below should
-be read with that in mind.
-Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give what each step adds
-over all 24 slices.
+Cleaning up an answer merges variants such as different capitalization and
+punctuation. The entailment model may group these variants differently when
+given the raw text. The comparison therefore does not isolate semantic
+grouping perfectly, and the direction of that effect on AUROC is not
+established here.
+Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give the change at each step
+over all 24 comparisons.
 
 \input{includes/t_ladder.tex}
 
@@ -169,31 +173,35 @@ over all 24 slices.
 \centering
 \includegraphics[width=\linewidth]{ladder.pdf}
 \caption{What each step adds, measured against the step below it over all 24
-  slices. The dashed line is the seed noise floor, which is the AUROC range
+  comparisons. The dashed line is the seed-variation reference, which is the AUROC range
   produced by rerunning the same configuration under a different sampling seed. Only the
   normalization step clears it.}
 \label{fig:ladder}
 \end{figure}
 
-One step is unambiguous. Normalizing the answer strings before counting them is
-worth $+0.0398$ AUROC, positive in all 24 slices and resolved in all 24, and it
-is the only step whose margin exceeds the seed noise floor of 0.025.
+One step is clear. Normalizing the answer strings before counting them adds
+$0.0398$ AUROC on average. The difference is positive and its interval excludes
+zero in all 24 comparisons. It is also the only step whose AUROC difference
+exceeds the seed-variation reference of 0.025.
 
-The other three are not. Counting raw strings instead of reading sequence
-log-likelihoods is positive in only 4 slices of 24 and resolves against raw
-counting in 8. So the familiar claim that counting answer strings beats
-reading log-likelihoods holds only for \emph{normalized} strings. Grouping the
-samples by meaning adds $+0.0016$ over counting normalized strings, positive in
-14 of 24 and resolved against in 7. Weighting the resulting groups by likelihood adds $+0.0015$.
+The other three steps are less consistent. Counting raw strings instead of
+reading sequence log-likelihoods gives a positive AUROC difference in only 4 of
+24 comparisons, while sequence-likelihood entropy performs better with an interval
+that excludes zero in 8. The claim that counting answer strings beats reading
+log-likelihoods therefore holds only after the strings are normalized.
+Grouping samples by meaning adds $0.0016$ AUROC over normalized-string counting
+on average and is positive in 14 of 24 comparisons; seven intervals favor
+normalized-string counting instead. Weighting the meaning groups by likelihood
+adds $0.0015$ AUROC on average.
 
 The rest of this section examines the third step, the one the method is named
 after.
 
-\subsection{The canonical backend under LLM grading}
+\subsection{The default entailment model under LLM grading}
 
 Table~\ref{tab:canonical-eight} gives the four prompting conditions crossed
-with the two independent judges, on \texttt{deberta-v2-xlarge-mnli}, with
-margins and intervals from the hierarchical paired bootstrap. The margins run
+with the two LLM correctness judges, on \texttt{deberta-v2-xlarge-mnli}, with
+AUROC differences and intervals from the hierarchical paired bootstrap. The differences run
 from $-0.0020$ to $+0.0223$, with two-sided $p$ from 0.36 to 0.94. Not one of
 the eight intervals excludes zero.
 
@@ -201,71 +209,41 @@ the eight intervals excludes zero.
 
 \subsection{The resampling scheme changes the answer}
 
-Table~\ref{tab:resampling-schemes} reports the same 24 slices under the three
-schemes of Section~\ref{sec:statistics}. Resampling records alone resolves 18
-of 24 slices at a mean interval width of 0.0153. Resampling both units and
-records resolves 11, at 0.0467, three times wider. Seven resolutions do not
-survive, and the direction of the majority flips: of the eleven that remain,
-four favor semantic entropy and seven favor surface entropy. The units-only
-scheme picks the same eleven, so the between-unit component is what does the
-work.
+Table~\ref{tab:resampling-schemes} reports the same 24 comparisons under the
+three schemes in Section~\ref{sec:statistics}. When only records are resampled,
+18 intervals exclude zero and their mean width is 0.0153. When both units and
+records are resampled, only 11 intervals exclude zero and their mean width is
+0.0467, about three times wider. Seven apparent differences therefore
+disappear. Of the eleven that remain, four favor semantic entropy and seven
+favor surface entropy. Resampling units alone identifies the same eleven,
+showing that variation between units causes the change.
 
 \input{includes/t_resampling_schemes.tex}
 
-\subsection{All twenty-four slices}
+\subsection{Pattern across all twenty-four comparisons}
 
-Table~\ref{tab:all-slices} and Figure~\ref{fig:margin-forest} give every slice.
-The eleven resolved ones are not scattered. All four favoring semantic entropy
-are Qwen-backend slices: $+0.0867$ and $+0.0872$ in \texttt{chat\_0shot} under
-the two judges, and $+0.0119$ and $+0.0139$ in \texttt{default\_5shot}. All
-seven favoring surface entropy are token-F1 slices, across all four conditions
-and all three backends.
-
-The last two of those four are smaller than the 0.025 seed floor, which was
-given earlier as the scale for judging a margin. That is not a contradiction.
-The floor describes how much a \emph{single} method's AUROC moves when the
-sampling seed changes. A paired test compares two methods on the same generated
-answers, so most of that movement affects both of them equally and cancels out
-when one is subtracted from the other. The floor is the right check for a
-single number on its own; the interval is the right check for a difference
-between two methods. Both of these margins are small, and neither carries an
-argument by itself.
-
-\input{includes/t_all_slices.tex}
-
-\begin{figure}[htb]
-\centering
-\includegraphics[width=\linewidth]{margin_forest.pdf}
-\caption{All 24 slices of the semantic-minus-surface comparison, with
-  hierarchical intervals resampling both the nine (dataset, model) units and
-  the records within them. Filled markers mark the eleven slices whose interval
-  excludes zero. The twelve slices using a released cross-encoder under LLM
-  grading sit at the bottom, and none of them resolves.}
-\label{fig:margin-forest}
-\end{figure}
-
-One token-F1 slice does not resolve: \texttt{default\_5shot} on the Qwen
-backend, at $[-0.017, +0.004]$. Those are the shortest answers on the strongest
-entailment model, where the two estimators have least room to differ.
-
-Every point estimate in Table~\ref{tab:all-slices} agrees to four decimal
-places with the cell-level values behind Table~\ref{tab:sentence-length},
-though the two come from different code paths, so the agreement checks
-both.
+Across the eleven hierarchical intervals that exclude zero, four favor
+semantic entropy and seven favor surface entropy. The four that favor semantic
+entropy all use the Qwen entailment model. The seven that favor surface
+entropy all use token-F1 correctness labels. On the twelve comparisons that use
+a released cross-encoder with an LLM correctness judge, no interval excludes
+zero. Appendix~\ref{app:all-comparisons} gives the complete table, forest plot,
+and comparison-level checks.
 
 \section{Semantic entropy against the original's baselines}
 \label{sec:paper-baselines}
 
-Table~\ref{tab:paper-baselines} gives the margin of discrete semantic entropy
-over each comparator the original uses. Against P(True) the mean margin is
-$+0.025$ over six slices, range $[+0.010, +0.042]$. Against the semantic
+Table~\ref{tab:paper-baselines} gives the AUROC difference between discrete
+semantic entropy and each comparator used in the original study. Against
+P(True) the mean difference is $+0.025$ over six comparisons, with a range of
+$[+0.010, +0.042]$. Against the semantic
 entropy probe it is $+0.051$, range $[+0.031, +0.080]$, and against the
 accuracy probe $+0.050$, range $[+0.033, +0.084]$. Semantic entropy leads all
-three in every slice where each was measured.
+three in every comparison where each was measured.
 
 \input{includes/t_paper_baselines.tex}
 
-P(True) and the probes were collected on different entailment backends, so
+P(True) and the probes were collected on different entailment models, so
 those two are never compared directly here.
 
 Table~\ref{tab:ptrue-size} reports P(True) by generator size. The original
@@ -277,126 +255,73 @@ original observes across three families.
 
 \input{includes/t_ptrue_size.tex}
 
-\section{The entailment backend}
+\section{The entailment model}
 \label{sec:clustering-sensitivity}
 
-Table~\ref{tab:backend} varies the entailment model on identical generations.
-Discrete semantic entropy moves from 0.751 on \texttt{nli-deberta-v3-large}, to
-0.757 on the canonical \texttt{deberta-v2-xlarge-mnli}, to 0.823 on
-\texttt{Qwen2.5-72B-Instruct}. Surface entropy is 0.7364 under all three to
-four decimal places, as it must be, since it never consults an entailment
-model. The margins are therefore $+0.0147$, $+0.0204$ and $+0.0867$, and only
-the last excludes zero.
+Table~\ref{tab:backend} changes the entailment model while keeping the generated
+answers fixed. Discrete semantic entropy has an AUROC of 0.751 with the large
+DeBERTa-v3 model, 0.757 with the released-code default, and 0.823 with Qwen-72B.
+Surface entropy is 0.7364 under all three because it does not use an entailment
+model. The AUROC differences are $+0.0147$, $+0.0204$, and
+$+0.0867$; only the last has an interval that excludes zero.
 
 \input{includes/t_backend.tex}
 
 \begin{figure}[htb]
 \centering
-\includegraphics[width=\linewidth]{backend_ladder.pdf}
-\caption{Discrete semantic entropy by entailment backend on identical
-  generations, with surface entropy as the reference line. Left:
-  sentence-length answers, Qwen judge. Right: the long-form arm, where the
-  reference line is a constant. Neither vertical axis starts at zero.}
+\includegraphics[width=0.86\linewidth]{backend_ladder.pdf}
+\caption{Discrete semantic entropy by entailment model on identical
+  sentence-length answers under the Qwen correctness judge, with surface
+  entropy as the reference line. The vertical axis does not start at zero.}
 \label{fig:backend-ladder}
 \end{figure}
 
-\paragraph{The independent-grader check.} In the Qwen configuration one model
-is both entailment backend and correctness judge.
+\paragraph{Check with a different grader.} In the Qwen configuration one model
+is both entailment model and correctness judge.
 Table~\ref{tab:grader-check} re-grades identical answers with Llama-3.1-70B.
-The margins are $+0.0867$ against $+0.0872$ on the Qwen backend, $+0.0204$
-against $+0.0223$ on the canonical backend, and $+0.0147$ against $+0.0139$ on
-\texttt{nli-deberta-v3-large}. The ranking and the sizes are unchanged. The two
+The AUROC differences are $+0.0867$ against $+0.0872$ on the Qwen entailment model, $+0.0204$
+against $+0.0223$ on the default entailment model, and $+0.0147$ against $+0.0139$ on
+\texttt{nli-deberta-v3-large}. The ranking is unchanged and the differences
+are similar in size. The two
 judges agree on 93.7\,\% of records in this condition.
 
 \input{includes/t_grader_check.tex}
 
-\paragraph{The backend decides which generator benefits.}
-Table~\ref{tab:backend-by-model} splits the sentence-length margin by
-generator. On the canonical backend the generator with the longest answers,
-Llama-3.1-8B at 667 mean characters, has the smallest margin at $+0.012$, while
+\paragraph{The entailment model changes which generator benefits most.}
+Table~\ref{tab:backend-by-model} splits the sentence-length AUROC difference by
+generator. On the default entailment model the generator with the longest answers,
+Llama-3.1-8B at 667 mean characters, has the smallest difference at $+0.012$, while
 the two short-answer generators sit at $+0.026$ and $+0.029$. Substituting the
 72B entailment model inverts the ordering: the same generator now has the
-largest margin at $+0.132$, against $+0.067$ and $+0.063$. The generations are
+largest difference at $+0.132$, against $+0.067$ and $+0.063$. The generations are
 identical in both columns.
 
 \input{includes/t_backend_by_model.tex}
 
-\paragraph{Backends disagree about how many meanings are present.}
+\paragraph{Entailment models assign different cluster counts.}
 Table~\ref{tab:cluster-counts} gives the mean clusters per record out of ten
-samples. In \texttt{chat\_0shot} the canonical backend produces 4.34, 
+samples. In \texttt{chat\_0shot} the default entailment model produces 4.34,
 \texttt{nli-deberta-v3-large} 4.23 and \texttt{Qwen2.5-72B-Instruct} 4.01.
 Taken two at a time, they assign the same number of clusters to between
 60.3\,\% and 72.8\,\% of records; all three agree on at most 60.3\,\%.
 
 \input{includes/t_cluster_counts.tex}
 
-\section{Instruction and worked examples: the \texorpdfstring{$2\times2$}{2x2}}
-\label{sec:factorial-results}
-
-Table~\ref{tab:factorial} reports the four corners on the canonical backend,
-averaged over the two LLM judges. The margin over surface entropy is $+0.021$
-at 255.2 mean characters, $+0.006$ at 69.8, $-0.001$ at 11.4 and $+0.002$ at
-11.2. Every interval covers zero, and the largest of the four is below the seed
-range.
-
-\input{includes/t_factorial.tex}
-
-The isolating contrast is the pair of 0-shot corners, where the example count
-is held at zero and only the instruction changes: mean answer length differs by
-a factor of 3.7 and the margin falls from $+0.021$ to $+0.006$. The two 5-shot
-corners differ in instruction alone and their mean answer lengths differ by 0.2
-characters.
-
-Two limits recorded in Section~\ref{sec:conditions} apply: both short corners
-are 5-shot, and the added corners exist on the canonical backend only, so the
-factorial cannot be estimated on the backend where the margins in
-Section~\ref{sec:clustering-sensitivity} are largest.
-
-\section{The long-form arm}
-\label{sec:longform-results}
-
-Table~\ref{tab:longform} gives the nine long-form cells, 500 biographies each,
-under claim-level grading by the Qwen judge, with mean claim accuracy 0.375.
-
-\input{includes/t_longform.tex}
-
-Surface entropy scores 0.4965 and naive sample entropy 0.4973 under every
-backend. These are not backend-invariant by coincidence, and they are not
-measurements of a weak detector. Ten sampled biographies are never
-string-identical, so every sample forms its own cluster, the score is constant
-within a cell, and the AUROC is chance up to ties. No comparison against them
-is informative here.
-
-What the arm does support is a comparison between backends. Across the three
-entailment backends the spread is 0.184 AUROC: 0.5245 under
-\texttt{nli-deberta-v3-base}, 0.6703 under \texttt{nli-deberta-v3-large} and
-0.7084 under \texttt{Qwen2.5-72B-Instruct}. Exact match sits at 0.4965, which
-widens the range to 0.212, but it is the degenerate baseline just described and
-is not a fourth reading of the same choice. The canonical backend was never
-applied to this arm.
-
-The 0.5245 for \texttt{nli-deberta-v3-base} is a result about this study's
-clustering rule, not about that model's ability to judge paragraph entailment.
-As Section~\ref{sec:longform-design} records, this study sets
-\texttt{strict\_entailment} in every arm while the original's paragraph result
-uses the relaxed default, and a strict rule applied with a lower-recall model
-over-splits.
-
 \section{Sampling temperature}
 \label{sec:temperature-sensitivity}
 
 Table~\ref{tab:temperature} and Figure~\ref{fig:temperature} give the sweep
-under LLM grading, where the labels are the canonical ones joined by
-\texttt{prompt\_id} and identical at all five temperatures.
+under LLM grading. The labels for the original graded answers are joined by
+\texttt{prompt\_id} and remain identical at all five temperatures.
 
 \input{includes/t_temperature.tex}
 
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.86\linewidth]{temperature.pdf}
-\caption{AUROC against sampling temperature, sentence-length answers, canonical
-  backend, Qwen judge. The correctness labels are held fixed across the five
-  columns, so only the estimator varies.}
+\caption{AUROC against sampling temperature, sentence-length answers, default
+  entailment model, Qwen judge. The correctness labels are held fixed across the five
+  temperatures, while the uncertainty samples change.}
 \label{fig:temperature}
 \end{figure}
 
@@ -416,7 +341,7 @@ the reason in Section~\ref{sec:temperature-sweep}.
 Table~\ref{tab:correctness} grades identical answers three ways. In
 \texttt{chat\_0shot} the token-overlap rule scores the generators at 0.344 mean
 accuracy against 0.623 under the Qwen judge and 0.677 under the Llama judge.
-The semantic-minus-surface margin in that condition is $-0.0506$ under
+The semantic-minus-surface AUROC difference in that condition is $-0.0506$ under
 token-F1, $+0.0204$ under the Qwen judge and $+0.0223$ under the Llama judge:
 the same answers, the same scores, and a change of sign.
 
@@ -430,39 +355,22 @@ judges.
 Table~\ref{tab:degenerate-cells} lists the six cells of \texttt{chat\_0shot}
 whose token-F1 accuracy falls below 0.05. Three are TriviaQA with
 Llama-3.1-8B, at 0.0106, 0.0079 and 0.0079. That is three or four correct
-answers out of 378. An AUROC computed against three positive examples is not a stable
-measurement, and these cells carry much of the token-F1 margin in this
+answers out of 378. An AUROC based on only three or four correct examples is not a stable
+measurement, and these cells carry much of the token-F1 AUROC difference in this
 condition. Excluding the six cells outside the accuracy range $[0.05, 0.95]$,
-which is two of the nine units, moves the Qwen-backend token-F1 margin from
-$-0.0658$ to $-0.0277$, while the canonical-backend margin moves only from
+which is two of the nine units, moves the Qwen-entailment-model token-F1 difference from
+$-0.0658$ to $-0.0277$, while the default-entailment-model difference moves only from
 $-0.0506$ to $-0.0485$. Dropping the TriviaQA and Llama-3.1-8B unit alone gives
 $-0.0330$ and $-0.0440$. No LLM-graded short-answer cell falls below 0.36
-accuracy; the lowest is 0.3625. The long-form arm, which is graded by the same
-Qwen judge, does go lower, to 0.242.
+accuracy; the lowest is 0.3625.
 
 \input{includes/t_degenerate_cells.tex}
-
-\section{AUROC against AURAC}
-\label{sec:aurac-disagreement}
-
-Table~\ref{tab:aurac} scores the same 24 slices with the three headline
-metrics. Under AUROC, discrete semantic entropy leads surface entropy in 14 of
-24 slices at a mean margin of $+0.0016$. Under \texttt{aurac\_paper}, the
-released definition, it leads in 8 of 24 at $-0.0015$. Under
-\texttt{aurac\_mean\_retained} it leads in 6 of 24 at $-0.0033$.
-
-\input{includes/t_aurac.tex}
-
-Over the 648 discrete-semantic-entropy cells at $T=1.0$,
-\texttt{aurac\_paper} correlates with the generating model's own accuracy at
-$r = 0.971$ and \texttt{aurac\_mean\_retained} at $r = 0.965$. The
-corresponding figure for AUROC is $r = 0.502$.
 
 \section{Probes in and out of distribution}
 \label{sec:probe-results}
 
 Table~\ref{tab:probes} gives the two hidden-state probes on
-\texttt{nli-deberta-v3-large}, the backend whose clustering supplied the
+\texttt{nli-deberta-v3-large}, the entailment model whose clustering supplied the
 semantic entropy probe's training target, in and out of distribution.
 
 In distribution, on sentence-length answers, the accuracy probe leads the
@@ -488,3 +396,49 @@ out-of-distribution pass ran under one grader per condition. It used the Llama
 judge for sentence-length answers and token-F1 for short phrases. So the two
 out-of-distribution rows are not graded alike and should not be compared with
 each other directly.
+
+Figure~\ref{fig:factor-effects} summarizes the measured changes from the method
+decomposition and the evaluation checks. The entailment and correctness
+comparisons reuse stored answers. The temperature comparison changes the
+uncertainty samples while keeping the graded answers and LLM labels fixed.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\linewidth]{factor_effects.pdf}
+\caption{Measured AUROC changes from method steps and evaluation choices.
+  Hatched bars show method steps; solid bars show evaluation choices. The
+  figure combines the comparisons described in this chapter rather than one
+  fully crossed experiment.}
+\label{fig:factor-effects}
+\end{figure}
+
+\section{Secondary and exploratory analyses}
+\label{sec:secondary-results-overview}
+
+Three analyses support the main results but do not carry the headline
+conclusions. Their complete tables and checks are in
+Appendix~\ref{app:secondary-results}.
+
+\paragraph{Prompting factorial.} The added prompting conditions separate the
+instruction from the number of worked examples. Changing only the instruction
+in the two zero-shot conditions changes mean answer length by a factor of 3.7,
+but none of the four semantic-versus-surface intervals excludes zero. This is a
+secondary analysis because the added conditions exist only on the default
+entailment model and cannot test the entailment model with the largest AUROC differences. Full
+results are in Appendix~\ref{sec:factorial-results}.
+
+\paragraph{Exploratory long-form experiment.} On paragraph-length biographies,
+the string-based estimators perform near chance. The semantic estimator varies
+across entailment models, but the
+comparison is exploratory: it covers one task and one correctness judge, the
+exact entity list cannot be recovered from the stored repository, the default
+entailment model was not run, and the clustering rule differs from the original
+paragraph experiment. Appendix~\ref{sec:longform-results} reports the full
+results and limits.
+
+\paragraph{Rejection-accuracy metrics.} Changing from AUROC to either
+rejection-accuracy definition changes which method leads most comparisons. Both
+rejection-accuracy measures also track the generating model's accuracy much
+more closely than AUROC does. This secondary analysis supports using AUROC as
+the primary metric; Appendix~\ref{sec:aurac-disagreement} gives the complete
+comparison.

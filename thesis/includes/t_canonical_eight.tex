@@ -3,22 +3,22 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Discrete semantic entropy against surface entropy on the entailment model the released code loads, under LLM grading: four prompting conditions crossed with two independent judges. Margins and 95\,\% intervals from the hierarchical paired bootstrap, which resamples both the nine (dataset, model) units and the records within them. Not one of the eight intervals excludes zero.}
+\caption{Discrete semantic entropy against surface entropy on the entailment model the released code loads, under LLM grading: four prompting conditions crossed with two independent judges. AUROC differences and 95\,\% intervals come from the hierarchical paired bootstrap, which resamples both the nine (dataset, model) units and the records within them. Not one of the eight intervals excludes zero.}
 \label{tab:canonical-eight}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llcccl@{}}
 \toprule
-Condition & Judge & Margin & 95\,\% CI (hierarchical) & $p$ & Verdict \\
+Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & $p$ & CI result \\
 \midrule
-\texttt{chat\_0shot} & Qwen judge & +0.0204 & [-0.030, +0.059] & 0.36 & not resolved \\
-\texttt{chat\_0shot} & Llama judge & +0.0223 & [-0.033, +0.066] & 0.36 & not resolved \\
-\texttt{default\_0shot} & Qwen judge & +0.0032 & [-0.026, +0.028] & 0.78 & not resolved \\
-\texttt{default\_0shot} & Llama judge & +0.0084 & [-0.021, +0.033] & 0.50 & not resolved \\
-\texttt{chat\_5shot} & Qwen judge & -0.0020 & [-0.014, +0.008] & 0.71 & not resolved \\
-\texttt{chat\_5shot} & Llama judge & -0.0005 & [-0.011, +0.010] & 0.94 & not resolved \\
-\texttt{default\_5shot} & Qwen judge & +0.0005 & [-0.007, +0.008] & 0.90 & not resolved \\
-\texttt{default\_5shot} & Llama judge & +0.0027 & [-0.006, +0.012] & 0.56 & not resolved \\
+\texttt{chat\_0shot} & Qwen judge & +0.0204 & [-0.030, +0.059] & 0.36 & includes zero \\
+\texttt{chat\_0shot} & Llama judge & +0.0223 & [-0.033, +0.066] & 0.36 & includes zero \\
+\texttt{default\_0shot} & Qwen judge & +0.0032 & [-0.026, +0.028] & 0.78 & includes zero \\
+\texttt{default\_0shot} & Llama judge & +0.0084 & [-0.021, +0.033] & 0.50 & includes zero \\
+\texttt{chat\_5shot} & Qwen judge & -0.0020 & [-0.014, +0.008] & 0.71 & includes zero \\
+\texttt{chat\_5shot} & Llama judge & -0.0005 & [-0.011, +0.010] & 0.94 & includes zero \\
+\texttt{default\_5shot} & Qwen judge & +0.0005 & [-0.007, +0.008] & 0.90 & includes zero \\
+\texttt{default\_5shot} & Llama judge & +0.0027 & [-0.006, +0.012] & 0.56 & includes zero \\
 \bottomrule
 \end{tabular}
 \endgroup

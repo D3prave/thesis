@@ -3,13 +3,13 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{The $2\times2$ on the canonical backend, mean of the two LLM judges. The isolating contrast is the pair of 0-shot corners, where demonstrations are held at zero and only the instruction changes. Every interval spans zero.}
+\caption{Secondary prompting analysis using the released-code entailment model, averaged over the two LLM judges. The clearest instruction comparison is between the two zero-shot conditions: both have no examples, so only the instruction changes. Every interval includes zero.}
 \label{tab:factorial}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccrc@{}}
 \toprule
-Condition & Mean chars & Demos & SE $-$ surface & 95\,\% CI (units) \\
+Condition & Mean characters & Examples & AUROC difference & 95\,\% CI (units) \\
 \midrule
 \texttt{chat\_0shot} & 255.2 & 0 & +0.021 & [-0.029, +0.063] \\
 \texttt{default\_0shot} & 69.8 & 0 & +0.006 & [-0.022, +0.031] \\

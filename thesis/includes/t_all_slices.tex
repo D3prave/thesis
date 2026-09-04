@@ -3,13 +3,13 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{All 24 slices: discrete semantic entropy minus surface entropy, with hierarchical intervals resampling both the nine units and the records within them. The final column names the direction where the interval excludes zero. Every slice resolved in favor of semantic entropy is a Qwen-backend slice; every slice resolved in favor of surface entropy is a token-F1 slice.}
+\caption{All 24 comparisons: discrete semantic entropy minus surface entropy, with hierarchical intervals resampling both the nine units and the records within them. The final column names the direction where the interval excludes zero. Every comparison favoring semantic entropy uses the Qwen entailment model; every comparison favoring surface entropy uses token-F1 grading.}
 \label{tab:all-slices}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lllccl@{}}
 \toprule
-Condition & Backend & Grader & Margin & 95\,\% CI (hier.) & Resolved \\
+Condition & \makecell{Entailment\\model} & Grader & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & \makecell{Supported\\direction} \\
 \midrule
 \texttt{chat\_0shot} & \texttt{xlarge} & Qwen judge & +0.0204 & [-0.030, +0.059] & --- \\
 \texttt{chat\_0shot} & \texttt{xlarge} & Llama judge & +0.0223 & [-0.033, +0.066] & --- \\

@@ -3,15 +3,15 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{The entailment backend on identical generations (\texttt{chat\_0shot}, Qwen judge, $T=1.0$). Surface entropy is invariant to four decimal places across all three, as it must be: it never consults an entailment model.}
+\caption{Changing the entailment model while keeping the generated answers fixed (\texttt{chat\_0shot}, Qwen judge, $T=1.0$). Surface entropy is invariant to four decimal places across all three, as it must be: it never consults an entailment model.}
 \label{tab:backend}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-Backend & Discrete SE & Surface & Margin & 95\,\% CI \\
+Entailment model & Discrete SE & Surface & \makecell{AUROC\\difference} & 95\,\% CI \\
 \midrule
-\texttt{deberta-v2-xlarge-mnli} \textbf{(canonical)} & 0.7568 & 0.7364 & +0.0204 & [-0.027, +0.058] \\
+\makecell[l]{\texttt{deberta-v2-xlarge-mnli}\\\textbf{released-code default}} & 0.7568 & 0.7364 & +0.0204 & [-0.027, +0.058] \\
 \texttt{nli-deberta-v3-large} & 0.7511 & 0.7364 & +0.0147 & [-0.027, +0.049] \\
 \texttt{Qwen2.5-72B-Instruct} & 0.8232 & 0.7364 & +0.0867 & [+0.061, +0.117] \\
 \bottomrule

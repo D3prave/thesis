@@ -3,13 +3,13 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{The independent-grader check. The Qwen configuration uses one model as both entailment backend and correctness judge; re-grading the identical answers with Llama-3.1-70B leaves the ranking and the magnitudes unchanged, so the backend effect is not an artifact of one model occupying both roles.}
+\caption{The independent-grader check. The Qwen configuration uses one model as both entailment model and correctness judge; re-grading the identical answers with Llama-3.1-70B gives the same ranking and very similar differences. The effect of changing the entailment model is therefore not caused only by one model filling both roles.}
 \label{tab:grader-check}
 \begingroup
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lcc@{}}
 \toprule
-Backend & Margin, Qwen judge & Margin, Llama judge \\
+Entailment model & \makecell{AUROC difference\\Qwen judge} & \makecell{AUROC difference\\Llama judge} \\
 \midrule
 \texttt{deberta-v2-xlarge-mnli} & +0.0204 & +0.0223 \\
 \texttt{nli-deberta-v3-large} & +0.0147 & +0.0139 \\
