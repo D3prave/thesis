@@ -56,7 +56,7 @@ used in the original study falls below both semantic estimators.
 
 The two semantic estimators differ by 0.002, well below the seed range. Over
 all 648 cells at $T=1.0$ their mean difference is $-0.0015$, the smallest
-contrast measured anywhere in this study.
+average change in the four-step decomposition.
 
 \section{Short-phrase answers}
 \label{sec:short-phrase-results}
@@ -72,9 +72,14 @@ Naive predictive entropy moves the same way: second-best under token-F1 at
 
 \input{includes/t_short_phrase.tex}
 
-Mean answer length here is 11.2 characters. The spread between the three
-estimators under the judges is 0.003 AUROC, against a seed range of
-0.024--0.030.
+Appendix~\ref{app:complete-method-results} gives the absolute AUROC of all
+eight recorded methods for both original prompting conditions, under all three
+correctness rules, along with the added conditions and entailment models.
+
+Mean answer length here is 11.2 characters. The semantic-versus-surface
+differences under the LLM judges are below 0.003 AUROC, against a seed range of
+0.024--0.030. Including naive predictive entropy, the three-method spread is
+0.011 under the Qwen judge and 0.006 under the Llama judge.
 
 \section{What reproduces from the original study}
 \label{sec:reproduction}
@@ -237,8 +242,10 @@ three in every comparison where each was measured.
 
 \input{includes/t_paper_baselines.tex}
 
-P(True) and the probes were collected on different entailment models, so
-those two are never compared directly here.
+The semantic-entropy comparator uses the default entailment model for P(True)
+and \texttt{nli-deberta-v3-large} for the probes. These baseline contrasts
+therefore do not hold semantic entropy's entailment model fixed. P(True)
+itself does not use clustering.
 
 Table~\ref{tab:ptrue-size} reports P(True) by generator size. The original
 suggests the method ``seems to improve with model size''. Within the Llama
@@ -276,8 +283,9 @@ Table~\ref{tab:grader-check} re-grades identical answers with Llama-3.1-70B.
 The AUROC differences are $+0.0867$ against $+0.0872$ on the Qwen entailment model, $+0.0204$
 against $+0.0223$ on the default entailment model, and $+0.0147$ against $+0.0139$ on
 \texttt{nli-deberta-v3-large}. The ranking is unchanged and the differences
-are similar in size. The two
-judges agree on 93.7\,\% of records in this condition.
+are similar in size. The auxiliary agreement export gives 93.7\,\% agreement
+in this condition before TriviaQA deduplication. The AUROC comparisons use the
+deduplicated evaluation set.
 
 \input{includes/t_grader_check.tex}
 
@@ -287,8 +295,8 @@ generator. On the default entailment model the generator with the longest answer
 Llama-3.1-8B at 667 mean characters, has the smallest difference at $+0.012$, while
 the two short-answer generators sit at $+0.026$ and $+0.029$. Substituting the
 72B entailment model inverts the ordering: the same generator now has the
-largest difference at $+0.132$, against $+0.067$ and $+0.063$. The generations are
-identical in both columns.
+largest difference at $+0.132$, against $+0.067$ and $+0.062$. The generations are
+identical across the entailment-model columns.
 
 \input{includes/t_backend_by_model.tex}
 
@@ -326,8 +334,10 @@ sequence likelihoods rather than spread across samples, moves from 0.694 to
 trails both. The crossing lies between $T=0.3$ and $T=0.5$ for surface entropy
 and between $T=0.5$ and $T=0.7$ for discrete semantic entropy.
 
-No token-F1 figure and no answer-length figure is quoted from a sweep row, for
-the reason in Section~\ref{sec:temperature-sweep}.
+Appendix~\ref{app:complete-temperature-results} reports all five entropy
+methods for both prompting conditions, both entailment models, and both LLM
+graders. No token-F1 figure and no answer-length figure is quoted from a sweep
+row, for the reason in Section~\ref{sec:temperature-sweep}.
 
 \section{The correctness rule}
 \label{sec:correctness-comparison}
@@ -363,9 +373,9 @@ accuracy; the lowest is 0.3625.
 \section{Probes in and out of distribution}
 \label{sec:probe-results}
 
-Table~\ref{tab:probes} gives the two hidden-state probes on
-\texttt{nli-deberta-v3-large}, the entailment model whose clustering supplied the
-semantic entropy probe's training target, in and out of distribution.
+Tables~\ref{tab:probes} and~\ref{tab:probes-ood} report the two hidden-state
+probes in and out of distribution. The semantic entropy probe learns targets
+from \texttt{nli-deberta-v3-large}; the accuracy probe learns correctness labels.
 
 In distribution, on sentence-length answers, the accuracy probe leads the
 semantic entropy probe by 0.046 and 0.042 under the two judges, though under

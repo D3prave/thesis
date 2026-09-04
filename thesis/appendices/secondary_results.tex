@@ -1,7 +1,7 @@
 \chapter{Secondary and Exploratory Results}
 \label{app:secondary-results}
 
-This appendix gives the complete results behind the secondary and exploratory
+This appendix gives supporting results for the secondary and exploratory
 analyses summarized in Chapter~\ref{ch:results}. The same aggregation script
 used for the main results assembles the tables. Point estimates come from
 \texttt{measurements.csv}. The hierarchical confidence intervals in
@@ -49,8 +49,8 @@ $[-0.017, +0.004]$. This condition has the shortest answers and the strongest
 entailment model, leaving little room for the two estimators to differ.
 
 Every point estimate in Table~\ref{tab:all-slices} agrees to four decimal
-places with the cell-level values behind Table~\ref{tab:sentence-length}. The
-two tables are produced through different code paths, so this agreement checks
+places with the corresponding cell-level values in the measurement package. The
+two summaries are produced through different code paths, so this agreement checks
 both paths.
 
 \section{Secondary prompting-factorial analysis}
@@ -72,7 +72,7 @@ five-shot conditions, changing only the instruction changes mean answer length
 by 0.2 characters.
 
 Two limits from Section~\ref{sec:conditions} make this a secondary analysis.
-Both short-answer conditions are five-shot, so the design separates length from
+Both conditions that produce short phrases are five-shot, so the design separates length from
 example count only among the longer answers. The added conditions also exist
 only on the default entailment model, so the factorial cannot test the entailment model with
 the largest AUROC differences in Section~\ref{sec:clustering-sensitivity}.
@@ -91,6 +91,10 @@ Table~\ref{tab:longform} reports those runs under claim-level grading by the
 Qwen judge. Mean claim accuracy is 0.375.
 
 \input{includes/t_longform.tex}
+
+Table~\ref{tab:longform-by-generator} gives the same comparison separately for
+each generating model, retaining all three seeds in every average.
+\input{includes/t_longform_by_generator.tex}
 
 Surface entropy scores 0.4965 and naive sample entropy 0.4973 under every
 entailment model. Both are near chance. These baselines have a structural limit
@@ -132,3 +136,39 @@ Across the 648 discrete-semantic-entropy cells at $T=1.0$,
 $r = 0.971$, and \texttt{aurac\_mean\_retained} correlates at $r = 0.965$.
 The corresponding correlation for AUROC is $r = 0.502$. The two AURAC measures
 therefore reflect the model's accuracy much more strongly than AUROC does.
+
+\clearpage
+\section{Complete method summaries at the main temperature}
+\label{app:complete-method-results}
+
+The following tables report every recorded short-answer method at $T=1.0$
+under all three correctness rules. They include both original prompting
+conditions and both added conditions. Each value averages the three seeds
+within a dataset--generator pair and then the nine pairs. Every reported
+configuration has all 27 dataset--generator--seed combinations.
+
+The added prompting conditions have results only for the five entropy methods
+on the default entailment model. P(True) is recorded under the default model's
+label and the probes under \texttt{nli-deberta-v3-large}. These labels describe
+how the results were stored; P(True) itself does not use entailment clustering.
+The tables report absolute AUROC values, not tests of differences.
+
+\input{includes/t_complete_t1.tex}
+
+\clearpage
+\section{Complete LLM-graded temperature summaries}
+\label{app:complete-temperature-results}
+
+These tables cover the two original prompting conditions, both entailment
+models used in the sweep, both LLM graders, and all five entropy estimators.
+They contain all 200 mean AUROC values for that grid. Each average includes
+all nine dataset--generator pairs and all three seeds. The exclusions in
+Section~\ref{sec:temperature-sweep} apply throughout.
+
+The measurement package in Appendix~\ref{app:schema} retains the individual
+run values, accuracy, and the two rejection-accuracy metrics. It also retains
+the excluded token-F1 sweep measurements, which must not be interpreted as
+holding the graded answer fixed. Tables here summarize the valid LLM-graded
+comparisons without treating unperformed experiments as empty results.
+
+\input{includes/t_complete_temperature.tex}

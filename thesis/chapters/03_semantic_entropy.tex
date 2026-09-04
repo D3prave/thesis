@@ -305,7 +305,7 @@ of the main evaluation.
 \paragraph{The estimator family.}
 The experiments report this count-based estimator, the probability-weighted variant
 of Farquhar et al.~\cite{semantic_entropy_nature_2024,%
-kossen_semantic_uncertainty_code_2024}, and two clustering-free scores. Two
+kossen_semantic_uncertainty_code_2024}, and three clustering-free scores. Two
 axes separate them: whether answers are grouped by meaning, and whether the
 score reads sequence probabilities or only counts.
 
@@ -357,6 +357,7 @@ produces the comparator.
   available, full semantic entropy $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}}$}
 $(c_1,\ldots,c_M) \gets \textsc{cluster}(y_1,\ldots,y_M;\mathcal{M})$\tcp*{Algorithm~\ref{alg:clustering}, on raw answers}
 let $K$ be the number of distinct clusters\;
+relabel the distinct cluster identifiers as $1,\ldots,K$\;
 \For{$k \gets 1$ \KwTo $K$}{
   $n_k \gets |\{\,i : c_i = k\,\}|$\;
   $\hat{p}_k \gets n_k / M$\;
@@ -382,7 +383,7 @@ $\widehat{H}_{\mathrm{lex}} \gets -\sum_{s}\hat{q}_s \log \hat{q}_s$\tcp*{surfac
 The following example makes the pipeline concrete. Consider the factual
 question $x = $ ``What is the capital of Australia?''. The language model is
 sampled $M=5$ times under one decoding configuration, drawing a fresh
-completion each time. That yields five different but plausible answers:
+completion each time. Suppose the five sampled answers are:
 
 \begin{center}
 \begin{tabular}{cl}
@@ -404,15 +405,16 @@ pipeline. The decoding settings of the recorded experiments are given in
 Section~\ref{sec:sampling-settings}.
 
 \paragraph{Step 1: Bidirectional entailment.}
-The entailment model is applied to each ordered pair $(y_i, y_j)$.
-Table~\ref{tab:entailment_example} shows the resulting binary decisions; a
+For this constructed example, assume the pairwise entailment decisions in
+Table~\ref{tab:entailment_example}. A
 cell $(i,j)$ equals 1 if the row answer entails the column answer.
 
 \begin{table}[ht]
 \thisfloatsetup{capposition=above}
 \centering
 \caption{Pairwise entailment matrix for the worked example.
-         A cell $(i,j)=1$ means $y_i$ entails $y_j$.}
+         A cell $(i,j)=1$ means $y_i$ entails $y_j$.
+         Diagonal entries are not queried.}
 \label{tab:entailment_example}
 \begin{tabular}{c|ccccc}
        & $y_1$ & $y_2$ & $y_3$ & $y_4$ & $y_5$ \\\hline
@@ -502,9 +504,8 @@ semantic entropy when log-likelihoods are available. It separately normalizes
 the same answers to compute surface entropy.
 
 Correctness labeling and evaluation use these outputs but are not part of the
-method. Sections~\ref{sec:backends} and~\ref{sec:correctness} explain how four
-entailment models and three correctness rules are applied to one stored set of
-generations.
+method. Sections~\ref{sec:backends} and~\ref{sec:correctness} specify which
+entailment models and correctness rules are used in each experiment.
 
 \section{Related estimators evaluated alongside}
 \label{sec:related-estimators}

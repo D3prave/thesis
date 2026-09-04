@@ -287,7 +287,8 @@ the rule can be varied while the estimators stay fixed. Three are recorded
 \thisfloatsetup{capposition=above}
 \centering
 \small
-\caption{The three correctness rules. All three grade identical answers.}
+\caption{The three correctness rules. All three grade identical answers at
+  the main temperature of $1.0$.}
 \label{tab:graders}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -449,14 +450,14 @@ seeds within each unit and then averages over the nine units. The reported
 prompts alone does not include variation between dataset--generator units and
 cannot describe uncertainty across a wider population of tasks.
 
-\paragraph{Other intervals.} Cell-level summaries use 95\,\% bootstrap
-intervals from 2{,}000 cell resamples. When several cells in one condition are
-tested together, Holm's step-down procedure~\cite{holm_simple_1979} controls
-the chance of any false positive in that family. It is less conservative than
-the Bonferroni correction while providing the same control. The released code
-uses 90\,\% bias-corrected and accelerated (BCa) intervals from 1{,}000
-resamples, so its intervals are not directly comparable with those computed
-here.
+\paragraph{Other intervals.} The generated summary tables use 95\,\% bootstrap
+intervals from 2{,}000 resamples of dataset--generator units after averaging
+over seeds. They hold the question records fixed. The paired comparison tables
+instead use the hierarchical intervals described above. These are individual
+intervals, not simultaneous intervals adjusted for testing many comparisons.
+The released code uses 90\,\% bias-corrected and accelerated (BCa) intervals
+from 1{,}000 resamples, so its intervals are not directly comparable with those
+computed here.
 
 \paragraph{Cross-seed spread.} A $\pm$ value on a per-cell number is the
 standard deviation over the three run seeds. With three seeds that shows

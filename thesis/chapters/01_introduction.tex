@@ -92,8 +92,9 @@ answers. Changing the temperature requires generating new samples.
 
 On sentence-length answers, semantic entropy performs better than every
 comparison method from the original paper. This reproduces the paper's main
-comparison. The hidden-state probes were evaluated with a different entailment
-model, so their results do not provide a comparison under identical settings.
+comparison in the tested settings. Semantic entropy uses the default
+entailment model when compared with P(True) and the alternative
+\texttt{v3-large} model when compared with the probes.
 
 The step-by-step comparison points to answer normalization rather than grouping
 by meaning. Normalization means lowercasing, removing punctuation and articles,
@@ -125,8 +126,8 @@ Table~\ref{tab:grid-at-a-glance} lists what was varied in the short-answer study
 Not every factor was tested in every combination. The two new prompting
 conditions were tested with one entailment model and one temperature. The
 temperature experiment includes only the entropy-based methods and the original two prompting conditions, using
-two of the three entailment models. The probes and P(True) do not share the same
-evaluation settings, so they are not compared directly. Each table in
+two of the three entailment models. The comparisons against P(True) and the
+probes use different entailment models for semantic entropy. Each table in
 Chapter~\ref{ch:results} states which settings it covers.
 
 \begin{table}[htb]
@@ -135,8 +136,9 @@ Chapter~\ref{ch:results} states which settings it covers.
 \small
 \caption{The factors varied in the short-answer study. For each generation
   condition, clustering is applied to stored answers. Comparisons between
-  entailment models therefore change only the model used for grouping, and all three
-  correctness rules score the same answers. Not every combination was tested.}
+  entailment models therefore change only the model used for grouping. At the
+  main temperature, all three correctness rules score the same answers; the
+  temperature sweep is reported only under LLM grading. Not every combination was tested.}
 \label{tab:grid-at-a-glance}
 \begingroup
 \setlength{\tabcolsep}{4pt}
