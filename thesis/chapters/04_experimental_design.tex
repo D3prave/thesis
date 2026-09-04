@@ -332,34 +332,13 @@ $0.5$ and $0.7$, alongside the main setting of $1.0$. That sweep covers two
 entailment models, the default model and \texttt{Qwen2.5-72B-Instruct}, and the
 five entropy estimators. The two added conditions, the
 \texttt{nli-deberta-v3-large} entailment model, the probes and P(True) are not
-in the sweep. Probe-feature collection was disabled during the sweep,
-which introduced a defect with the following limits:
+in the sweep.
 
-\begin{itemize}
-  \item \textbf{The estimators are unaffected.} Every entropy score is computed
-    from the ten samples, which the defect does not touch.
-  \item \textbf{The LLM-judge labels are unaffected.} They are joined to each
-    record by \texttt{prompt\_id} from one grading pass over the main
-    collection, so they describe the same temperature-$0.1$ answer at all
-    five temperatures.
-  \item \textbf{The token-F1 labels are affected.} With feature collection off,
-    no most-likely answer is written, and the correctness routine falls through
-    to the modal sampled answer. Sweep cells therefore grade the modal sample
-    \emph{at the sweep temperature}, rather than the fixed answer used by
-    the LLM graders.
-  \item \textbf{Answer length is affected} for the same reason, and means
-    different things in different rows. Only the temperature-$1.0$ rows are
-    comparable.
-\end{itemize}
-
-Two consequences hold throughout: the sweep is quoted only under LLM grading,
-and no statement about answer length is drawn from a sweep row. The numerical
-checks are preserved in Appendix~\ref{app:collection-checks}.
-
-The sweep is also not a test of Kuhn et al.'s intermediate-temperature
-optimum~\cite{kuhn_semantic_uncertainty_2023}. There, lowering the temperature
-also changed the accuracy of the answer being judged; here the graded answer is
-held outside the sweep, so only the diversity side of that trade-off can move.
+The reported comparison uses the same answers and LLM correctness labels at
+every temperature; only the samples used to calculate uncertainty change.
+Token-F1 results and answer lengths from the sweep are excluded because they
+refer to a different selected answer. Appendix~\ref{app:collection-checks}
+explains the selection issue and gives the numerical checks.
 
 \section{Exploratory long-form experiment}
 \label{sec:longform-design}
