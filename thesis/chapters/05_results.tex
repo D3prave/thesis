@@ -89,7 +89,7 @@ exact repeat gives the same results.
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Reproduction scorecard. The original's AUROC values are its own
+\caption{Selected reproduced findings. The original's AUROC values are its own
   reported figures, averaged over the 30 task and model combinations it studies;
   the probe rows follow Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}.
   Absolute levels are not comparable across the two columns, because the
@@ -116,19 +116,13 @@ Discrete and likelihood-weighted variants perform similarly on average &
   stated & $-0.0015$ over 648 cells & reproduces \\
 \addlinespace[2pt]
 Probes lose accuracy out of distribution & $\approx 0.09$ & $\approx 0.09$ & reproduces \\
-\midrule
-P(True) improves with model size & ``seems to'' &
-  flat or inverted within the Llama family & \textbf{does not} \\
-\addlinespace[2pt]
-Sentence-length answers average 95.6 characters &
-  95.6 & 255.2 & \textbf{different regime} \\
 \bottomrule
 \end{tabular}
 \endgroup
 \end{table}
 
-Six findings reproduce on models that the original study did not use.
-The remaining two need different interpretations. The P(True) model-size
+These six findings reproduce on models that the original study did not use.
+However, the P(True) model-size
 trend does not reproduce, although two sizes from one model family provide only
 a limited test. The answer-length difference is partly related to
 the different token limits inherited from the released code. The
