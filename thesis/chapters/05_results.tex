@@ -1,23 +1,23 @@
 \chapter{Results}
 \label{ch:results}
 
-This chapter reports the measurements; Chapter~\ref{ch:discussion} interprets
-them. Except for the hand-written reproduction scorecard in
-Table~\ref{tab:reproduction}, one aggregation script assembles every table from
-the measurement package described in Appendix~\ref{app:schema}. Most values
-come from \texttt{measurements.csv}. The hierarchical confidence intervals and
-the out-of-distribution probe rows are imported from two record-level analyses
-that the published package cannot rerun without the underlying record data.
-
 \section{How to read the numbers}
 \label{sec:how-to-read}
 
-The following conventions apply throughout. A \emph{comparison} is one reported
+A \emph{comparison} is one reported
 combination of prompting condition, entailment model, correctness rule, and
 pair of methods. An \emph{AUROC difference} is the first method's AUROC minus
 the second's, so a positive value favors the first method. The secondary
 analysis of the two rejection-accuracy metrics is reported in
 Appendix~\ref{sec:aurac-disagreement}.
+
+\paragraph{Sources of the numbers.} Except for the hand-written reproduction
+scorecard in Table~\ref{tab:reproduction}, one aggregation script assembles
+every table from the measurement package described in
+Appendix~\ref{app:schema}. Most values come from \texttt{measurements.csv}.
+The hierarchical confidence intervals and the out-of-distribution probe rows
+are imported from two record-level analyses that the published package cannot
+rerun without the underlying record data.
 
 \paragraph{Nine units, not twenty-seven cells.} An aggregate first averages the
 three seeds within each of the nine independent (dataset, model) units. It then

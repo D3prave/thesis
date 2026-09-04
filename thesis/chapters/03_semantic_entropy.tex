@@ -1,19 +1,14 @@
 \chapter{Semantic Entropy and Related Estimators}
 \label{ch:semantic_entropy}
 
-This chapter defines discrete semantic entropy over sampled answers. It follows
-the central idea of Farquhar et al.~\cite{semantic_entropy_nature_2024}: measure
-uncertainty over meanings rather than wordings. The meaning-level framing
-follows Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023}.
+Discrete semantic entropy measures uncertainty over the meanings of sampled
+answers rather than their wording, following
+Farquhar et al.~\cite{semantic_entropy_nature_2024} and
+Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023}.
 
 When the published description and released
 code~\cite{kossen_semantic_uncertainty_code_2024} disagree, this thesis follows
-the code. Section~\ref{sec:clustering} explains the important difference in
-clustering. The method is divided into sampling, grouping and scoring so that
-Chapter~\ref{ch:experimental_design} can vary each step separately. The final
-section, Section~\ref{sec:related-estimators}, defines the three comparison
-estimators. These definitions make every number in
-Chapter~\ref{ch:results} traceable to a stated procedure.
+the code.
 
 \section{Entropy as a measure of uncertainty}
 \label{sec:entropy-measure}

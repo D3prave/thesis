@@ -1,15 +1,10 @@
 \chapter{Experimental Design and Implementation}
 \label{ch:experimental_design}
 
-Chapter~\ref{ch:semantic_entropy} defines the estimators. This chapter states
-what was run: every setting that can change a reported number and every
-departure from Farquhar et al.~\cite{semantic_entropy_nature_2024}.
-
-The released code~\cite{kossen_semantic_uncertainty_code_2024} is the
-reference implementation. Section~\ref{sec:deviation-register} distinguishes
-its behavior from the paper's description and records this study's changes.
-Two implementation details change the measured quantity: the clustering
-procedure and the scoring of P(True).
+The experiments follow Farquhar et al.~\cite{semantic_entropy_nature_2024},
+using the released code~\cite{kossen_semantic_uncertainty_code_2024} as the
+reference implementation. The clustering procedure and P(True) scoring follow
+the code where it differs from the paper's description.
 
 For each prompting condition, temperature and seed, a generator produced one
 set of answers. These saved answers were then clustered, graded and scored in
