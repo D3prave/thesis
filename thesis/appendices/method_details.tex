@@ -381,3 +381,27 @@ record-level analyses and the hand-written reproduction scorecard have
 separate provenance, as stated at the start of Chapter~\ref{ch:results}.
 Rebuilding a table from the measurement package is therefore not the same as
 recomputing every value from raw answers.
+
+\section{Bootstrap assumptions and saved-run provenance}
+\label{sec:bootstrap-assumptions}
+
+The recorded paired analysis uses 2,000 resamples, as specified explicitly in
+the saved run description. This overrides the script's default of 10,000.
+Within each selected dataset--generator pair, the three seed-level AUROC
+differences are averaged; the statistic then averages over pairs. Record
+resampling keeps the two compared methods paired, but draws question indices
+separately for each seed cell. It does not synchronize the same question's
+resampling across seeds or generators, or resample datasets and generators
+as separate factors.
+
+A record resample containing only one correctness class has undefined AUROC
+and is omitted from that draw's average. This can matter when very few answers
+are labeled correct. The exported intervals do not record how often such
+omissions occurred. The reported intervals and bootstrap tail proportions
+therefore remain conditional on these implementation choices. They are not
+adjusted for the many comparisons reported here.
+
+The local measurement package can verify the paired point estimates, but
+cannot reconstruct the record-level intervals without the original scored
+answers. Tests of the bootstrap implementation and checks of the exported
+values are distinct from an independent rerun of those intervals.

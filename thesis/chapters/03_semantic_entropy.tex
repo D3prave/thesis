@@ -340,7 +340,9 @@ Testing whether semantic grouping adds value requires a comparison that changes
 only the grouping rule. Naive entropy cannot isolate that effect because it
 also replaces counts with likelihoods. Surface entropy is the direct baseline:
 both scores use counts, but one groups normalized strings and the other groups
-meanings.
+meanings. In this implementation, however, semantic clustering receives raw
+answers while surface entropy receives normalized answers. The comparison
+therefore changes the input text as well as the grouping rule.
 
 Algorithm~\ref{alg:scoring} gives the procedure. Note the ordering: clustering
 consumes the raw answers, and normalization is applied only on the branch that

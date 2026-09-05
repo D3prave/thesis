@@ -29,8 +29,8 @@ The finding depends on the entailment model. A much larger model does show a
 clear benefit from grouping by meaning. The absence of a clear benefit with the
 released-code model is not evidence that the methods are equivalent.
 
-Evaluation choices change the result more than the choice between the two
-methods. Changing the entailment model on the same generated answers changes the
+Evaluation choices can substantially change the measured advantage. Changing
+the entailment model on the same generated answers changes the
 reported score substantially. Sampling temperature changes the ranking of the
 methods, and the correctness rule changes which method performs better. These
 results have two further limits. The correctness judges were not checked against
@@ -39,4 +39,4 @@ compare meaning, which may favor a method that also groups answers by meaning.
 
 Overall, the original comparison reproduces, but its size depends strongly on
 the evaluation setup. For short answers, normalization rather than
-meaning-based grouping produces the consistent gain.
+meaning-based grouping produces the most consistent gain in the tested comparisons.

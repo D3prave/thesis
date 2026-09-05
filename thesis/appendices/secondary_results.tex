@@ -23,12 +23,12 @@ entropy, and all four use the Qwen entailment model. Seven favor surface
 entropy, and all seven use token-F1 correctness labels.
 
 The two smaller Qwen-entailment-model differences that favor semantic entropy are below
-the 0.025 variation observed across generation seeds. This is not a
+the 0.0245 seed-variation reference. This is not a
 contradiction. The seed range describes how much one method's AUROC changes
 across seeds. A paired test compares two methods on the same generated answers,
 so variation shared by both methods cancels when their scores are subtracted.
-The seed range is therefore useful for judging one AUROC value, while the paired
-interval is the correct check for a difference between methods.
+The seed range is therefore descriptive context for one AUROC value, while the
+paired interval assesses a difference under the stated resampling assumptions.
 
 \input{includes/t_all_slices.tex}
 
@@ -45,8 +45,8 @@ interval is the correct check for a difference between methods.
 
 One token-F1 comparison does not exclude zero:
 \texttt{default\_5shot} on the Qwen entailment model, with an interval of
-$[-0.017, +0.004]$. This condition has the shortest answers and the strongest
-entailment model, leaving little room for the two estimators to differ.
+$[-0.017, +0.004]$. This condition has short answers and uses the Qwen
+entailment model, but the analysis does not identify why its interval includes zero.
 
 Every point estimate in Table~\ref{tab:all-slices} agrees to four decimal
 places with the corresponding cell-level values in the measurement package. The

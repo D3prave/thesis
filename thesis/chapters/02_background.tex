@@ -191,8 +191,9 @@ cannot by themselves show which step causes the difference.
 
 The additional comparison here is simple. Draw the same samples, normalize them, count
 the distinct strings, and calculate entropy from those counts. This method
-needs no entailment model. Comparing it with semantic entropy isolates the
-effect of grouping answers by meaning as closely as the released code allows.
+needs no entailment model. Comparing it with semantic entropy tests the added
+value of meaning-based grouping, subject to the raw-versus-normalized input
+difference explained in Section~\ref{sec:ladder}.
 Comparing the estimators described in Chapter~\ref{ch:introduction} also
 tests the other steps one at a time.
 

@@ -14,7 +14,7 @@ temperature requires a new set of answers.
 Within a fixed prompting condition, entailment model, correctness rule,
 estimator and temperature, a \emph{cell} is one dataset--generator--seed
 combination. The three seed cells for one dataset--generator pair form one
-independent statistical \emph{unit}.
+statistical resampling \emph{unit}.
 
 \section{Datasets and question selection}
 \label{sec:datasets}
@@ -425,10 +425,16 @@ detector.
 \paragraph{Nine units, not twenty-seven cells.} A fixed short-answer setting
 has 27 cells: three datasets by three generators by three seeds. The seed cells
 within one dataset--generator pair are repeated samples, not independent
-observations. The analysis therefore uses \textbf{nine independent units}, one
+observations. The analysis therefore uses \textbf{nine resampling units}, one
 for each dataset--generator pair. Treating all 27 cells as independent would
 overstate the amount of evidence. The numerical resampling check is reported
 with the Results in Section~\ref{sec:se-vs-surface}.
+
+The bootstrap treats these pairs as independently resampled units, although
+they share datasets, generators, and question sets. It does not model those
+shared sources of dependence separately. Its intervals describe uncertainty
+under this resampling scheme, not all uncertainty about new tasks and models.
+Appendix~\ref{sec:bootstrap-assumptions} gives the implementation details.
 
 \paragraph{Paired tests resample units and records.} Three resampling methods
 are available, and they capture different sources of variation:

@@ -53,8 +53,10 @@ code~\cite{kossen_semantic_uncertainty_code_2024}. Where the paper and code
 disagree, this thesis follows the code and records the difference. The
 reproduction answers three questions.
 
-The first question is whether semantic entropy detects confabulations better
-than the comparison methods in the original paper. Here, a
+The first question is whether semantic entropy ranks incorrect answers above
+correct ones better than the comparison methods in the original paper, under
+the selected grading rules. These labels do not identify confabulations
+separately. Here, a
 \emph{confabulation} is a wrong answer whose meaning changes across repeated
 samples from the same prompt. A wrong answer that the model repeats every time
 creates no disagreement between samples, so semantic entropy cannot detect
@@ -112,8 +114,8 @@ A larger entailment model does show a clear benefit from grouping
 sentence-length answers by meaning. The result therefore depends on which
 model makes the grouping decisions.
 
-Evaluation choices change the result more than the choice between semantic and
-surface entropy. Changing only the entailment model on the same generated
+Evaluation choices can substantially change the measured advantage of semantic
+entropy over surface entropy. Changing only the entailment model on the same generated
 answers changes the score substantially. Sampling temperature changes the
 ranking of the methods, and the correctness rule changes which method performs
 better. The study has no human correctness labels with which to choose between
@@ -168,11 +170,12 @@ Sampling temperature &
 \endgroup
 \end{table}
 
-The short-answer study treats its nine dataset--generator pairs as independent
-statistical units. The three random seeds are repeated runs within each pair,
+The short-answer study uses nine dataset--generator pairs as resampling
+units. The three random seeds are repeated runs within each pair,
 not separate independent observations. The main paired bootstrap accounts for
-both these pairs and the records within them. The limited number of independent
-pairs restricts how precisely small differences can be estimated.
+both these pairs and the records within them. The limited grid and its shared
+datasets and models restrict generalization; Section~\ref{sec:statistics}
+states the resampling assumptions.
 
 A separate biography experiment is exploratory and is reported in
 Appendix~\ref{app:secondary-results}. Its incomplete provenance and different
@@ -186,8 +189,8 @@ The thesis does not introduce semantic entropy. It makes four contributions:
 \begin{enumerate}
   \item A comparison of semantic entropy with the original study's baselines
     on selected open language models.
-  \item A step-by-step comparison that separates the effect of answer
-    normalization from the effect of grouping by meaning.
+  \item A step-by-step comparison that examines the contributions of answer
+    normalization and grouping by meaning.
   \item Tests of how the results depend on the entailment model, correctness
     rule, and sampling temperature.
   \item A documented implementation and evaluation procedure that make the

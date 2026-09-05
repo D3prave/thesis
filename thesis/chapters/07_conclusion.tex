@@ -36,12 +36,12 @@ be assumed from a comparison with weaker baselines.
 \begin{enumerate}
   \item \textbf{A comparison with the original baselines.}
     The study tests the published method on open generating models and
-    separates findings that reproduce from differences caused by the tested
+    separates findings that reproduce from differences observed in the tested
     setting.
   \item \textbf{A comparison of normalization and meaning-based grouping.}
-    The added surface-entropy baseline separates the consistent benefit of
-    string normalization from the more conditional benefit of semantic
-    grouping.
+    The added surface-entropy baseline helps distinguish the consistent benefit
+    of string normalization from the more conditional benefit of semantic
+    grouping, subject to the input differences discussed in Chapter~\ref{ch:discussion}.
   \item \textbf{A test of the main evaluation choices.}
     The study varies the entailment model, correctness rule, and sampling
     temperature, showing where the method ranking depends on those choices.
@@ -67,7 +67,8 @@ for grading reduces concern about one model serving in both roles; it does not
 show that the grades are correct, and it does not remove possible shared
 biases between grading and semantic clustering.
 
-The number of independent dataset--model units is also limited. Repeated
+The dataset--model grid is also limited and shares datasets and generators across
+its resampling units. Repeated
 seeds and more question records do not provide the same evidence as testing
 more datasets and generating models. The study can therefore report that it
 did not detect a benefit in some conditions, but cannot rule out small

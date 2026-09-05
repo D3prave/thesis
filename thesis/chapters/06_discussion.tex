@@ -43,7 +43,7 @@ cross-encoder, \texttt{nli-deberta-v3-large}, gives the same overall pattern
 under LLM grading.
 
 This means the study did not detect an additional benefit. It does not mean
-the methods are equivalent. The design has few independent
+the methods are equivalent. The design has few
 dataset--model units, and small improvements may remain undetected. Some
 intervals are also much wider than others. A single claim that the study had
 enough power for every condition would be misleading.
@@ -199,11 +199,12 @@ ranking largely unchanged, which reduces concern about using one particular
 model in both roles. It does not rule out shared errors across models or
 validate the labels against people.
 
-\paragraph{Few independent statistical units.}
+\paragraph{Limited and shared statistical units.}
 Seeds are repeated runs within dataset--model units, not independent tests of
 generalization. The hierarchical analysis accounts for variation between the
-units, but the limited set of datasets and generators still restricts the
-conclusions. A confidence interval that includes zero does not rule out a
+units under the stated resampling scheme, but it does not separately model
+dependence from shared datasets, generators, or questions. The limited grid
+therefore restricts the conclusions. A confidence interval that includes zero does not rule out a
 small benefit.
 
 \paragraph{Different answer lengths and generation limits.}
