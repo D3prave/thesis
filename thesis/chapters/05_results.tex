@@ -11,10 +11,9 @@ the second's, so a positive value favors the first method. The secondary
 analysis of the two rejection-accuracy metrics is reported in
 Appendix~\ref{sec:aurac-disagreement}.
 
-\paragraph{Sources of the numbers.} Except for the hand-written reproduction
-scorecard in Table~\ref{tab:reproduction}, one aggregation script assembles
-every table from the measurement package described in
-Appendix~\ref{app:schema}. Most values come from \texttt{measurements.csv}.
+Except for the hand-written reproduction scorecard in
+Table~\ref{tab:reproduction}, one aggregation script assembles every table
+from the measurement package described in Appendix~\ref{app:schema}. Most values come from \texttt{measurements.csv}.
 The hierarchical confidence intervals and the out-of-distribution probe rows
 are imported from two record-level analyses that the published package cannot
 rerun without the underlying record data.
@@ -26,14 +25,13 @@ units 2{,}000 times. Intervals labeled \emph{hierarchical} also resample the
 records within each selected cell. When an interval excludes zero, the data
 distinguish the two methods under that resampling scheme.
 
-\paragraph{The entailment model is always named.} Discrete semantic entropy ranges from
-0.751 to 0.823 on the same set of generations, depending only on which model
-judges entailment. Each semantic-entropy result therefore names its entailment
-model.
+Discrete semantic entropy ranges from 0.751 to 0.823 on the same set of
+generations, depending only on which model judges entailment. Each
+semantic-entropy result therefore names its entailment model.
 
-\paragraph{Correctness is judged automatically.} The labels come from token-F1
-or an LLM grader. There are no human labels in this study. Agreement between the
-two LLM graders does not establish that either is correct.
+The correctness labels come from token-F1 or an LLM grader. There are no
+human labels in this study. Agreement between the two LLM graders does not
+establish that either is correct.
 
 \paragraph{Variation across generation seeds.} Table~\ref{tab:seed-noise} gives
 the AUROC range across the three run seeds: 0.024 to 0.030 for the entropy
@@ -46,10 +44,10 @@ larger than the variation caused by changing the generation seed.
 \section{Sentence-length answers}
 \label{sec:sentence-length-results}
 
-Table~\ref{tab:sentence-length} gives the sentence-length condition
-(\texttt{chat\_0shot}) under the Qwen judge at $T=1.0$. Likelihood-weighted
-semantic entropy reaches 0.758 and the discrete variant 0.757 on the default
-entailment model, against 0.736 for the clustering-free comparator. Every comparator
+On sentence-length answers (\texttt{chat\_0shot}) under the Qwen judge at
+$T=1.0$, likelihood-weighted semantic entropy reaches 0.758 and the discrete
+variant 0.757 on the default entailment model, against 0.736 for the
+clustering-free comparator (Table~\ref{tab:sentence-length}). Every comparator
 used in the original study falls below both semantic estimators.
 
 \input{includes/t_sentence_length.tex}
@@ -61,9 +59,9 @@ average change in the four-step decomposition.
 \section{Short-phrase answers}
 \label{sec:short-phrase-results}
 
-Table~\ref{tab:short-phrase} gives the short-phrase condition
-(\texttt{default\_5shot}) on the default entailment model under all three correctness
-rules. The ordering depends on the rule. Under token-F1, surface entropy leads
+On short-phrase answers (\texttt{default\_5shot}) with the default entailment
+model, the ordering depends on the correctness rule
+(Table~\ref{tab:short-phrase}). Under token-F1, surface entropy leads
 discrete semantic entropy by 0.0133. Under the Qwen judge the AUROC difference
 is $+0.0005$ and under the Llama judge it is $+0.0027$; both intervals include
 zero.
@@ -154,17 +152,16 @@ likelihood-weighted estimator weights those groups by likelihood.
 
 The third step needs one qualification. Following the released code, the
 clustering is run on the raw answers, while surface entropy counts the
-normalized ones. So that step changes two things at the same time: how two
-answers are judged to mean the same thing, and whether the text was cleaned up
-first.
+normalized ones, so that step changes two things at once: how two answers are
+judged to mean the same thing, and whether the text was cleaned up first.
+Normalizing merges variants such as different capitalization and punctuation,
+and the entailment model may group those variants differently when it sees the
+raw text. The comparison therefore does not isolate semantic grouping
+perfectly, and this study does not measure the direction of that effect on
+AUROC.
 
-Cleaning up an answer merges variants such as different capitalization and
-punctuation. The entailment model may group these variants differently when
-given the raw text. The comparison therefore does not isolate semantic
-grouping perfectly, and the direction of that effect on AUROC is not
-established here.
-Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give the change at each step
-over all 24 comparisons.
+Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give the change at each
+step over all 24 comparisons.
 
 \input{includes/t_ladder.tex}
 
@@ -198,9 +195,10 @@ after.
 
 \subsection{The default entailment model under LLM grading}
 
-Table~\ref{tab:canonical-eight} gives the four prompting conditions crossed
-with the two LLM correctness judges, on \texttt{deberta-v2-xlarge-mnli}, with
-AUROC differences and intervals from the hierarchical paired bootstrap. The differences run
+Crossing the four prompting conditions with the two LLM correctness judges on
+\texttt{deberta-v2-xlarge-mnli} gives eight comparisons, reported in
+Table~\ref{tab:canonical-eight} with AUROC differences and intervals from the
+hierarchical paired bootstrap. The differences run
 from $-0.0020$ to $+0.0223$, with two-sided $p$ from 0.36 to 0.94. Not one of
 the eight intervals excludes zero.
 
@@ -312,9 +310,9 @@ Taken two at a time, they assign the same number of clusters to between
 \section{Sampling temperature}
 \label{sec:temperature-sensitivity}
 
-Table~\ref{tab:temperature} and Figure~\ref{fig:temperature} give the sweep
-under LLM grading. The labels for the original graded answers are joined by
-\texttt{prompt\_id} and remain identical at all five temperatures.
+The sweep under LLM grading appears in Table~\ref{tab:temperature} and
+Figure~\ref{fig:temperature}. The labels for the original graded answers are
+joined by \texttt{prompt\_id} and remain identical at all five temperatures.
 
 \input{includes/t_temperature.tex}
 

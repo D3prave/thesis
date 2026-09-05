@@ -26,7 +26,7 @@ similarly to the likelihood-weighted version in this study.
 The comparison with surface entropy is important because the original
 baselines do not isolate grouping by meaning. Surface entropy also outperforms
 those baselines in every comparison where each was measured. Their results
-therefore do not establish that semantic grouping causes the improvement.
+therefore do not show that semantic grouping causes the improvement.
 
 This decomposition is not a perfect controlled comparison. Surface entropy
 counts normalized answers, whereas the released semantic-clustering procedure
@@ -42,8 +42,8 @@ entropy excludes zero under either LLM correctness judge. The other released
 cross-encoder, \texttt{nli-deberta-v3-large}, gives the same overall pattern
 under LLM grading.
 
-This is evidence that the study did not detect an additional benefit, not
-evidence that the methods are equivalent. The design has few independent
+This means the study did not detect an additional benefit. It does not mean
+the methods are equivalent. The design has few independent
 dataset--model units, and small improvements may remain undetected. Some
 intervals are also much wider than others. A single claim that the study had
 enough power for every condition would be misleading.
@@ -55,7 +55,7 @@ makes several apparent differences uncertain. More records or seeds within the
 same units cannot replace testing on more datasets and generating models.
 
 None of this means that semantic entropy fails as a detector. It means that,
-with these entailment models and labels, the study does not establish an
+with these entailment models and labels, the study does not show an
 improvement over a simpler detector that counts normalized strings.
 
 \subsection{Changing the entailment model changes the result}
@@ -82,16 +82,16 @@ entailment model and most with the Qwen entailment model.
 
 The prompting-factorial analysis offers a limited additional check. It varies
 instruction wording and the number of worked examples, but it was run only
-with the default entailment model. Its confidence intervals do not establish a
-semantic-grouping benefit. It is therefore a secondary analysis, not evidence
+with the default entailment model. Its four semantic-versus-surface intervals all
+include zero. It is therefore a secondary analysis, not evidence
 that answer length causes the observed differences. The full results are in
 Appendix~\ref{sec:factorial-results}.
 
 The biography experiment is exploratory. Its string-based estimators perform
 near chance, its exact entity list cannot be
 recovered from the stored repository, and its clustering rule differs from the
-original paragraph experiment. It does not establish a general result about
-long-form detection. Appendix~\ref{sec:longform-results} reports its findings
+original paragraph experiment. No general claim about long-form detection follows
+from it. Appendix~\ref{sec:longform-results} reports its findings
 and limitations.
 
 \section{Why the evaluation setup matters}
@@ -122,7 +122,7 @@ tested range. An advantage measured at one temperature should therefore not be
 assumed to hold at another.
 
 The highest temperature tested here is the most favorable tested setting for
-the sample-based detectors. That does not establish a general optimum.
+the sample-based detectors. It does not follow that this is a general optimum.
 
 \subsection{The correctness rule can reverse the comparison}
 
@@ -130,12 +130,12 @@ Identical answers and detector scores can produce a different method ranking
 when the correctness labels change. In the sentence-length condition, surface
 entropy leads under token-F1, while semantic entropy has higher point estimates
 under the LLM judges. With the default entailment model, however, the
-LLM-graded intervals do not establish a difference between them.
+LLM-graded intervals include zero.
 
 Token-F1 can penalize a correct but long answer because it compares that answer
 with a short reference. In some tested groups it labels very few answers
 correct, making AUROC estimates unstable. The LLM judges avoid simple
-token-overlap matching, but their labels are not established ground truth
+token-overlap matching, but their labels are not ground truth
 either. There are no human annotations in this study to determine which rule
 better reflects actual correctness.
 
@@ -203,8 +203,8 @@ validate the labels against people.
 Seeds are repeated runs within dataset--model units, not independent tests of
 generalization. The hierarchical analysis accounts for variation between the
 units, but the limited set of datasets and generators still restricts the
-conclusions. A confidence interval that includes zero cannot establish that a
-small benefit is absent.
+conclusions. A confidence interval that includes zero does not rule out a
+small benefit.
 
 \paragraph{Different answer lengths and generation limits.}
 The sentence-length condition produces longer answers than the original study.
@@ -227,6 +227,6 @@ supporting a central claim about long-form detection.
 
 Taken together, the results support a conditional finding: semantic entropy
 can improve on normalized-string counting with the tested Qwen entailment
-model, but that improvement is not established for the released
+model, but no such improvement was detected for the released
 cross-encoders under LLM grading. Human labels and broader dataset--model
 coverage are needed before making a stronger claim.
