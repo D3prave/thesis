@@ -265,18 +265,17 @@ GPT-3.5 as the sentence-length entailment model &
 \addlinespace[2pt]
 Five question sets &
   the three shared with this study &
-  SQuAD~\cite{rajpurkar_squad_2016} withholds its own passages artificially;
-  BioASQ~\cite{tsatsaronis_bioasq_2015} differs from the two kept mainly in
-  subject matter \\
+  narrower scope: omits passage-based SQuAD~\cite{rajpurkar_squad_2016}
+  and biomedical BioASQ~\cite{tsatsaronis_bioasq_2015} \\
 \midrule
 \multicolumn{3}{@{}l}{\emph{Added here}}\\
-No clustering-free entropy baseline &
+No normalized-string count-entropy comparison &
   two: over raw strings and over normalized strings &
   tests whether grouping by meaning improves the score \\
 \addlinespace[2pt]
-One entailment model &
-  four, applied post hoc to identical generations &
-  makes the choice measurable rather than assumed \\
+Entailment-model checks in supplementary experiments &
+  three models in the short-answer grid; separate biography checks &
+  compares selected open models on identical short-answer generations \\
 \addlinespace[2pt]
 One correctness rule per condition &
   three, on identical answers &

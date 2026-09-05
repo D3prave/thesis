@@ -112,7 +112,8 @@ and the regenerated answers are grouped by meaning.
   Grouping by meaning first gives a low semantic entropy. (b)~The same idea
   applied to paragraph-length bi\-og\-ra\-phies, one claim at a time.
   Reproduced from Farquhar et al.~\cite{semantic_entropy_nature_2024}
-  (\emph{Nature}, 2024), licensed under CC~BY~4.0.}
+  (\emph{Nature}, 2024), licensed under
+  \href{https://creativecommons.org/licenses/by/4.0/}{CC~BY~4.0}.}
 \label{fig:method-schematic}
 \end{figure}
 
@@ -533,8 +534,10 @@ generated answer, with no repeated sampling or entailment comparisons.
 For each training question, the most-likely answer supplies a hidden state,
 read at the last generated token as fixed by the stop sequence. Separately, ten
 sampled responses are grouped by meaning to compute discrete semantic entropy.
-That entropy is turned into a high/low label, and a logistic-regression
-classifier is trained to predict it from the hidden state. Correctness labels
+The high/low threshold is chosen from the training entropies to minimize the
+sum of squared deviations within the two groups, following Equation~(5) of
+Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}. A logistic-regression
+classifier then predicts that label from the hidden state. Correctness labels
 are not used; the accuracy probe below is the variant trained on those. At test
 time, generate one answer, read the same hidden state, apply the classifier,
 and use its output as the uncertainty score.

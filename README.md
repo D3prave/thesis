@@ -121,6 +121,11 @@ and `docs/cluster_coverage_audit_2026-09-05.md` for the raw-artifact audit.
 Older builders and results remain in the repository but do not supply the
 active thesis tables.
 
+For the editable thesis handoff, see `docs/submission_checklist.md`. The final
+result audit is in `docs/final_consistency_audit_2026-09-05.md`; the literature
+claim checks and their access limits are in
+`docs/reading_notes/source_claim_audit_2026-09-05.md`.
+
 ## Published FactualBio labels
 
 The repository retains an importer for the human-annotated claims from the code

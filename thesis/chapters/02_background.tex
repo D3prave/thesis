@@ -183,14 +183,13 @@ compares semantic entropy with entropy over sequence log-likelihoods,
 self-evaluation methods such as P(True)~\cite{kadavath_language_models_know_2022},
 and hidden-state probes~\cite{kossen_semantic_entropy_probes_2024}. Each method
 differs from semantic entropy in several ways: what it measures, how many model
-calls it needs, and whether it groups answers. Later surveys and benchmarks use
-the same set of comparisons~\cite{shorinwa_uq_llm_survey_2024,%
+calls it needs, and whether it groups answers. Later surveys and benchmarks cover
+these methods alongside other comparisons~\cite{shorinwa_uq_llm_survey_2024,%
 liu_uq_confidence_calibration_survey_2025,lm_polygraph_vashurin_2025}. These
 comparisons can show whether the complete method performs better, but they
-cannot show which step causes the difference. Even so, the result is often read
-as evidence for grouping answers by meaning.
+cannot by themselves show which step causes the difference.
 
-The missing comparison is simple. Draw the same samples, normalize them, count
+The additional comparison here is simple. Draw the same samples, normalize them, count
 the distinct strings, and calculate entropy from those counts. This method
 needs no entailment model. Comparing it with semantic entropy isolates the
 effect of grouping answers by meaning as closely as the released code allows.
