@@ -77,8 +77,8 @@ eight recorded methods for both original prompting conditions, under all three
 correctness rules, along with the added conditions and entailment models.
 
 Mean answer length here is 11.2 characters. The semantic-versus-surface
-differences under the LLM judges are below 0.003 AUROC, against a seed range of
-0.024--0.030. Including naive predictive entropy, the three-method spread is
+differences under the LLM judges are below 0.003 AUROC, against the
+seed-variation reference of 0.0245. Including naive predictive entropy, the three-method spread is
 0.011 under the Qwen judge and 0.006 under the Llama judge.
 
 \section{What reproduces from the original study}
@@ -396,7 +396,7 @@ short-answer tasks and scored on the held-out one, the accuracy probe reaches
 On short-phrase answers the ordering reverses, at 0.642 against 0.668.
 Comparing each probe against its own in-distribution value under the same
 grader, the four losses are 0.094 and 0.061 on sentence-length answers and
-0.105 and 0.078 on short phrases. The mean is 0.084 and the range 0.061 to
+0.105 and 0.077 on short phrases. The mean is 0.084 and the range 0.061 to
 0.105. Under the grader the out-of-distribution pass used, the accuracy
 probe's advantage of 0.042 in the first condition falls to 0.010.
 
