@@ -84,48 +84,11 @@ seed-variation reference of 0.0245. Including naive predictive entropy, the thre
 \section{What reproduces from the original study}
 \label{sec:reproduction}
 
-Table~\ref{tab:reproduction} compares selected findings from the original study
+Table~\ref{tab:reproduction} in Appendix~\ref{app:reproduction-scorecard} compares selected findings from the original study
 with the measurements here. The reimplementation follows the released
 procedure, but the datasets, models, and grading rules differ. This tests
 whether the reported patterns hold in the current setting, not whether an
 exact repeat gives the same results.
-
-\begin{table}[htb]
-\thisfloatsetup{capposition=above}
-\centering
-\footnotesize
-\caption{Selected comparisons with published findings. The original AUROC values
-  are reported by Farquhar et al.~\cite{semantic_entropy_nature_2024}, averaged
-  over 30 task and model combinations. The semantic entropy probe comparison
-  follows Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}.
-  Absolute levels are not comparable across the two columns, because the
-  datasets, generators and correctness judge all differ. What is compared is
-  the ordering, not a matched numerical replication. Values here are measured
-  on three different open-model checkpoints.}
-\label{tab:reproduction}
-\begingroup
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.0cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{1.8cm}@{}}
-\toprule
-Claim & Original & This study & Verdict \\
-\midrule
-Semantic entropy beats entropy over sequence log-likelihoods &
-  $0.790$ vs $0.691$ & $+0.063$ to $+0.162$ & reproduces \\
-\addlinespace[2pt]
-\ldots\ beats P(True) & $0.790$ vs $0.698$ & $+0.025$, 6/6 comparisons & reproduces \\
-\addlinespace[2pt]
-\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.049$, 6/6 comparisons & reproduces \\
-\addlinespace[2pt]
-\ldots\ beats the semantic entropy probe & leads in transfer tests & $+0.051$, 6/6 comparisons & same ordering \\
-\addlinespace[2pt]
-Discrete and likelihood-weighted variants perform similarly on average &
-  stated & $-0.0015$ over 648 cells & reproduces \\
-\addlinespace[2pt]
-Correctness-trained probe loses AUROC on held-out tasks & reported & losses of 0.094 and 0.105 & same pattern \\
-\bottomrule
-\end{tabular}
-\endgroup
-\end{table}
 
 These results broadly agree with the published patterns. The semantic entropy
 probe comparison is only qualitative: Kossen et al. evaluate transfer to
@@ -136,8 +99,6 @@ a limited test. The answer-length difference is partly related to
 the different token limits inherited from the released code. The
 reimplementation also retains two defects from that code: token-F1 grading and
 the TriviaQA split contamination documented in Appendix~\ref{app:dedup}.
-The exploratory paragraph experiment is reported separately in
-Appendix~\ref{sec:longform-results}.
 
 The original study is often read as showing that grouping answers by meaning
 produces the improvement. Its design does not isolate that step.
@@ -306,15 +267,6 @@ identical across the entailment-model columns.
 
 \input{includes/t_backend_by_model.tex}
 
-\paragraph{Entailment models assign different cluster counts.}
-Table~\ref{tab:cluster-counts} gives the mean clusters per record out of ten
-samples. In \texttt{chat\_0shot} the default entailment model produces 4.34,
-\texttt{nli-deberta-v3-large} 4.23 and \texttt{Qwen2.5-72B-Instruct} 4.01.
-Taken two at a time, they assign the same number of clusters to between
-60.3\,\% and 72.8\,\% of records; all three agree on at most 60.3\,\%.
-
-\input{includes/t_cluster_counts.tex}
-
 \section{Sampling temperature}
 \label{sec:temperature-sensitivity}
 
@@ -376,36 +328,8 @@ accuracy; the lowest is 0.3625.
 
 \input{includes/t_degenerate_cells.tex}
 
-\section{Probes in and out of distribution}
-\label{sec:probe-results}
-
-Tables~\ref{tab:probes} and~\ref{tab:probes-ood} report the two hidden-state
-probes in and out of distribution. The semantic entropy probe learns targets
-from \texttt{nli-deberta-v3-large}; the accuracy probe learns correctness labels.
-
-In distribution, on sentence-length answers, the accuracy probe leads the
-semantic entropy probe by 0.046 and 0.042 under the two judges, though under
-token-F1 the ordering reverses. On short-phrase answers the semantic entropy
-probe leads under both judges.
-
-\input{includes/t_probes.tex}
-
-Out of distribution, meaning trained on the pooled prompts of the other two
-short-answer tasks and scored on the held-out one, the accuracy probe reaches
-0.625 on sentence-length answers and the semantic entropy probe 0.615.
-On short-phrase answers the ordering reverses, at 0.642 against 0.668.
-Comparing each probe against its own in-distribution value under the same
-grader, the four losses are 0.094 and 0.061 on sentence-length answers and
-0.105 and 0.077 on short phrases. The mean is 0.084 and the range 0.061 to
-0.105. Under the grader the out-of-distribution pass used, the accuracy
-probe's advantage of 0.042 in the first condition falls to 0.010.
-
-Two limits apply. Both probes are trained and evaluated on disjoint question
-sets in both regimes, so these are held-out figures throughout. But the
-out-of-distribution pass ran under one grader per condition. It used the Llama
-judge for sentence-length answers and token-F1 for short phrases. So the two
-out-of-distribution rows are not graded alike and should not be compared with
-each other directly.
+\section{Summary of comparisons}
+\label{sec:secondary-results-overview}
 
 Figure~\ref{fig:factor-effects} summarizes the measured changes from the method
 decomposition and the evaluation checks. The entailment and correctness
@@ -422,33 +346,7 @@ uncertainty samples while keeping the graded answers and LLM labels fixed.
 \label{fig:factor-effects}
 \end{figure}
 
-\section{Secondary and exploratory analyses}
-\label{sec:secondary-results-overview}
-
-Three analyses support the main results but do not carry the headline
-conclusions. Their complete tables and checks are in
-Appendix~\ref{app:secondary-results}.
-
-\paragraph{Prompting factorial.} The added prompting conditions separate the
-instruction from the number of worked examples. Changing only the instruction
-in the two zero-shot conditions changes mean answer length by a factor of 3.7,
-but none of the four semantic-versus-surface intervals excludes zero. This is a
-secondary analysis because the added conditions exist only on the default
-entailment model and cannot test the entailment model with the largest AUROC differences. Full
-results are in Appendix~\ref{sec:factorial-results}.
-
-\paragraph{Exploratory long-form experiment.} On paragraph-length biographies,
-the string-based estimators perform near chance. The semantic estimator varies
-across entailment models, but the
-comparison is exploratory: it covers one task and one correctness judge, the
-exact entity list cannot be recovered from the stored repository, the default
-entailment model was not run, and the clustering rule differs from the original
-paragraph experiment. Appendix~\ref{sec:longform-results} reports the full
-results and limits.
-
-\paragraph{Rejection-accuracy metrics.} Changing from AUROC to either
-rejection-accuracy definition changes which method leads most comparisons. Both
-rejection-accuracy measures also track the generating model's accuracy much
-more closely than AUROC does. This secondary analysis supports using AUROC as
-the primary metric; Appendix~\ref{sec:aurac-disagreement} gives the complete
-comparison.
+Appendix~\ref{app:secondary-results} reports the prompting-factorial check,
+probe transfer, cluster-count diagnostics, and rejection-accuracy comparison,
+alongside the complete supporting tables. These analyses supplement the main
+semantic-versus-surface comparison.

@@ -1,7 +1,7 @@
-\chapter{Secondary and Exploratory Results}
+\chapter{Supporting and Secondary Results}
 \label{app:secondary-results}
 
-This appendix gives supporting results for the secondary and exploratory
+This appendix gives supporting results for the secondary
 analyses summarized in Chapter~\ref{ch:results}. The same aggregation script
 used for the main results assembles the tables. Point estimates come from
 \texttt{measurements.csv}. The hierarchical confidence intervals in
@@ -13,6 +13,46 @@ As in the main Results chapter, a comparison is one reported combination of
 prompting condition, entailment model, correctness rule, and pair of methods.
 An AUROC difference is the first method's AUROC minus the second's, so a
 positive value favors the first method.
+
+\section{Comparison with published findings}
+\label{app:reproduction-scorecard}
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\footnotesize
+\caption{Selected comparisons with published findings. The original AUROC values
+  are reported by Farquhar et al.~\cite{semantic_entropy_nature_2024}, averaged
+  over 30 task and model combinations. The semantic entropy probe comparison
+  follows Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}.
+  Absolute levels are not comparable across the two columns, because the
+  datasets, generators and correctness judge all differ. What is compared is
+  the ordering, not a matched numerical replication. Values here are measured
+  on three different open-model checkpoints.}
+\label{tab:reproduction}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.0cm}>{\raggedright\arraybackslash}p{1.8cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{1.8cm}@{}}
+\toprule
+Claim & Original & This study & Verdict \\
+\midrule
+Semantic entropy beats entropy over sequence log-likelihoods &
+  $0.790$ vs $0.691$ & $+0.063$ to $+0.162$ & reproduces \\
+\addlinespace[2pt]
+\ldots\ beats P(True) & $0.790$ vs $0.698$ & $+0.025$, 6/6 comparisons & reproduces \\
+\addlinespace[2pt]
+\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.049$, 6/6 comparisons & reproduces \\
+\addlinespace[2pt]
+\ldots\ beats the semantic entropy probe & leads in transfer tests & $+0.051$, 6/6 comparisons & same ordering \\
+\addlinespace[2pt]
+Discrete and likelihood-weighted variants perform similarly on average &
+  stated & $-0.0015$ over 648 cells & reproduces \\
+\addlinespace[2pt]
+Correctness-trained probe loses AUROC on held-out tasks & reported & losses of 0.094 and 0.105 & same pattern \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
 
 \section{All semantic-versus-surface comparisons}
 \label{app:all-comparisons}
@@ -53,6 +93,49 @@ places with the corresponding cell-level values in the measurement package. The
 two summaries are produced through different code paths, so this agreement checks
 both paths.
 
+\section{Probes in and out of distribution}
+\label{sec:probe-results}
+
+Tables~\ref{tab:probes} and~\ref{tab:probes-ood} report the two hidden-state
+probes in and out of distribution. The semantic entropy probe learns targets
+from \texttt{nli-deberta-v3-large}; the accuracy probe learns correctness labels.
+
+In distribution, on sentence-length answers, the accuracy probe leads the
+semantic entropy probe by 0.046 and 0.042 under the two judges, though under
+token-F1 the ordering reverses. On short-phrase answers the semantic entropy
+probe leads under both judges.
+
+\input{includes/t_probes.tex}
+
+Out of distribution, meaning trained on the pooled prompts of the other two
+short-answer tasks and scored on the held-out one, the accuracy probe reaches
+0.625 on sentence-length answers and the semantic entropy probe 0.615.
+On short-phrase answers the ordering reverses, at 0.642 against 0.668.
+Comparing each probe against its own in-distribution value under the same
+grader, the four losses are 0.094 and 0.061 on sentence-length answers and
+0.105 and 0.077 on short phrases. The mean is 0.084 and the range 0.061 to
+0.105. Under the grader the out-of-distribution pass used, the accuracy
+probe's advantage of 0.042 in the first condition falls to 0.010.
+
+Two limits apply. Both probes are trained and evaluated on disjoint question
+sets in both regimes, so these are held-out figures throughout. But the
+out-of-distribution pass ran under one grader per condition. It used the Llama
+judge for sentence-length answers and token-F1 for short phrases. So the two
+out-of-distribution rows are not graded alike and should not be compared with
+each other directly.
+
+\section{Cluster-count diagnostics}
+\label{app:cluster-counts}
+
+\paragraph{Entailment models assign different cluster counts.}
+Table~\ref{tab:cluster-counts} gives the mean clusters per record out of ten
+samples. In \texttt{chat\_0shot} the default entailment model produces 4.34,
+\texttt{nli-deberta-v3-large} 4.23 and \texttt{Qwen2.5-72B-Instruct} 4.01.
+Taken two at a time, they assign the same number of clusters to between
+60.3\,\% and 72.8\,\% of records; all three agree on at most 60.3\,\%.
+
+\input{includes/t_cluster_counts.tex}
+
 \section{Secondary prompting-factorial analysis}
 \label{sec:factorial-results}
 
@@ -77,49 +160,69 @@ example count only among the longer answers. The added conditions also exist
 only on the default entailment model, so the factorial cannot test the entailment model with
 the largest AUROC differences in Section~\ref{sec:clustering-sensitivity}.
 
-\section{Exploratory long-form experiment}
-\label{sec:longform-results}
-
-This experiment is exploratory. It covers one biography task and one
-correctness judge. The recorded results contain 500 biographies in each of nine
-model--seed runs, but Section~\ref{sec:longform-design} explains that the exact entity list
-cannot be recovered from the stored repository. The default entailment model was not
-run, and this study uses a stricter paragraph-clustering rule than the original
-study.
-
-Table~\ref{tab:longform} reports those runs under claim-level grading by the
-Qwen judge. Mean claim accuracy is 0.375.
-
-\input{includes/t_longform.tex}
-
-Table~\ref{tab:longform-by-generator} gives the same comparison separately for
-each generating model, retaining all three seeds in every average.
-\input{includes/t_longform_by_generator.tex}
-
-Surface entropy scores 0.4965 and naive sample entropy 0.4973 under every
-entailment model. Both are near chance. These baselines have a structural limit
-for varied paragraph outputs: whenever all ten samples are different strings,
-each forms its own group and the entropy reaches the same maximum value. The
-aggregate AUROC values do not show that every record has a constant score.
-In particular, a fully constant score would give AUROC exactly 0.5 with
-average-rank handling of ties. These near-chance baselines provide only a weak
-test of the semantic estimator.
-
-The results also show that the choice of entailment model matters.
-Discrete semantic entropy has an AUROC of 0.5245 with the base DeBERTa-v3 model,
-0.6703 with the large variant, and 0.7084 with Qwen-72B.
-This 0.184 range shows strong dependence on the entailment model,
-but it is not a clean ranking of paragraph-entailment models. The experiment
-uses \texttt{strict\_entailment} throughout, while the original paragraph
-experiment uses the relaxed rule. A strict rule with a lower-recall model can
-split answers too aggressively. The single Qwen correctness judge is also used
-for clustering, so this experiment lacks a check with a different grader.
-The original study reports its strongest paragraph result with DeBERTa, but
-the different clustering rules mean that the current result is not a direct
-test of that ranking.
-
 \section{Secondary comparison of AUROC and AURAC}
 \label{sec:aurac-disagreement}
+
+The framework is \emph{selective prediction}. The uncertainty score is a
+ranking signal, and the records ranked most uncertain are the ones a deployment
+would reject or check more expensively.
+
+\begin{itemize}
+  \item \emph{AUROC}. Treating ``incorrect'' as the positive class, AUROC is
+        the probability that a randomly chosen incorrect record gets a higher
+        uncertainty score than a randomly chosen correct one, with tied scores
+        counting as one half. Here $0.5$ is
+        random and $1.0$ is perfect. It depends only on the ranking, so the
+        unit of the entropy does not matter. This is the metric that isolates
+        the detector, and the one this thesis leads with.
+  \item \emph{Rejection-accuracy curve}. For each rejection fraction $f$, the
+        accuracy on the remaining $1-f$ of records after discarding the $f$
+        most uncertain. A useful signal makes the curve rise above the flat
+        raw-accuracy line.
+  \item \emph{AURAC}, the area under that curve, reported in \textbf{two
+        definitions} in a secondary analysis. They are not directly comparable,
+        and the released code uses the first:
+        \begin{itemize}
+          \item \texttt{aurac\_paper}: twenty retention quantiles from $0.1$,
+            with $dx = 0.9/19$, unnormalized. Maximum attainable about $0.947$.
+          \item \texttt{aurac\_mean\_retained}: mean retained accuracy averaged
+            over all retention levels.
+        \end{itemize}
+\end{itemize}
+
+Unlike AUROC, both AURAC definitions depend on how accurate the generator was
+to begin with, so their values are comparable only within one task and model.
+
+\paragraph{A worked example.} Suppose a detector scores five answers, three
+correct (C) and two wrong (W):
+
+\begin{center}\small
+\begin{tabular}{lccccc}
+\toprule
+Answer & \#1 & \#2 & \#3 & \#4 & \#5 \\
+\midrule
+Detector score & 0.10 & 0.20 & 0.25 & 0.30 & 0.90 \\
+Actually & C & C & W & C & W \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\emph{AUROC by hand.} Form every (wrong, correct) pair; there are $2 \times 3 =
+6$. The wrong answer scores higher in five of them; the exception is
+(\#3, \#4), where the wrong answer \#3 ($0.25$) scores below the correct answer
+\#4 ($0.30$). So AUROC $= 5/6 \approx 0.83$.
+
+\emph{Rejection accuracy by hand.} Start from the raw accuracy, $3/5 = 0.60$.
+Reject the highest-scoring answer (\#5, wrong) and accuracy rises to
+$3/4 = 0.75$. Reject the next (\#4, correct) and it dips to $2/3 \approx 0.67$, because a
+good answer was thrown away. Reject the next (\#3, wrong) and it
+reaches $2/2 = 1.00$; rejecting \#2 leaves the correct answer \#1, so the last
+non-empty set is also $1.00$. The curve is $0.60, 0.75, 0.67, 1.00, 1.00$, and
+averaging over those five levels gives $0.803$. For both metrics, higher is
+better.
+
+Raw answer accuracy is reported as context only. It is not a measure of the
+detector.
 
 AUROC is the primary metric in this thesis. Table~\ref{tab:aurac} provides a
 secondary sensitivity analysis using the two rejection-accuracy definitions.

@@ -30,32 +30,10 @@ The main conclusion is not that semantic grouping is unnecessary. It is that
 its added value must be tested against normalized-string counting and cannot
 be assumed from a comparison with weaker baselines.
 
-\section{Contributions}
-\label{sec:conclusion-contributions}
-
-\begin{enumerate}
-  \item \textbf{A comparison with the original baselines.}
-    The study tests the published method on open generating models and
-    separates findings that reproduce from differences observed in the tested
-    setting.
-  \item \textbf{A comparison of normalization and meaning-based grouping.}
-    The added surface-entropy baseline helps distinguish the consistent benefit
-    of string normalization from the more conditional benefit of semantic
-    grouping, subject to the input differences discussed in Chapter~\ref{ch:discussion}.
-  \item \textbf{A test of the main evaluation choices.}
-    The study varies the entailment model, correctness rule, and sampling
-    temperature, showing where the method ranking depends on those choices.
-  \item \textbf{A documented implementation and uncertainty analysis.}
-    The repository records implementation choices and deviations from the
-    published description. The paired analysis accounts for variation between
-    dataset--model units as well as between question records, and states the
-    limits of the available evidence.
-\end{enumerate}
-
-The prompting-factorial and rejection-accuracy comparisons are secondary
-analyses. The biography experiment is exploratory because of its incomplete
-provenance and different clustering rule. Their detailed results remain in
-the appendices and do not support the main contributions.
+The study contributes a comparison with the original baselines, the
+normalized-string comparator, tests of evaluation choices, and a documented
+implementation. The grouping comparison remains subject to the raw-versus-normalized
+input difference described in Chapter~\ref{ch:discussion}.
 
 \section{Limitations and next steps}
 \label{sec:conclusion-limitations}
@@ -76,8 +54,7 @@ improvements or generalize to all language-model tasks.
 
 Further limits include different answer lengths from the original study,
 different token limits for uncertainty samples and graded answers,
-order-dependent clustering, and incomplete coverage of detector and
-entailment-model combinations. The full discussion is in
+and order-dependent clustering. The full discussion is in
 Section~\ref{sec:threats}.
 
 The clearest next step is to obtain human correctness labels for a sample of

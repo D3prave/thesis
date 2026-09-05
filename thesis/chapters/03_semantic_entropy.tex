@@ -96,27 +96,6 @@ model can change without generating new answers. Likewise, the same finished
 answer can be graded under different correctness rules without changing an
 estimator.
 
-Figure~\ref{fig:method-schematic} reproduces the original illustration. Panel
-(a) makes the point on a short question: counting raw strings treats ``Paris''
-and ``It's Paris'' as different answers and the entropy looks too high, while
-grouping by meaning gives a low score. Panel (b) shows the long-form version,
-where a biography is split into claims, each claim is re-asked as a question,
-and the regenerated answers are grouped by meaning.
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\textwidth]{semantic_entropy_paper_fig1.png}
-\caption{The semantic entropy method. (a)~On a short question, count\-ing
-  distinct wordings makes the model look more un\-cer\-tain than it is; the
-  source figure labels this ``mis\-lead\-ing\-ly high naive entropy''.
-  Grouping by meaning first gives a low semantic entropy. (b)~The same idea
-  applied to paragraph-length bi\-og\-ra\-phies, one claim at a time.
-  Reproduced from Farquhar et al.~\cite{semantic_entropy_nature_2024}
-  (\emph{Nature}, 2024), licensed under
-  \href{https://creativecommons.org/licenses/by/4.0/}{CC~BY~4.0}.}
-\label{fig:method-schematic}
-\end{figure}
-
 \section{Sampling setup}
 \label{sec:sampling-setup}
 
@@ -193,9 +172,7 @@ entail ``The capital of France is Paris'' on its own, but in the context of the
 question it does. The short-answer results here follow that definition. Every
 short-answer entailment query is prefixed with the question,
 and the LLM entailment model is given the question alongside both answers for the same
-reason. The one exception is the whole-paragraph biography protocol, which is
-answer-only, because a generated paragraph is not a response to a single
-question.
+reason.
 
 Clustering uses the \emph{raw} generations, not their normalized forms.
 Normalization is used only for the surface-entropy baseline. Each entailment
@@ -204,7 +181,7 @@ of question-prefixed strings.
 
 The rule approximates equivalence rather than defining it, because judgments
 from a small cross-encoder can be noisy. It may split answers that differ only
-in harmless detail, and merge answers that hide real differences. Four models
+in harmless detail, and merge answers that hide real differences. Three models
 compute $e(\cdot,\cdot \mid x)$:
 
 \begin{itemize}
@@ -215,9 +192,6 @@ compute $e(\cdot,\cdot \mid x)$:
   \item \texttt{nli-deberta-v3-large}, an alternative
     cross-encoder~\cite{sentence_transformers_nli_deberta_v3_large_2022,%
     he_debertav3_2021}.
-  \item \texttt{nli-deberta-v3-base}, a smaller
-    cross-encoder~\cite{sentence_transformers_nli_deberta_v3_base_2022}, used
-    in the long-form experiment only.
   \item \texttt{Qwen/Qwen2.5-72B-Instruct}~\cite{yang_qwen25_2024}, an open
     stand-in for the proprietary judge Farquhar et al.\ use on sentence-length
     answers. It is prompted with the entailment instruction taken verbatim from
@@ -299,9 +273,7 @@ use $M=10$, so at most $\ln 10 \approx 2.30$; the worked example below uses
 $M=5$, so at most $\ln 5 \approx 1.61$.
 
 Shannon entropy is used because it is the quantity defined by Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. An optional mathematical comparison
-with Gini impurity is kept in Appendix~\ref{app:gini-analysis}; it is not part
-of the main evaluation.
+al.~\cite{semantic_entropy_nature_2024}.
 
 \paragraph{The estimator family.}
 The experiments report this count-based estimator, the probability-weighted variant
@@ -533,31 +505,11 @@ A Semantic Entropy Probe (SEP)~\cite{kossen_semantic_entropy_probes_2024}
 predicts uncertainty from the model's internal state. At test time it uses one
 generated answer, with no repeated sampling or entailment comparisons.
 
-For each training question, the most-likely answer supplies a hidden state,
-read at the last generated token as fixed by the stop sequence. Separately, ten
-sampled responses are grouped by meaning to compute discrete semantic entropy.
-The high/low threshold is chosen from the training entropies to minimize the
-sum of squared deviations within the two groups, following Equation~(5) of
-Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}. A logistic-regression
-classifier then predicts that label from the hidden state. Correctness labels
-are not used; the accuracy probe below is the variant trained on those. At test
-time, generate one answer, read the same hidden state, apply the classifier,
-and use its output as the uncertainty score.
-
-The probe is trained separately per dataset, model and seed on its own prompts
-and scored on a disjoint set, so its numbers are a genuine held-out test. The
-feature choices are fixed in advance rather than tuned on the evaluation set.
-An audit of the saved probe inputs later found one missing training hidden state
-in the NQ-Open Llama-3.1-70B short-phrase run with seed 42. The reported fits
-predate that finding; this audit does not establish how that record was handled
-during fitting. All retained evaluation records have saved features, but this
-training-input gap limits exact reproduction of the existing fits.
-
-One detail follows the code rather than the natural reading: the hidden state is
-taken at position $n_{\mathrm{generated}}-1$, where $n_{\mathrm{generated}}$
-comes from where the stop sequence cut the answer, and no end-of-sequence token
-has to be present. The probe is far cheaper than full semantic entropy, but
-limited to what is linearly readable from one hidden state.
+The probe learns a high/low semantic-entropy label from a hidden state.
+The accuracy probe uses the same type of classifier but learns correctness
+labels instead. Training and evaluation use disjoint question sets.
+Appendix~\ref{app:probe-training} gives the training procedure and documents
+a missing saved training feature that limits exact reproduction of the fits.
 
 \subsection{P(True) and embedding regression}
 \label{sec:other-estimators}
@@ -577,9 +529,7 @@ description. P(True) reuses the stored samples and needs no probe training.
 \textbf{Embedding regression} is a close cousin of the SEP probe: the same kind
 of linear model on the same hidden states of the same most-likely answers, but
 trained on \emph{judged correctness} instead of a semantic-entropy threshold.
-It is reported in two forms. \emph{In-distribution} means trained and tested on
-the same task. \emph{Out-of-distribution} means trained on the pooled prompts of
-the other two short-answer tasks and scored on the held-out one. Together they
-measure how well such a probe transfers between datasets.
-It is called the \emph{accuracy probe} because its training target is what
-distinguishes it from SEP.
+It is called the \emph{accuracy probe} because of this training target.
+The main comparison trains and tests on disjoint questions from the same task.
+A secondary test of transfer between tasks is reported in
+Appendix~\ref{sec:probe-results}.

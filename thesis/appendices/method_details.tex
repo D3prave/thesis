@@ -2,9 +2,7 @@
 \label{app:method-details}
 
 This appendix preserves the technical details behind
-Chapters~\ref{ch:semantic_entropy} and~\ref{ch:experimental_design}. The
-long-form setup and the Gini-impurity comparison are supplementary; they are
-not part of the main evidence for the short-answer findings.
+Chapters~\ref{ch:semantic_entropy} and~\ref{ch:experimental_design}.
 
 \section{Exact order of random selections}
 \label{app:random-selection}
@@ -96,85 +94,6 @@ its frequency or size in the experiments. The entailment-model comparison in
 Section~\ref{sec:clustering-sensitivity} changes a different factor and does
 not bound the effect of sample order.
 
-\section{Optional comparison with Gini impurity}
-\label{app:gini-analysis}
-\label{sec:why-entropy}
-
-Shannon entropy is used in the main study because it is the quantity defined
-by Farquhar et al.~\cite{semantic_entropy_nature_2024}. Gini impurity,
-\[
-  G = 1 - \sum_k \hat{p}_k^2 ,
-\]
-is another way to summarize the spread of cluster shares. The following
-mathematical check is not an experiment on hallucination detection and is not
-used as a thesis contribution.
-
-For $M$ sampled answers, every possible cluster-size vector is an integer
-partition of $M$. At $M=10$ there are 42 such vectors. Among the 840 pairs that
-both measures rank without a tie, 812 (96.7\,\%) have the same ordering and 28
-have opposite orderings. A further 21 pairs are tied under exactly one
-measure. At $M=5$, both measures agree on all 21 pairs, with no one-sided ties.
-The deterministic script \texttt{scripts/impurity\_choice\_ranking.py}
-reproduces these counts using only the Python standard library.
-
-In all 28 reversed pairs, the vector that entropy ranks higher has the larger
-dominant cluster; in 27 it also has more clusters. For example, compare
-$(5,5)$ with $(7,1,1,1)$. Entropy is higher for the second vector, about
-$0.94$ rather than $0.69$ nats. Gini impurity is higher for the first, $0.50$
-rather than $0.48$. The two measures therefore place different weights on
-these cluster patterns. Shannon entropy also has the additivity property for
-independent variables; Gini impurity does not have the same additive form.
-
-Changing the score could alter AUROC through either reversed rankings or
-changed ties. This enumeration does not show how often those patterns occur
-in the recorded answers. The exported measurement package does not contain
-the per-record cluster-size vectors needed to test that question, so no
-detection-performance claim is made from this comparison.
-
-\section{Exploratory long-form design and provenance}
-\label{app:longform-details}
-
-The long-form experiment is a FactScore-style biography
-task~\cite{min_factscore_2023}. The prompt is
-\emph{Tell me a bio of \{entity\}.} The reference is the subject's pinned
-English Wikipedia lead section, fetched from the MediaWiki summary endpoint.
-Three generators and three seeds give nine cells, each containing 500 records.
-Collection checks require the median sampled-answer length to be at least 300
-characters. Uncertainty is computed over the whole paragraph;
-Qwen2.5-72B-Instruct judges correctness claim by claim.
-
-\paragraph{Incomplete provenance.}
-The subject list stored in the repository contains 308 entries, fewer than the
-500 records per cell in the measurement package. The prepared data files are
-also absent. The measurements are recorded, but the exact subjects used to
-produce them cannot be recovered from the repository. This limits
-reproducibility and is a reason to treat the experiment as exploratory.
-
-Only the Qwen correctness grader is available. When Qwen is also used for
-entailment, the same model performs both roles. Unlike the short-answer
-comparison, there is no second grader with which to check that overlap.
-
-\paragraph{Different paragraph clustering rule.}
-Farquhar et al.~\cite{semantic_entropy_nature_2024} use a relaxed,
-\emph{non-defeating} bidirectional entailment rule for paragraphs: at least
-one direction must indicate entailment and neither may indicate
-contradiction. Their Methods section and Supplementary Figure~1 describe this
-rule for the DeBERTa paragraph result.
-
-The released \texttt{get\_semantic\_ids} function has a
-\texttt{strict\_entailment} flag. When enabled, both directions must return
-entailment. With the default relaxed setting, neither direction may return
-contradiction and the two directions may not both be neutral. This study
-enables the strict setting in every experiment, including biographies. It also
-clusters whole paragraphs rather than following the original claim-based
-regeneration procedure illustrated in Figure~\ref{fig:method-schematic}.
-
-The difference is a configuration choice, not just a wording difference.
-Consequently, this comparison does not reproduce the original paragraph
-result. A weak result for a cross-encoder may reflect the stricter rule rather
-than the model alone. The incomplete provenance, different method and single
-grader prevent the long-form experiment from supporting the main conclusions.
-
 \section{Complete deviation registers}
 \label{app:deviation-registers}
 
@@ -239,8 +158,7 @@ Correctness metric & The code supports
 \centering
 \small
 \caption{Where this study departs from the original. The first group was
-  forced by cost or access, the second is what the study adds, and the third
-  is a divergence in the algorithm itself.}
+  forced by cost or access, and the second is what the study adds.}
 \label{tab:deviation-register}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -274,7 +192,7 @@ No normalized-string count-entropy comparison &
   tests whether grouping by meaning improves the score \\
 \addlinespace[2pt]
 Entailment-model checks in supplementary experiments &
-  three models in the short-answer grid; separate biography checks &
+  three models in the short-answer grid &
   compares selected open models on identical short-answer generations \\
 \addlinespace[2pt]
 One correctness rule per condition &
@@ -292,14 +210,6 @@ Two prompting conditions differing in two factors &
 Seed variability not reported &
   three seeds, spread reported throughout &
   shows variation caused by sampling \\
-\midrule
-\multicolumn{3}{@{}l}{\emph{Divergence in the algorithm}}\\
-Non-defeating bidirectional entailment for paragraphs &
-  strict bidirectional entailment everywhere &
-  the long-form comparison does not reproduce Supplementary Figure~1;
-  a weak cross-encoder result may reflect the stricter rule rather than the
-  model alone
-  (Section~\ref{sec:longform-design}) \\
 \bottomrule
 \end{tabular}
 \endgroup
@@ -365,9 +275,7 @@ revision. These records should not be read as a claim that every processing
 step ran at one commit.
 
 Code, configuration, result tables and figures are version-controlled. Model
-caches, raw generations and hidden states are stored separately. The missing
-long-form inputs described in Section~\ref{app:longform-details} remain a
-provenance gap; metadata checks do not recover them.
+caches, raw generations and hidden states are stored separately.
 
 \paragraph{Analysis and validation.}
 Clustering jobs check five output fields against the requested settings: the
@@ -405,3 +313,32 @@ The local measurement package can verify the paired point estimates, but
 cannot reconstruct the record-level intervals without the original scored
 answers. Tests of the bootstrap implementation and checks of the exported
 values are distinct from an independent rerun of those intervals.
+
+\section{Probe training and saved features}
+\label{app:probe-training}
+
+For each training question, the most-likely answer supplies a hidden state,
+read at the last generated token as fixed by the stop sequence. Separately, ten
+sampled responses are grouped by meaning to compute discrete semantic entropy.
+The high/low threshold is chosen from the training entropies to minimize the
+sum of squared deviations within the two groups, following Equation~(5) of
+Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}. A logistic-regression
+classifier then predicts that label from the hidden state. Correctness labels
+are not used; the accuracy probe is the variant trained on those. At test
+time, generate one answer, read the same hidden state, apply the classifier,
+and use its output as the uncertainty score.
+
+The probe is trained separately per dataset, model and seed on its own prompts
+and scored on a disjoint set, so its numbers are a genuine held-out test. The
+feature choices are fixed in advance rather than tuned on the evaluation set.
+An audit of the saved probe inputs later found one missing training hidden state
+in the NQ-Open Llama-3.1-70B short-phrase run with seed 42. The reported fits
+predate that finding; this audit does not establish how that record was handled
+during fitting. All retained evaluation records have saved features, but this
+training-input gap limits exact reproduction of the existing fits.
+
+One detail follows the code rather than the natural reading: the hidden state is
+taken at position $n_{\mathrm{generated}}-1$, where $n_{\mathrm{generated}}$
+comes from where the stop sequence cut the answer, and no end-of-sequence token
+has to be present. The probe is far cheaper than full semantic entropy, but
+limited to what is linearly readable from one hidden state.

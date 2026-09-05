@@ -92,94 +92,16 @@ answers. Changing the temperature requires generating new samples.
 \section{What the study finds}
 \label{sec:what-the-study-finds}
 
-On sentence-length answers, semantic entropy performs better than every
-comparison method from the original paper. This reproduces the paper's main
-comparison in the tested settings. Semantic entropy uses the default
-entailment model when compared with P(True) and the alternative
-\texttt{v3-large} model when compared with the probes.
+On sentence-length answers, semantic entropy performs better than the original
+baselines in the tested settings. The added surface-entropy comparison shows
+that normalization gives the most consistent improvement. Grouping by meaning
+adds no clear benefit with the released entailment model under LLM grading,
+but does with the tested Qwen model. An undetected benefit is not evidence of
+equivalence.
 
-The step-by-step comparison points to answer normalization rather than grouping
-by meaning. Normalization means lowercasing, removing punctuation and articles,
-and extracting the number from an answer to an arithmetic problem. It is the
-only step that improves the result consistently across the main short-answer
-comparisons and by more than the variation between random seeds.
-
-With the entailment model loaded by the released code, grouping by meaning gives
-no clear improvement over counting normalized strings. This does not show
-that the true effect is exactly zero: small effects may go undetected. Even so,
-surface entropy, which never groups by meaning, performs
-better than every original comparison method wherever both were tested.
-
-A larger entailment model does show a clear benefit from grouping
-sentence-length answers by meaning. The result therefore depends on which
-model makes the grouping decisions.
-
-Evaluation choices can substantially change the measured advantage of semantic
-entropy over surface entropy. Changing only the entailment model on the same generated
-answers changes the score substantially. Sampling temperature changes the
-ranking of the methods, and the correctness rule changes which method performs
-better. The study has no human correctness labels with which to choose between
-the correctness rules. This limits every reported result.
-
-\section{The experimental grid at a glance}
-\label{sec:grid-at-a-glance}
-
-Table~\ref{tab:grid-at-a-glance} lists what was varied in the short-answer study.
-Not every factor was tested in every combination. The two new prompting
-conditions were tested with one entailment model and one temperature. The
-temperature experiment includes only the entropy-based methods and the original two prompting conditions, using
-two of the three entailment models. The comparisons against P(True) and the
-probes use different entailment models for semantic entropy. Each table in
-Chapter~\ref{ch:results} states which settings it covers.
-
-\begin{table}[htb]
-\thisfloatsetup{capposition=above}
-\centering
-\small
-\caption{The factors varied in the short-answer study. For each generation
-  condition, clustering is applied to stored answers. Comparisons between
-  entailment models therefore change only the model used for grouping. At the
-  main temperature, all three correctness rules score the same answers; the
-  temperature sweep is reported only under LLM grading. Not every combination was tested.}
-\label{tab:grid-at-a-glance}
-\begingroup
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}c@{}}
-\toprule
-Factor & Levels & Count \\
-\midrule
-Prompting condition &
-  brief-sentence instruction and terse instruction, each with 0 and with 5
-  worked examples & 4 \\
-Short-answer dataset &
-  TriviaQA, NQ-Open, SVAMP & 3 \\
-Generator &
-  Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct, Llama-3.1-70B-Instruct & 3 \\
-Run seed &
-  42, 43, 44, varying sampling only & 3 \\
-Entailment model &
-  \texttt{deberta-v2-xlarge-mnli} (released-code default),
-  \texttt{nli-deberta-v3-large}, \texttt{Qwen2.5-72B-Instruct} & 3 \\
-Correctness rule &
-  SQuAD token-F1, and LLM judges Qwen2.5-72B-Instruct and
-  Llama-3.1-70B-Instruct & 3 \\
-Sampling temperature &
-  0.1, 0.3, 0.5, 0.7, 1.0 & 5 \\
-\bottomrule
-\end{tabular}
-\endgroup
-\end{table}
-
-The short-answer study uses nine dataset--generator pairs as resampling
-units. The three random seeds are repeated runs within each pair,
-not separate independent observations. The main paired bootstrap accounts for
-both these pairs and the records within them. The limited grid and its shared
-datasets and models restrict generalization; Section~\ref{sec:statistics}
-states the resampling assumptions.
-
-A separate biography experiment is exploratory and is reported in
-Appendix~\ref{app:secondary-results}. Its incomplete provenance and different
-clustering rule limit the conclusions, so it is not part of the main evidence.
+The result also depends on sampling temperature and the correctness rule.
+No human labels were collected to validate the correctness judges, so the
+findings remain conditional on those grading rules.
 
 \section{Contributions}
 \label{sec:contributions}
@@ -201,37 +123,3 @@ The implementation follows the released
 code~\cite{kossen_semantic_uncertainty_code_2024}, with differences documented.
 Checks of prompting choices and the AURAC evaluation metric are secondary
 analyses, not separate headline contributions.
-
-\section{Reader's guide}
-\label{sec:readers-guide}
-
-Chapter~\ref{ch:background} makes the target precise. It separates
-confabulation from the other failure modes collected under ``hallucination'',
-and explains why measuring uncertainty over free text is harder than over a
-fixed set of options. It ends with the gap this thesis addresses.
-
-Chapter~\ref{ch:semantic_entropy} defines the method and the estimators
-evaluated beside it. Its central section is the clustering step, stated as the
-released code performs it rather than as it is usually described.
-
-Chapter~\ref{ch:experimental_design} specifies the experiment. It covers
-datasets and question selection, the prompting conditions, the generators and
-decoding budgets, the entailment models, the correctness rules, and the metrics.
-Appendix~\ref{app:method-details} gives the detailed implementation choices,
-execution procedure, and differences from the original study.
-
-Chapter~\ref{ch:results} reports the main short-answer results. It compares the
-original methods, tests the individual steps, and examines the evaluation
-choices. Appendix~\ref{app:secondary-results} contains the complete comparison
-table, secondary analyses, and exploratory biography results.
-
-Chapter~\ref{ch:discussion} explains which step improves the results, what that
-improvement depends on, how strongly the evaluation setup affects the reported
-scores, and which original findings reproduce.
-
-Chapter~\ref{ch:conclusion} summarizes and states the limitations. Two of those
-bear on every number here. No human labels were collected to check the
-correctness judges against. And the entailment model and the judge answer
-versions of the same question, so a method that groups by meaning may be favored
-when correctness is also judged through meaning. Without human labels, this
-study cannot separate that dependence from genuine improvement.

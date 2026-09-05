@@ -87,13 +87,6 @@ include zero. It is therefore a secondary analysis, not evidence
 that answer length causes the observed differences. The full results are in
 Appendix~\ref{sec:factorial-results}.
 
-The biography experiment is exploratory. Its string-based estimators perform
-near chance, its exact entity list cannot be
-recovered from the stored repository, and its clustering rule differs from the
-original paragraph experiment. No general claim about long-form detection follows
-from it. Appendix~\ref{sec:longform-results} reports its findings
-and limitations.
-
 \section{Why the evaluation setup matters}
 \label{sec:apparatus}
 
@@ -139,31 +132,20 @@ token-overlap matching, but their labels are not ground truth
 either. There are no human annotations in this study to determine which rule
 better reflects actual correctness.
 
-\subsection{The metric comparison is secondary}
-
-The rejection-accuracy summaries can rank methods differently from AUROC.
-They also track the generating model's accuracy more closely. This makes them
-useful for describing the answers retained after rejection, but less suitable
-as the main comparison of detector ranking quality in this thesis. AUROC
-remains the primary metric. The complete secondary analysis is in
-Appendix~\ref{sec:aurac-disagreement}.
-
 \section{What reproduces from the original studies}
 \label{sec:comparison-farquhar}
 
 Semantic entropy performs better than the measured original baselines, and its
-discrete and likelihood-weighted forms perform similarly. The probe results
-also show lower accuracy on held-out datasets. These findings support key
-patterns reported by Farquhar et al.~\cite{semantic_entropy_nature_2024} and
-Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}.
+discrete and likelihood-weighted forms perform similarly. These findings support key
+patterns reported by Farquhar et al.~\cite{semantic_entropy_nature_2024}.
+The secondary probe-transfer results are in Appendix~\ref{sec:probe-results}.
 
 The comparison is limited to the configurations tested here. P(True) does not
 show the original model-size trend within the tested Llama models, but a
 comparison within one family is not enough to reject a broader trend. The
 semantic-entropy comparator uses different entailment models in its comparisons
-with P(True) and the probes. The out-of-distribution probe conditions also use
-different graders and must each be compared with their matching
-in-distribution result.
+with P(True) and the probes. The probe-training provenance limit is documented in
+Appendix~\ref{app:probe-training}.
 
 This is a reimplementation of the released procedure, not an exact repeat of
 the original experiment. The datasets, generating models, correctness judges,
@@ -219,12 +201,10 @@ that order can change the final groups without changing the entailment
 judgments. Appendix~\ref{sec:order_dependence_example} gives a worked example.
 The entailment-model comparison does not measure or bound this ordering effect.
 
-\paragraph{Incomplete experimental coverage.}
-Not every detector, prompting condition, temperature, and entailment model was
-tested together. The prompting-factorial and metric analyses are secondary.
-The exploratory biography experiment has incomplete provenance, one grader,
-and a different paragraph-clustering rule. These limits prevent it from
-supporting a central claim about long-form detection.
+\paragraph{Scope of the comparisons.}
+The study covers three short-answer datasets and three generators.
+Table~\ref{tab:grid-at-a-glance} and the individual result tables specify
+which methods and settings are compared; the findings apply to those settings.
 
 Taken together, the results support a conditional finding: semantic entropy
 can improve on normalized-string counting with the tested Qwen entailment

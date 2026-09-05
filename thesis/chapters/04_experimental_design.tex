@@ -16,6 +16,62 @@ estimator and temperature, a \emph{cell} is one dataset--generator--seed
 combination. The three seed cells for one dataset--generator pair form one
 statistical resampling \emph{unit}.
 
+\section{The experimental grid at a glance}
+\label{sec:grid-at-a-glance}
+
+Table~\ref{tab:grid-at-a-glance} lists what was varied in the short-answer study.
+Not every factor was tested in every combination. The two new prompting
+conditions were tested with one entailment model and one temperature. The
+temperature experiment includes only the entropy-based methods and the original two prompting conditions, using
+two of the three entailment models. The comparisons against P(True) and the
+probes use different entailment models for semantic entropy. Each table in
+Chapter~\ref{ch:results} states which settings it covers.
+
+\begin{table}[htb]
+\thisfloatsetup{capposition=above}
+\centering
+\small
+\caption{The factors varied in the short-answer study. For each generation
+  condition, clustering is applied to stored answers. Comparisons between
+  entailment models therefore change only the model used for grouping. At the
+  main temperature, all three correctness rules score the same answers; the
+  temperature sweep is reported only under LLM grading. Not every combination was tested.}
+\label{tab:grid-at-a-glance}
+\begingroup
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}c@{}}
+\toprule
+Factor & Levels & Count \\
+\midrule
+Prompting condition &
+  brief-sentence instruction and terse instruction, each with 0 and with 5
+  worked examples & 4 \\
+Short-answer dataset &
+  TriviaQA, NQ-Open, SVAMP & 3 \\
+Generator &
+  Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct, Llama-3.1-70B-Instruct & 3 \\
+Run seed &
+  42, 43, 44, varying sampling only & 3 \\
+Entailment model &
+  \texttt{deberta-v2-xlarge-mnli} (released-code default),
+  \texttt{nli-deberta-v3-large}, \texttt{Qwen2.5-72B-Instruct} & 3 \\
+Correctness rule &
+  SQuAD token-F1, and LLM judges Qwen2.5-72B-Instruct and
+  Llama-3.1-70B-Instruct & 3 \\
+Sampling temperature &
+  0.1, 0.3, 0.5, 0.7, 1.0 & 5 \\
+\bottomrule
+\end{tabular}
+\endgroup
+\end{table}
+
+The short-answer study uses nine dataset--generator pairs as resampling
+units. The three random seeds are repeated runs within each pair,
+not separate independent observations. The main paired bootstrap accounts for
+both these pairs and the records within them. The limited grid and its shared
+datasets and models restrict generalization; Section~\ref{sec:statistics}
+states the resampling assumptions.
+
 \section{Datasets and question selection}
 \label{sec:datasets}
 
@@ -24,9 +80,7 @@ TriviaQA~\cite{joshi_triviaqa_2017} for open-domain factual recall,
 NQ-Open~\cite{lee_nq_open_2019} for recall from real search queries, and
 SVAMP~\cite{patel_svamp_2021} for arithmetic word problems, where equivalence
 is about numbers rather than phrasing. Table~\ref{tab:dataset-samples} shows
-example records; Appendix~\ref{app:prompts} gives the prompt construction. The
-separate biography experiment is summarized in
-Section~\ref{sec:longform-design}.
+example records; Appendix~\ref{app:prompts} gives the prompt construction.
 
 Each is loaded exactly as the released \texttt{data/data\_utils.py} loads it,
 including the loader's incidental behavior: a question mark is appended to
@@ -71,8 +125,7 @@ SVAMP & \texttt{ChilleD/SVAMP} & 700 / 300 \\
   queries that keep their original lowercase form. SVAMP prompts concatenate
   the \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open
   reference answers include accepted aliases, separated here by semicolons.
-  SVAMP reference answers are a single number, and biography references are
-  pinned English Wikipedia lead sections.}
+  SVAMP reference answers are a single number.}
 \label{tab:dataset-samples}
 \begingroup
 \setlength{\tabcolsep}{3pt}
@@ -91,8 +144,6 @@ NQ-Open  & when did the eagles win last super bowl?                   & 2017 \\
 SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
 SVAMP    & A bag contains 12 oranges. Tom takes 5 oranges out. How many oranges are left in the bag?           & 7  \\[4pt]
 SVAMP    & Each box holds 6 crayons. How many crayons are there in 3 boxes?                                    & 18 \\
-\midrule
-Biography & Tell me a bio of Marie Curie. & English Wikipedia lead section \\
 \bottomrule
 \end{tabular}
 \endgroup
@@ -228,7 +279,7 @@ explains how the analysis accounts for this dependence.
 
 An entailment model decides whether two answers have the same meaning. Each
 model receives the same stored answers, so it is the only part that changes in
-this comparison. Table~\ref{tab:backends} lists the four models and the
+this comparison. Table~\ref{tab:backends} lists the three models and the
 string-matching baseline. Every semantic clustering run uses strict
 bidirectional entailment and
 the order-dependent anchor scan of Algorithm~\ref{alg:clustering}, including
@@ -240,7 +291,7 @@ entailment input includes the question.
 \centering
 \small
 \caption{Equivalence rules used. \texttt{exact-match} is applied at collection
-  time and supplies the clustering-free baseline; the other four are applied
+  time and supplies the clustering-free baseline; the other three are applied
   post hoc to identical generations.}
 \label{tab:backends}
 \begingroup
@@ -255,13 +306,9 @@ Model or rule & Role \\
 \texttt{cross-encoder/nli-} \texttt{deberta-v3-large} & current-generation
   cross-encoder \\
 \addlinespace[2pt]
-\texttt{cross-encoder/nli-} \texttt{deberta-v3-base} & smaller cross-encoder;
-  long-form experiment only. The default short-answer model was not applied
-  to the long-form experiment \\
-\addlinespace[2pt]
 \texttt{Qwen/Qwen2.5-72B-} \texttt{Instruct} & open stand-in for the
   proprietary judge used in the original's sentence-length condition; applied
-  to both short-answer conditions and to the long-form experiment, prompted with the
+  to both short-answer conditions, prompted with the
   \texttt{EntailmentGPT4} instruction taken verbatim from the released
   \texttt{semantic\_entropy.py} \\
 \addlinespace[2pt]
@@ -341,83 +388,19 @@ Token-F1 results and answer lengths from the sweep are excluded because they
 refer to a different selected answer. Appendix~\ref{app:collection-checks}
 explains the selection issue and gives the numerical checks.
 
-\section{Exploratory long-form experiment}
-\label{sec:longform-design}
-
-An exploratory biography experiment~\cite{min_factscore_2023} scores
-uncertainty over whole paragraphs and uses Qwen2.5-72B-Instruct to judge
-correctness claim by claim. It is not a central result: the full subject list
-and prepared data are missing, no second grader is available, and its strict
-entailment rule differs from the relaxed paragraph rule used by Farquhar et
-al.~\cite{semantic_entropy_nature_2024}. The experiment therefore cannot
-support a direct reproduction claim for the original paragraph results.
-Appendix~\ref{app:longform-details} gives the setup and provenance limits.
-
 \section{Evaluation metrics}
 \label{sec:evaluation-metrics}
 
-The framework is \emph{selective prediction}. The uncertainty score is a
-ranking signal, and the records ranked most uncertain are the ones a deployment
-would reject or check more expensively.
+AUROC is the primary metric. With \emph{incorrect} as the positive class, it is
+the probability that a randomly chosen incorrect answer receives a higher
+uncertainty score than a randomly chosen correct answer, counting ties as
+one half. A score of $0.5$ is random and $1.0$ is perfect. AUROC depends on
+the ranking rather than the units of the uncertainty score.
 
-\begin{itemize}
-  \item \emph{AUROC}. Treating ``incorrect'' as the positive class, AUROC is
-        the probability that a randomly chosen incorrect record gets a higher
-        uncertainty score than a randomly chosen correct one, with tied scores
-        counting as one half. Here $0.5$ is
-        random and $1.0$ is perfect. It depends only on the ranking, so the
-        unit of the entropy does not matter. This is the metric that isolates
-        the detector, and the one this thesis leads with.
-  \item \emph{Rejection-accuracy curve}. For each rejection fraction $f$, the
-        accuracy on the remaining $1-f$ of records after discarding the $f$
-        most uncertain. A useful signal makes the curve rise above the flat
-        raw-accuracy line.
-  \item \emph{AURAC}, the area under that curve, reported in \textbf{two
-        definitions} in a secondary analysis. They are not directly comparable,
-        and the released code uses the first:
-        \begin{itemize}
-          \item \texttt{aurac\_paper}: twenty retention quantiles from $0.1$,
-            with $dx = 0.9/19$, unnormalized. Maximum attainable about $0.947$.
-          \item \texttt{aurac\_mean\_retained}: mean retained accuracy averaged
-            over all retention levels.
-        \end{itemize}
-\end{itemize}
-
-Unlike AUROC, both AURAC definitions depend on how accurate the generator was
-to begin with, so their values are comparable only within one task and model.
-Appendix~\ref{sec:aurac-disagreement} reports the comparison with AUROC and
-the differences between these two definitions.
-
-\paragraph{A worked example.} Suppose a detector scores five answers, three
-correct (C) and two wrong (W):
-
-\begin{center}\small
-\begin{tabular}{lccccc}
-\toprule
-Answer & \#1 & \#2 & \#3 & \#4 & \#5 \\
-\midrule
-Detector score & 0.10 & 0.20 & 0.25 & 0.30 & 0.90 \\
-Actually & C & C & W & C & W \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\emph{AUROC by hand.} Form every (wrong, correct) pair; there are $2 \times 3 =
-6$. The wrong answer scores higher in five of them; the exception is
-(\#3, \#4), where the wrong answer \#3 ($0.25$) scores below the correct answer
-\#4 ($0.30$). So AUROC $= 5/6 \approx 0.83$.
-
-\emph{Rejection accuracy by hand.} Start from the raw accuracy, $3/5 = 0.60$.
-Reject the highest-scoring answer (\#5, wrong) and accuracy rises to
-$3/4 = 0.75$. Reject the next (\#4, correct) and it dips to $2/3 \approx 0.67$, because a
-good answer was thrown away. Reject the next (\#3, wrong) and it
-reaches $2/2 = 1.00$; rejecting \#2 leaves the correct answer \#1, so the last
-non-empty set is also $1.00$. The curve is $0.60, 0.75, 0.67, 1.00, 1.00$, and
-averaging over those five levels gives $0.803$. For both metrics, higher is
-better.
-
-Raw answer accuracy is reported as context only. It is not a measure of the
-detector.
+Raw answer accuracy is reported as context, not as detector performance.
+A secondary analysis uses rejection-accuracy curves and their area (AURAC).
+Appendix~\ref{sec:aurac-disagreement} gives the definitions, a worked example,
+and the comparison with AUROC.
 
 \section{Statistical procedure}
 \label{sec:statistics}
@@ -479,13 +462,12 @@ and how this study differs from both. Table~\ref{tab:code-divergence} records
 nine implementation details, including differences, clarifications and the
 most-likely-answer token-budget exception. Table~\ref{tab:deviation-register}
 records the study's changes to
-models, datasets, graders, prompting conditions, temperatures and clustering.
+models, datasets, graders, prompting conditions and temperatures.
 Both full registers are in Appendix~\ref{app:deviation-registers}.
 
 The main validity concerns are stated in the sections where they matter. This
 study uses open models in place of proprietary judges, has no human correctness
-labels, evaluates three of the original five question sets, and uses strict
-entailment for paragraphs instead of the original relaxed rule. It also adds
+labels, and evaluates three of the original five question sets. It also adds
 string-based entropy baselines, multiple entailment models and correctness
 rules, four prompting combinations, five temperatures and three sampling
 seeds.

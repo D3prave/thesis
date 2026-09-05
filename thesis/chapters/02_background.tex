@@ -79,27 +79,11 @@ compare many of these methods on the same tasks~\cite{lm_polygraph_vashurin_2025
 \section{Confidence, calibration, and abstention}
 \label{sec:calibration-abstention}
 
-The point of estimating uncertainty is not only to attach a number to an
-answer. It is to decide what happens next: answer, abstain, look something up,
-ask a person, or run a more expensive check.
-
-A related idea is \emph{calibration}. A model is well calibrated when its
-stated confidence matches how often it is right: among answers given with
-90\,\% confidence, about 90\,\% should be correct. Calibration and accuracy are
-different properties, and a model can have one without the other. This thesis
-does not require perfect calibration. It asks whether an uncertainty score
-ranks risky answers above safer ones. Accuracy alone cannot answer that
-question, because many benchmarks reward a lucky guess over an honest admission
-of uncertainty~\cite{kalai_why_language_models_hallucinate_2025}. A
-rejection-accuracy curve shows how accuracy changes as the system removes the
-answers with the highest uncertainty. Section~\ref{sec:evaluation-metrics}
-defines this evaluation and explains a problem with its usual summary score.
-
-Semantic entropy has also been used as a training signal: Tjandra et
-al.~\cite{tjandra_abstain_semantic_entropy_2024} fine-tune models on it to
-encourage abstention. That is a different use of the same quantity and not what
-this thesis does. Here, the score is computed after the model answers, and the
-model itself is not changed.
+An uncertainty score can help decide which answers to reject or check.
+This thesis evaluates ranking, not calibration: it asks whether incorrect
+answers receive higher uncertainty than correct ones. Rejection-accuracy
+metrics provide a secondary view of the retained answers
+(Appendix~\ref{sec:aurac-disagreement}).
 
 Several related methods address the same problem without grouping by meaning.
 P(True)~\cite{kadavath_language_models_know_2022} asks the model whether its own
@@ -209,21 +193,10 @@ must therefore be tested in a separate experiment while the other settings are
 held fixed. Repeating runs with different random seeds also helps distinguish
 consistent changes from variation between runs.
 
-\paragraph{A secondary check of prompting choices.} The original study
-reports one prompt that asks for sentence-length answers and another that asks
-for short phrases. The prompts differ both in their instructions and in the
-number of worked examples shown before the question. Any difference between
-them could come from either choice or from the interaction between them. The
-two missing combinations allow a secondary analysis that separates the two
-effects.
-
 The main study covers three short-answer tasks: open-domain factual recall with
 TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}, and
-arithmetic word problems with SVAMP~\cite{patel_svamp_2021}. An exploratory
-FactScore-style biography experiment~\cite{min_factscore_2023} is reported in
-Appendix~\ref{app:secondary-results}. Its incomplete provenance and different
-clustering rule prevent a direct comparison with the original long-form result.
-The reasons for choosing these datasets, the prompt construction, and the
+arithmetic word problems with SVAMP~\cite{patel_svamp_2021}. The reasons for
+choosing these datasets, the prompt construction, and the
 reproduced question selection are in
 Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
 
