@@ -545,6 +545,12 @@ and use its output as the uncertainty score.
 The probe is trained separately per dataset, model and seed on its own prompts
 and scored on a disjoint set, so its numbers are a genuine held-out test. The
 feature choices are fixed in advance rather than tuned on the evaluation set.
+An audit of the saved probe inputs later found one missing training hidden state
+in the NQ-Open Llama-3.1-70B short-phrase run with seed 42. The reported fits
+predate that finding; this audit does not establish how that record was handled
+during fitting. All retained evaluation records have saved features, but this
+training-input gap limits exact reproduction of the existing fits.
+
 One detail follows the code rather than the natural reading: the hidden state is
 taken at position $n_{\mathrm{generated}}-1$, where $n_{\mathrm{generated}}$
 comes from where the stop sequence cut the answer, and no end-of-sequence token

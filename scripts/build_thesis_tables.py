@@ -72,6 +72,9 @@ lf = d[d.arm == 'long_form']
 T1 = sa[sa.temperature == 1.0]
 BOOT = pd.read_csv(res('paired_bootstrap_se_vs_surface.csv'))
 E7   = pd.read_csv(res('e7_cross_dataset.csv'))
+SEED_VARIABILITY = pd.read_csv(aux('seed_variability.csv'))
+SEED_REFERENCE = float(SEED_VARIABILITY.loc[
+    SEED_VARIABILITY.method == 'discrete_semantic_entropy', 'mean_seed_range'].mean())
 RNG = np.random.default_rng(20260831)
 NBOOT = 2000
 AUDIT = []
@@ -770,13 +773,13 @@ def t_longform_by_generator():
 
 # ---------------------------------------------------------------- seed noise floor
 def t_seed_noise():
-    sv = pd.read_csv(aux('seed_variability.csv'))
+    sv = SEED_VARIABILITY
     rows = []
     for m in ['discrete_semantic_entropy', 'semantic_entropy_full', 'surface_entropy',
               'naive_entropy', 'naive_sample_entropy']:
         s = sv[sv.method == m]
-        rows.append(f'{PRETTY[m]} & {s.mean_seed_range.mean():.3f} & '
-                    f'{s.max_seed_range.max():.3f} \\\\')
+        rows.append(f'{PRETTY[m]} & {s.mean_seed_range.mean():.4f} & '
+                    f'{s.max_seed_range.max():.4f} \\\\')
         AUDIT.append(('5.0 seed noise', m, 'mean range',
                       round(float(s.mean_seed_range.mean()), 4)))
     return table(
@@ -915,7 +918,7 @@ def figures(outdir='figures'):
 
     # ---- ladder and factor effects ----
     from matplotlib.patches import Patch
-    NOISE=0.0245
+    NOISE=SEED_REFERENCE
     # ---------------- Figure 1: the four-rung decomposition ----------------
     rungs=[('naive_sample_entropy','naive_entropy','count strings,\nnot likelihoods'),
            ('surface_entropy','naive_sample_entropy','normalize before\ncounting'),
@@ -984,7 +987,7 @@ def figures(outdir='figures'):
         ax.text(v+0.003, yy, f'{v:.3f}', va='center', ha='left', fontsize=7.4,
                 color=ACCENT if step else INK, zorder=4)
     ax.axvline(NOISE, color=MUTE, lw=0.9, ls=(0,(4,2)), zorder=2)
-    ax.text(NOISE+0.002, -0.55, 'mean seed range 0.025', fontsize=6.6, color=MUTE,
+    ax.text(NOISE+0.002, -0.55, f'mean seed range {NOISE:.4f}', fontsize=6.6, color=MUTE,
             va='center', ha='left')
     ax.set_yticks(y); ax.set_yticklabels([e[0] for e in eff], fontsize=7.4)
     ax.set_xlim(0, 0.225); ax.set_xlabel('AUROC change in the indicated comparison')

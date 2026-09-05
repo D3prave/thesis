@@ -34,10 +34,11 @@ human labels in this study. Agreement between the two LLM graders does not
 establish that either is correct.
 
 \paragraph{Variation across generation seeds.} Table~\ref{tab:seed-noise} gives
-the AUROC range across the three run seeds: 0.024 to 0.030 for the entropy
-estimators and 0.047 for P(True). For discrete semantic entropy, the relevant
-range is 0.025. An unpaired AUROC difference smaller than 0.025 is therefore no
-larger than the variation caused by changing the generation seed.
+the AUROC range across the three run seeds for the five entropy estimators.
+For discrete semantic entropy, the mean range is 0.0245; this is the
+seed-variation reference used in the figures, not a significance threshold.
+The same seed summary gives a mean range of 0.0473 for P(True), which is not
+included in Table~\ref{tab:seed-noise}.
 
 \input{includes/t_seed_noise.tex}
 
@@ -63,7 +64,8 @@ On short-phrase answers (\texttt{default\_5shot}) with the default entailment
 model, the ordering depends on the correctness rule
 (Table~\ref{tab:short-phrase}). Under token-F1, surface entropy leads
 discrete semantic entropy by 0.0133. Under the Qwen judge the AUROC difference
-is $+0.0005$ and under the Llama judge it is $+0.0027$; both intervals include
+is $+0.0005$ and under the Llama judge it is $+0.0027$, in both cases measured
+as discrete semantic entropy minus surface entropy; both intervals include
 zero.
 Naive predictive entropy moves the same way: second-best under token-F1 at
 0.789, and last of the three under either judge.
@@ -112,7 +114,7 @@ Semantic entropy beats entropy over sequence log-likelihoods &
 \addlinespace[2pt]
 \ldots\ beats P(True) & $0.790$ vs $0.698$ & $+0.025$, 6/6 comparisons & reproduces \\
 \addlinespace[2pt]
-\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.050$, 6/6 comparisons & reproduces \\
+\ldots\ beats the correctness-trained probe & $0.790$ vs $0.687$ & $+0.049$, 6/6 comparisons & reproduces \\
 \addlinespace[2pt]
 \ldots\ beats the semantic entropy probe & leads in transfer tests & $+0.051$, 6/6 comparisons & same ordering \\
 \addlinespace[2pt]
@@ -181,12 +183,15 @@ step over all 24 comparisons.
 One step is clear. Normalizing the answer strings before counting them adds
 $0.0398$ AUROC on average. The difference is positive and its interval excludes
 zero in all 24 comparisons. It is also the only step whose AUROC difference
-exceeds the seed-variation reference of 0.025.
+exceeds the seed-variation reference of 0.0245.
 
 The other three steps are less consistent. Counting raw strings instead of
 reading sequence log-likelihoods gives a positive AUROC difference in only 4 of
 24 comparisons, while sequence-likelihood entropy performs better with an interval
-that excludes zero in 8. The claim that counting answer strings beats reading
+that excludes zero in 8. The four positive differences are large enough to
+outweigh the other twenty, giving the positive overall mean of $0.0067$;
+that mean does not imply an improvement in most comparisons.
+The claim that counting answer strings beats reading
 log-likelihoods therefore holds only after the strings are normalized.
 Grouping samples by meaning adds $0.0016$ AUROC over normalized-string counting
 on average and is positive in 14 of 24 comparisons; seven intervals favor
@@ -238,7 +243,7 @@ semantic entropy and each comparator used in the original study. Against
 P(True) the mean difference is $+0.025$ over six comparisons, with a range of
 $[+0.010, +0.042]$. Against the semantic
 entropy probe it is $+0.051$, range $[+0.031, +0.080]$, and against the
-accuracy probe $+0.050$, range $[+0.033, +0.084]$. Semantic entropy leads all
+accuracy probe $+0.049$, range $[+0.033, +0.084]$. Semantic entropy leads all
 three in every comparison where each was measured.
 
 \input{includes/t_paper_baselines.tex}
@@ -332,8 +337,8 @@ Discrete semantic entropy falls from 0.757 at $T=1.0$ to 0.568 at $T=0.1$, and
 surface entropy from 0.736 to 0.589. Naive predictive entropy, which reads
 sequence likelihoods rather than spread across samples, moves from 0.694 to
 0.644. At $T=0.1$ it leads both diversity-based estimators; at $T=1.0$ it
-trails both. The crossing lies between $T=0.3$ and $T=0.5$ for surface entropy
-and between $T=0.5$ and $T=0.7$ for discrete semantic entropy.
+trails both. The crossing lies between $T=0.1$ and $T=0.3$ for surface entropy
+and between $T=0.3$ and $T=0.5$ for discrete semantic entropy.
 
 Appendix~\ref{app:complete-temperature-results} reports all five entropy
 methods for both prompting conditions, both entailment models, and both LLM
