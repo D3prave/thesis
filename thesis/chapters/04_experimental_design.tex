@@ -16,7 +16,7 @@ estimator and temperature, a \emph{cell} is one dataset--generator--seed
 combination. The three seed cells for one dataset--generator pair form one
 statistical resampling \emph{unit}.
 
-The thesis also reports a separate long-form biography arm. Its setup is
+The thesis also reports a separate long-form biography evaluation. Its setup is
 documented in Appendix~\ref{app:longform-details}, and its results are
 reported in Section~\ref{sec:longform-results}; it is analyzed as a paragraph
 setting rather than as a length-only intervention within the short-answer
@@ -440,6 +440,10 @@ are available, and they capture different sources of variation:
   \item \texttt{hier}: resample units and then prompts within each selected
     cell. This captures both sources of variation.
 \end{itemize}
+
+We call the third scheme \emph{hierarchical resampling} because it samples
+dataset--generator units first and question records within the selected cells
+second.
 
 For each method, the statistic first averages the paired AUROC difference over
 seeds within each unit and then averages over the nine units. The reported

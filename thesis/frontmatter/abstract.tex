@@ -13,25 +13,29 @@ suggest higher risk.
 This thesis does not propose a new method. It reimplements the published method
 by following the authors' released code. The experiments use three open
 language models, three short-answer benchmarks, and a long-form biography
-task. The main goal is to
+evaluation. The main goal is to
 evaluate how well semantic entropy detects incorrect answers, how it compares
 with other uncertainty estimators, and under which conditions it performs
 better. The comparison includes Farquhar et al.'s baselines, semantic entropy
-probes, and entropy over normalized answer strings.
+probes that predict correctness from hidden states, and entropy over normalized
+answer strings.
 
 Semantic entropy ranks incorrect answers above correct ones better than
-chance in the main LLM-graded comparisons. On sentence-length answers, both
+chance in the main comparisons graded by large language models. On sentence-length answers, both
 semantic estimators outperform the measured Farquhar baselines and achieve
 nearly identical performance. Their advantage over naive predictive entropy
 is larger for sentence-length answers than for short phrases. On short
 phrases, several leading methods are nearly tied.
 
-On the long-form biography task, semantic entropy reaches 0.670 with the
-large DeBERTa entailment model and 0.708 with Qwen, compared with about 0.497
-for the measured string baselines.
+On long-form biography answers, semantic entropy records a higher area under
+the receiver operating characteristic curve (AUROC) than the measured string
+baselines with the larger entailment models, and this advantage appears across
+the three generators for those models. Exact matching and the base entailment model do
+not show that advantage.
 
 The conditions matter. With the tested Qwen entailment model, semantic entropy
-also improves on normalized-string counting under both LLM correctness judges.
+also improves on normalized-string counting under both large-language-model
+correctness judges.
 No such additional benefit is detected with the released entailment models.
 In the sentence-length temperature comparison, naive predictive entropy
 overtakes the sample-diversity estimators at low temperature. Changing the correctness rule can also reverse

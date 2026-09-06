@@ -19,20 +19,18 @@ these files; the appendix tables summarize them.
 \section{Long-form biography records}
 \label{app:longform-details}
 
-The long-form arm contains three generators, three seeds, and 500 biography
+The long-form biography evaluation contains three generators, three seeds, and 500 biography
 records per generator--seed run. The prompt requests a biography paragraph;
 the Qwen judge scores factual claims, and the uncertainty score is computed
 over the complete paragraph. The recorded comparison uses exact matching,
 DeBERTa-v3-base, DeBERTa-v3-large, and Qwen-72B entailment models. The
-strict bidirectional entailment rule is used throughout this arm. Figure~\ref{fig:longform-comparison}
+strict bidirectional entailment rule is used throughout. Figure~\ref{fig:longform-comparison}
 and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the
 result.
 
-The retained long-form export supports regeneration of the reported tables and
-the coverage checks. Reproducing collection from source inputs would additionally
-require the original subject list and prepared input files. The result is
-therefore interpreted as evidence for the recorded paragraph setting, not as a
-length-only causal comparison.
+The retained export supports regeneration of the reported tables and coverage
+checks; reproducing collection from source inputs would require the original
+subject list and prepared input files.
 
 The hierarchical intervals are imported from
 \path{results/paired_bootstrap_se_vs_surface.csv}, produced by a separate

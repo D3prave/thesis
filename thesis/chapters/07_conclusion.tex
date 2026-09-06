@@ -9,21 +9,22 @@ al.~\cite{semantic_entropy_nature_2024} and its released
 code~\cite{kossen_semantic_uncertainty_code_2024}. It compared the method with
 Farquhar et al.'s baselines and with surface entropy, a simpler method that counts
 normalized answer strings. The evaluation covers short-answer benchmarks and a
-long-form biography task using open generating models.
+long-form biography evaluation using open generating models.
 
 The main question was how well semantic entropy detects incorrect answers,
 whether it performs better than other estimators, and when it has an
-advantage. In the main LLM-graded comparisons it ranks incorrect answers above
+advantage. In the main comparisons graded by large language models (LLMs), it ranks incorrect answers above
 correct ones better than chance. On sentence-length answers, its discrete and
 likelihood-weighted forms perform similarly and lead the measured Farquhar
 baselines. Their advantage over naive predictive entropy is larger for
 sentence-length answers than for short phrases, where several leading
 methods are nearly tied.
 
-The recorded long-form biography arm shows a stronger separation from string
-baselines: semantic entropy reaches 0.670 with large DeBERTa and 0.708 with
-Qwen, while surface and naive sample entropy are near 0.497. This extends the
-comparison to paragraph answers. Because it is a separate paragraph-level arm,
+The recorded long-form biography evaluation has higher AUROC for semantic
+entropy than for the string baselines with the larger entailment models:
+semantic entropy reaches 0.670 with large DeBERTa and 0.708 with Qwen, while
+surface and naive sample entropy are near 0.497. This extends the
+comparison to paragraph answers. Because it is a separate paragraph-level evaluation,
 it supports a long-form setting claim rather than a causal claim about length
 alone.
 

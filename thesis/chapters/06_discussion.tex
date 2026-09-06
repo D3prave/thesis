@@ -90,8 +90,9 @@ open how much semantic grouping adds beyond string normalization.
 This comparison concerns question answering; it does not reproduce Farquhar
 et al.'s separate claim-level analysis of paragraph-length passages.
 
-The long-form biography arm provides the complementary recorded result. In
-that setting, semantic entropy is well above the near-chance string baselines:
+The long-form biography evaluation provides the complementary recorded result. In
+that setting, semantic entropy has higher recorded AUROC than the near-chance
+string baselines with the larger entailment models:
 0.670 with the large DeBERTa entailment model and 0.708 with the Qwen model,
 against 0.497 for surface and naive sample entropy. This supports the practical
 claim that meaning-based grouping becomes valuable when generated paragraphs

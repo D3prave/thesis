@@ -14,10 +14,13 @@ follow show how the ranking changes with the evaluation choices.
 
 The results below compare uncertainty estimators under the settings named in
 each table. Unless stated otherwise, each mean first averages the three
-generation seeds within each of the nine dataset--model pairs and then
-averages those nine values. A positive AUROC difference favors the first method
-in the comparison. Intervals labeled \emph{units} resample those nine pairs;
-intervals labeled \emph{hierarchical} also resample records within each cell.
+generation seeds within each of the nine dataset--generator pairs (one dataset
+and one generating model) and then averages those nine values. A \emph{cell} is
+one dataset--generator--seed combination. A positive AUROC difference favors
+the first method in the comparison. Intervals labeled \emph{units} resample
+the nine pairs; intervals labeled \emph{hierarchical} resample those pairs
+and then resample question records within each selected cell. Section~\ref{sec:statistics}
+defines these schemes and their assumptions.
 
 Generation seeds also cause variation. Table~\ref{tab:seed-noise} gives the
 AUROC range across the three seeds for the five entropy estimators and P(True). For
@@ -122,18 +125,21 @@ Section~\ref{sec:length-discussion}.
 \section{Long-form biography answers}
 \label{sec:longform-results}
 
-The long-form arm asks each generator to write a biography paragraph rather
+The long-form biography evaluation asks each generator to write a biography paragraph rather
 than a short answer. Each of the three generators is run with three seeds on
 500 biography prompts, and the Qwen judge scores the claims in each paragraph.
-Semantic entropy is computed over the complete paragraph. This is the direct
-long-answer test in the recorded data; it uses one correctness judge and a
-paragraph-level scoring setup.
+Each AUROC entry is one score per generated paragraph: the correctness label
+comes from claim-level automated grading, while semantic entropy is computed
+over the complete paragraph. This is the direct long-answer test in the
+recorded data; it uses one correctness judge and a paragraph-level scoring
+setup.
 
-Table~\ref{tab:longform} shows a clear advantage for meaning-based grouping in
-this setting. Discrete semantic entropy reaches 0.670 with the large DeBERTa
-entailment model and 0.708 with the Qwen entailment model. Surface entropy and
-naive sample entropy remain near chance at 0.497. The same ordering appears
-across the three generators in Table~\ref{tab:longform-by-generator}.
+Table~\ref{tab:longform} shows higher recorded AUROC for meaning-based grouping
+with the larger entailment models in this setting. Discrete semantic entropy
+reaches 0.670 with the large DeBERTa entailment model and 0.708 with the Qwen
+entailment model. Surface entropy and naive sample entropy remain near chance
+at 0.497. For both larger entailment models, the same point-estimate advantage
+appears across the three generators in Table~\ref{tab:longform-by-generator}.
 
 \input{includes/t_longform.tex}
 
@@ -149,10 +155,10 @@ across the three generators in Table~\ref{tab:longform-by-generator}.
 \label{fig:longform-comparison}
 \end{figure}
 
-In this recorded arm, semantic grouping adds substantial detection value for
+In this recorded evaluation, semantic grouping adds substantial detection value for
 varied paragraphs, where exact strings are usually different even when their
 factual content overlaps. It extends the performance comparison to paragraphs;
-because the paragraph-level setup differs from the short-answer arm, it does
+because the paragraph-level setup differs from the short-answer evaluation, it does
 not establish that length alone caused the improvement.
 
 \section{Separating the steps of the method}
