@@ -15,6 +15,11 @@
 \usepackage{graphicx}
 \usepackage[maxbibnames=10,minbibnames=3]{kaobiblio}
 \usepackage{makecell}
+% These newtx extension glyphs otherwise copy as Latin letters (e.g. X).
+\pdfglyphtounicode{summationtext}{2211}
+\pdfglyphtounicode{summationdisplay}{2211}
+\pdfglyphtounicode{producttext}{220F}
+\pdfglyphtounicode{productdisplay}{220F}
 % Emit copyable word spaces only in text. Enabling this inside math causes
 % spurious glyphs with newpxmath on pdfTeX 1.40.29 (TeX Live 2026).
 \AtBeginDocument{%
