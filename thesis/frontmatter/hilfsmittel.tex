@@ -1,0 +1,63 @@
+\chapter*{List of aids used}
+\addcontentsline{toc}{chapter}{List of aids used}
+
+This list is submitted with the declaration above, as required by
+\S\,12(6) of the general examination regulations (APO) of the Katholische
+Universität Eichstätt-Ingolstadt. Exact package versions are pinned in the
+accompanying source repository.
+
+\section*{Published method and code}
+
+The method reimplemented here is that of Farquhar et
+al.~\cite{semantic_entropy_nature_2024}. The reference implementation is the
+authors' released code~\cite{kossen_semantic_uncertainty_code_2024}, which was
+used as the specification for clustering, prompting, P(True) scoring and
+question selection. Deviations from it are recorded in
+Section~\ref{sec:deviation-register}.
+
+\section*{Datasets}
+
+TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019} and
+SVAMP~\cite{patel_svamp_2021}, each loaded through the released code's own
+loader. The long-form biography prompts follow the FactScore subject format.
+
+\section*{Models}
+
+\begin{itemize}
+  \item \emph{Answer generation}, at the pinned revisions given in
+    Table~\ref{tab:generators}:\\
+    \texttt{Mistral-7B-Instruct-v0.3}\\
+    \texttt{Llama-3.1-8B-Instruct}\\
+    \texttt{Llama-3.1-70B-Instruct}
+  \item \emph{Entailment}:\\
+    \texttt{microsoft/deberta-v2-xlarge-mnli}\\
+    \texttt{cross-encoder/nli-deberta-v3-large}\\
+    \texttt{cross-encoder/nli-deberta-v3-base}\\
+    \texttt{Qwen/Qwen2.5-72B-Instruct}
+  \item \emph{Correctness judging}:\\
+    \texttt{Qwen/Qwen2.5-72B-Instruct}\\
+    \texttt{Llama-3.1-70B-Instruct}
+\end{itemize}
+
+\section*{Software}
+
+Python with \texttt{PyTorch}, \texttt{Transformers}, \texttt{vLLM},
+\texttt{NumPy}, \texttt{pandas}, \texttt{scikit-learn}, \texttt{Matplotlib},
+\texttt{datasets} and \texttt{pytest}. Environments were managed with
+\texttt{uv}, revision control with \texttt{Git}. The thesis was typeset in
+\LaTeX\ using the \texttt{kaobook} class, with \texttt{Biber} and
+\texttt{biblatex} for the bibliography.
+
+\section*{Computing resources}
+
+The NHR@FAU Alex GPU cluster for answer generation and language-model judging,
+and the NHR@FAU Fritz cluster for post-hoc cross-encoder clustering, scheduled
+with \texttt{Slurm}.
+
+\section*{Artificial-intelligence assistants}
+
+Claude Code (Anthropic) was used as a coding assistant in the accompanying
+repository. As stated in the declaration, artificial-intelligence assistants were
+also used as auxiliary aids for proofreading and language polishing. They were
+not used as a source of claims, results or citations. All resulting text, code,
+analyses and citations were reviewed and verified by the author.

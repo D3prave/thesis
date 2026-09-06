@@ -99,21 +99,30 @@
 \end{center}
 }
 
-\subject{Bachelor thesis}
-\title[Detecting Hallucinations in Large Language Models Using Semantic Entropy]{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
+% The examination office requires the registered topic on the title page in
+% German and English, "im genauen Wortlaut". The German wording must be copied
+% from the registration confirmation; it is deliberately left as a placeholder
+% here rather than translated, because an invented translation would not match
+% the registration. Replace \germantitle, then delete this comment.
+\newcommand{\germantitle}{\textbf{TODO: angemeldeten Titel auf Deutsch einsetzen}}
+\newcommand{\englishtitle}{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
+
+\subject{Bachelorarbeit / Bachelor's Thesis}
+\title[\englishtitle]{\germantitle\\[0.45em]\englishtitle}
 \author[Jakub Wiśniewski]{%
 \textsc{Jakub Wiśniewski}\\
-Matriculation number: [removed]\\
-Degree program: Data Science (Bachelor), 6th semester\\
-Date of birth: [removed]
+Matrikelnummer (matriculation number): [removed]\\
+Studiengang (degree programme): Data Science (Bachelor), 6.\ Fachsemester\\
+Geburtsdatum (date of birth): [removed]
 }
 \date{\today}
 
 \publishers{%
-\textsc{Supervisor: Prof.\ Dr.\ Felix Voigtlaender}\\[0.4em]
-\textsc{Mathematical Institute for Machine Learning and Data Science}\\
+\textsc{Betreuer (supervisor): Prof.\ Dr.\ Felix Voigtlaender}\\[0.4em]
+\textsc{Mathematisch-Geographische Fakultät}\\
+\textsc{Mathematisches Institut für Maschinelles Lernen und Data Science}\\
 \textsc{Katholische Universität Eichstätt-Ingolstadt}\\[0.6em]
-\textsc{Examiner: Prof.\ Dr.\ Felix Voigtlaender}
+\textsc{Prüfer (examiner): Prof.\ Dr.\ Felix Voigtlaender}
 }
 
 \begin{document}
@@ -123,6 +132,7 @@ Date of birth: [removed]
 
 \input{frontmatter/abstract.tex}
 \input{frontmatter/acknowledgements.tex}
+\input{frontmatter/hilfsmittel.tex}
 \tableofcontents
 \glsaddall
 \printnoidxglossary[title=Glossary, nonumberlist]
