@@ -1045,7 +1045,8 @@ def figures(outdir='figures'):
                              (T1.grader == QJ) & (T1.method == 'surface_entropy')]))
     ax.plot(range(3), ys, '-o', ms=4, lw=1.2, color=INK)
     ax.axhline(srf, color=HL, lw=1.0, ls='--')
-    ax.text(2.05, srf, ' surface\n entropy', fontsize=6.2, color=HL, va='center')
+    ax.text(-0.28, srf, 'surface entropy', fontsize=6.2, color=HL,
+            va='bottom', ha='left')
     ax.set_xticks(range(3)); ax.set_xticklabels(['v3-large', 'xlarge\n(default)', 'Qwen-72B'],
                                                 fontsize=6.6)
     ax.set_ylabel('AUROC'); ax.set_title('sentence-length answers', fontsize=7.4)
