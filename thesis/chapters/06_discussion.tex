@@ -1,10 +1,13 @@
 \chapter{Discussion}
 \label{ch:discussion}
 
-Semantic entropy performs well against the
-baselines evaluated by Farquhar et al.~\cite{semantic_entropy_nature_2024}, but grouping answers by meaning does not
-consistently improve on counting normalized answer strings. The result depends
-on the entailment model and on how correctness is judged.
+The main finding is that semantic entropy detects incorrect answers in the
+tested settings, but its advantage over other estimators depends on the
+comparison. It leads the measured Farquhar baselines on sentence-length
+answers, while several methods are nearly tied on short phrases. The
+entailment model, temperature, and correctness rule can change the measured
+advantage. The analysis of normalization and semantic grouping helps
+explain these performance differences.
 
 \section{What grouping by meaning adds}
 \label{sec:what-clustering-is-worth}
@@ -228,8 +231,10 @@ The study covers three short-answer datasets and three generators.
 Table~\ref{tab:grid-at-a-glance} and the individual result tables specify
 which methods and settings are compared; the findings apply to those settings.
 
-Taken together, the results support a conditional finding: semantic entropy
-can improve on normalized-string counting with the tested Qwen entailment
-model, but no such improvement was detected for the released
-cross-encoders under LLM grading. Human labels and broader dataset--model
-coverage are needed before making a stronger claim.
+Taken together, the results support semantic entropy as a detector whose
+comparative performance depends on the setting. Its advantage over naive
+entropy is larger for sentence-length answers, and it improves on
+normalized-string counting with the tested Qwen entailment model under LLM
+grading. It is not consistently the best estimator across the tested
+conditions. Broader dataset--model coverage and validated correctness labels
+would help establish how far these findings generalize.

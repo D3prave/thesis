@@ -50,11 +50,15 @@ answers, and turn their disagreement into a risk score.
 The method, evaluation procedure, datasets, and question selection follow
 Farquhar et al.~\cite{semantic_entropy_nature_2024} and their released
 code~\cite{kossen_semantic_uncertainty_code_2024}. Where the paper and code
-disagree, this thesis follows the code and records the difference. The
-reproduction answers three questions.
+disagree, this thesis follows the code and records the difference. The main goal is to establish how well semantic entropy detects incorrect
+answers, whether it performs better than other uncertainty estimators, and
+under which conditions it has an advantage. Here, detection means ranking
+incorrect answers above correct ones by uncertainty, measured using AUROC.
+The study addresses three questions.
 
 The first question is whether semantic entropy ranks incorrect answers above
-correct ones better than the comparison methods in the original paper, under
+correct ones better than the baselines of Farquhar et al.\ and the added
+comparators, under
 the selected grading rules. These labels do not identify confabulations
 separately. Here, a
 \emph{confabulation} is a wrong answer whose meaning changes across repeated
@@ -66,7 +70,14 @@ self-evaluation method P(True), and a regression from the model's hidden state
 to correctness. Semantic entropy probes from Kossen et
 al.~\cite{kossen_semantic_entropy_probes_2024} are also included.
 
-The second question is which part of semantic entropy explains any improvement.
+The second question is when semantic entropy performs better. The study
+compares prompting conditions that produce answers of different lengths and
+tests three evaluation choices: the model that decides whether two answers mean the same thing, the
+rule that decides whether an answer is correct, and the temperature used to
+sample answers. The first two choices can be compared on the same stored
+answers. Changing the temperature requires generating new samples.
+
+The third question is which parts of the method help explain its performance.
 Each original comparison method differs from semantic entropy in several ways.
 Entropy over log-likelihoods reads a different quantity and does not group
 answers. P(True) asks the model to judge its own answer using sampled
@@ -83,25 +94,23 @@ with \emph{surface entropy}, which counts distinct normalized strings but does n
 judge whether differently worded answers mean the same thing. Surface entropy
 requires no extra model call.
 
-The third question is how strongly the result depends on three evaluation
-choices: the model that decides whether two answers mean the same thing, the
-rule that decides whether an answer is correct, and the temperature used to
-sample answers. The first two choices can be compared on the same stored
-answers. Changing the temperature requires generating new samples.
-
 \section{What the study finds}
 \label{sec:what-the-study-finds}
 
-On sentence-length answers, semantic entropy performs better than the original
-baselines in the tested settings. The added surface-entropy comparison shows
-that normalization gives the most consistent improvement. Grouping by meaning
-adds no clear benefit with the released entailment model under LLM grading,
-but does with the tested Qwen model. An undetected benefit is not evidence of
-equivalence.
+Semantic entropy detects incorrect answers better than chance in the main
+LLM-graded comparisons and leads the measured Farquhar baselines on
+sentence-length answers. The discrete and likelihood-weighted estimators
+perform similarly. On short phrases, several leading methods are nearly tied.
+The advantage over naive predictive entropy is larger for sentence-length
+answers than for short phrases.
 
-The result also depends on sampling temperature and the correctness rule.
-No human labels were collected to validate the correctness judges, so the
-findings remain conditional on those grading rules.
+The ranking depends on the entailment model, sampling temperature, and
+correctness rule. With the tested Qwen entailment model, semantic entropy also
+improves on normalized-string counting under both LLM judges. With the released
+entailment models, no additional benefit over that comparator is detected
+under LLM grading. The decomposition helps explain this distinction:
+normalization gives the most consistent improvement across its four steps.
+An undetected benefit is not evidence of equivalence.
 
 \section{Contributions}
 \label{sec:contributions}
@@ -109,12 +118,12 @@ findings remain conditional on those grading rules.
 The thesis does not introduce semantic entropy. It makes four contributions:
 
 \begin{enumerate}
-  \item A comparison of semantic entropy with the original study's baselines
-    on selected open language models.
-  \item A step-by-step comparison that examines the contributions of answer
-    normalization and grouping by meaning.
-  \item Tests of how the results depend on the entailment model, correctness
-    rule, and sampling temperature.
+  \item An evaluation of semantic entropy's detection performance against
+    Farquhar et al.'s baselines and added comparators on selected open models.
+  \item Tests of when semantic entropy performs better, across prompting
+    conditions, entailment models, correctness rules, and sampling temperatures.
+  \item A supporting step-by-step comparison that examines the contributions
+    of answer normalization and grouping by meaning.
   \item A documented implementation and evaluation procedure that make the
     recorded results traceable and state the limits of their precision.
 \end{enumerate}

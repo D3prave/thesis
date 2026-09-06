@@ -7,17 +7,18 @@
 This thesis reimplemented semantic entropy using the method of Farquhar et
 al.~\cite{semantic_entropy_nature_2024} and its released
 code~\cite{kossen_semantic_uncertainty_code_2024}. It compared the method with
-the original baselines and with surface entropy, a simpler method that counts
+Farquhar et al.'s baselines and with surface entropy, a simpler method that counts
 normalized answer strings. The main evaluation uses short-answer benchmarks
 and open generating models.
 
-Semantic entropy performs well against the original baselines. However, those
-comparisons alone do not show that grouping answers by meaning causes the
-improvement. Normalizing answer strings gives the most consistent improvement
-in the tested decomposition. With the released entailment models, grouping by
-meaning does not show a clear further benefit over surface entropy under LLM
-grading. This does not establish that the methods are equivalent or that a
-small benefit is absent.
+The main question was how well semantic entropy detects incorrect answers,
+whether it performs better than other estimators, and when it has an
+advantage. In the main LLM-graded comparisons it ranks incorrect answers above
+correct ones better than chance. On sentence-length answers, its discrete and
+likelihood-weighted forms perform similarly and lead the measured Farquhar
+baselines. Their advantage over naive predictive entropy is larger for
+sentence-length answers than for short phrases, where several leading
+methods are nearly tied.
 
 Changing the entailment model changes the conclusion. With the tested Qwen
 entailment model, semantic entropy improves on surface entropy under both LLM
@@ -26,11 +27,19 @@ correctness rule can reverse the semantic-versus-surface comparison. The
 method's reported performance therefore needs to be read together with its
 entailment model, sampling settings, and grading rule.
 
-The main conclusion is not that semantic grouping is unnecessary. It is that
-its added value must be tested against normalized-string counting and cannot
-be assumed from a comparison with weaker baselines.
+The decomposition provides a supporting explanation. Normalizing answer
+strings gives the most consistent improvement across the four method steps.
+With the released entailment models, semantic grouping adds no detectable
+benefit over surface entropy under LLM grading. This does not establish
+equivalence or rule out a small benefit.
 
-The study contributes a comparison with the original baselines, the
+Semantic entropy is a useful detector in this evaluation, but it does not
+consistently outperform every comparator. The strongest conclusion concerns
+the conditions in which it helps: sentence-length answers relative to naive
+entropy, and the tested Qwen entailment model relative to normalized-string
+counting under LLM grading.
+
+The study contributes a comparison with Farquhar et al.'s baselines, the
 normalized-string comparator, tests of evaluation choices, and a documented
 implementation. The grouping comparison remains subject to the raw-versus-normalized
 input difference described in Chapter~\ref{ch:discussion}.
@@ -58,6 +67,6 @@ and order-dependent clustering. The full discussion is in
 Section~\ref{sec:threats}.
 
 The clearest next step is to obtain human correctness labels for a sample of
-the existing answers and repeat the main semantic-versus-surface comparison
+the existing answers and repeat the comparison of uncertainty estimators
 against those labels. Broader dataset--model coverage would then help determine
 whether the conditional benefit found here holds beyond this evaluation.

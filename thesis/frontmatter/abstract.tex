@@ -12,31 +12,33 @@ suggest higher risk.
 
 This thesis does not propose a new method. It reimplements the published method
 by following the authors' released code. The experiments use three open
-language models and three short-answer benchmarks. They ask whether semantic
-entropy performs better than the methods in the original study, which step
-explains any improvement, and how strongly the result depends on evaluation
-choices.
+language models and three short-answer benchmarks. The main goal is to
+evaluate how well semantic entropy detects incorrect answers, how it compares
+with other uncertainty estimators, and under which conditions it performs
+better. The comparison includes Farquhar et al.'s baselines, semantic entropy
+probes, and entropy over normalized answer strings.
 
-On sentence-length answers, semantic entropy performs better than the original
-comparison methods, so the main result reproduces. A step-by-step comparison,
-however, shows that the consistent gain comes from normalizing answer strings
-before counting them. With the entailment model loaded by the released code,
-grouping by meaning gives no clear benefit over counting normalized strings. A
-simpler method without this grouping also performs better than the original
-comparison methods wherever both were tested here.
+Semantic entropy ranks incorrect answers above correct ones better than
+chance in the main LLM-graded comparisons. On sentence-length answers, both
+semantic estimators outperform the measured Farquhar baselines and achieve
+nearly identical performance. Their advantage over naive predictive entropy
+is larger for sentence-length answers than for short phrases. On short
+phrases, several leading methods are nearly tied.
 
-The finding depends on the entailment model. A much larger model does show a
-clear benefit from grouping by meaning. The absence of a clear benefit with the
-released-code model is not evidence that the methods are equivalent.
+The conditions matter. With the tested Qwen entailment model, semantic entropy
+also improves on normalized-string counting under both LLM correctness judges.
+No such additional benefit is detected with the released entailment models.
+In the sentence-length temperature comparison, naive predictive entropy
+overtakes the sample-diversity estimators at low temperature. Changing the correctness rule can also reverse
+the semantic-versus-surface ranking.
 
-Evaluation choices can substantially change the measured advantage. Changing
-the entailment model on the same generated answers changes the
-reported score substantially. Sampling temperature changes the ranking of the
-methods, and the correctness rule changes which method performs better. These
-results have two further limits. The correctness judges were not checked against
-human labels. In addition, the entailment model and the correctness judge both
-compare meaning, which may favor a method that also groups answers by meaning.
+A supporting decomposition examines which steps explain these comparisons.
+Normalizing answer strings before counting them gives the most consistent
+improvement; the added value of grouping by meaning depends on the entailment
+model. An undetected benefit does not establish equivalence. The results
+remain conditional on the correctness rules, the limited dataset--model grid,
+and possible shared biases between semantic grouping and grading.
 
-Overall, the original comparison reproduces, but its size depends strongly on
-the evaluation setup. For short answers, normalization rather than
-meaning-based grouping produces the most consistent gain in the tested comparisons.
+Semantic entropy is therefore a useful detector in the tested settings, but
+it is not consistently the best method. Its advantage must be stated together
+with the comparator, prompting condition, entailment model, and evaluation rule.
