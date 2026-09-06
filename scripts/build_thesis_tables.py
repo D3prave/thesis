@@ -353,7 +353,8 @@ def t_paper_baselines():
             AUDIT.append(('5.4 paper baselines', comp, 'mean margin',
                           round(float(np.mean(margins)), 4)))
     return table(
-        'Discrete semantic entropy against the comparators the original study evaluates, '
+        r'Discrete semantic entropy against the baselines of Farquhar et al.~\cite{semantic_entropy_nature_2024} '
+        r'and the semantic entropy probe of Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}, '
         'over the comparisons in which each comparator was collected. Semantic entropy leads '
         'in every one.',
         'tab:paper-baselines', '@{}lccc@{}',
@@ -374,9 +375,7 @@ def t_ptrue_size():
         AUDIT.append(('5.4 ptrue size', cond, 'auroc by model',
                       [round(float(v), 4) for v in vals]))
     return table(
-        'P(True) by generator size, mean of the two LLM judges. The original study '
-        'suggests P(True) '
-        '``seems to improve with model size\'\'; within the Llama family here the '
+        'P(True) by generator size, mean of the two LLM judges. Within the Llama family here the '
         'ordering is flat or inverted.',
         'tab:ptrue-size', '@{}lccc@{}',
         'Condition & Llama-3.1-70B & Llama-3.1-8B & Mistral-7B \\\\', rows)
@@ -771,12 +770,32 @@ def t_longform_by_generator():
                  'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows)
 
 
+def t_answer_length():
+    rows = []
+    for condition in ['default_5shot', 'chat_5shot', 'default_0shot', 'chat_0shot']:
+        sub = T1[(T1.condition == condition) & (T1.entailment_backend == XL) &
+                 (T1.grader == QJ)]
+        length = unit_stat(cells(sub[sub.method == 'discrete_semantic_entropy'],
+                                 'mean_answer_chars'))
+        naive = unit_stat(paired(sub, 'discrete_semantic_entropy', 'naive_entropy'))
+        surface = unit_stat(paired(sub, 'discrete_semantic_entropy', 'surface_entropy'))
+        rows.append(f'{COND[condition]} & {length:.1f} & {naive:+.4f} & {surface:+.4f} '
+                    + r'\\')
+    return table(
+        'Mean graded-answer length and AUROC gains of discrete semantic entropy (SE) '
+        'over naive predictive entropy and surface entropy. Qwen judge, default '
+        'entailment model, $T=1.0$; nine dataset--generator pairs and three seeds. '
+        'Prompting conditions also differ in instruction and example count.',
+        'tab:answer-length', '@{}lrrr@{}',
+        r'Condition & Mean characters & SE $-$ naive & SE $-$ surface \\', rows)
+
+
 # ---------------------------------------------------------------- seed noise floor
 def t_seed_noise():
     sv = SEED_VARIABILITY
     rows = []
     for m in ['discrete_semantic_entropy', 'semantic_entropy_full', 'surface_entropy',
-              'naive_entropy', 'naive_sample_entropy']:
+              'naive_entropy', 'naive_sample_entropy', 'ptrue_uncertainty']:
         s = sv[sv.method == m]
         rows.append(f'{PRETTY[m]} & {s.mean_seed_range.mean():.4f} & '
                     f'{s.max_seed_range.max():.4f} \\\\')
@@ -784,7 +803,8 @@ def t_seed_noise():
                       round(float(s.mean_seed_range.mean()), 4)))
     return table(
         'Variation across generation seeds. The table gives the AUROC range across the '
-        'three seeds, averaged over dataset--model combinations. These ranges are '
+        'three seeds, averaged over dataset--model combinations and the recorded settings '
+        'for each method. P(True) covers the two main prompting conditions at $T=1.0$. These ranges are '
         'descriptive references, not thresholds for statistical significance.',
         'tab:seed-noise', '@{}lcc@{}',
         'Method & Mean seed range & Max seed range \\\\', rows)
@@ -799,6 +819,7 @@ if __name__ == '__main__':
     write('t_seed_noise.tex',        t_seed_noise())
     write('t_sentence_length.tex',   t_sentence_length())
     write('t_short_phrase.tex',      t_short_phrase())
+    write('t_answer_length.tex',     t_answer_length())
     write('t_ladder.tex',           t_ladder())
     write('t_canonical_eight.tex',   t_canonical_eight())
     write('t_resampling_schemes.tex', t_resampling_schemes())

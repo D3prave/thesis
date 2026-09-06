@@ -10,30 +10,24 @@
   fontmethod=tex
 ]{kaobook}
 
-% DO NOT enable \pdfinterwordspaceon here. Tried twice now; it breaks the math.
-%
-% What it would buy: pdfTeX writes no space characters at all, so every word
-% break is a kerning offset inside a TJ array. Poppler and pdfminer infer the
-% spaces correctly, but stricter extractors (pypdf, and some PDF viewers on
-% copy) do not, and run whole sentences together as "Tothefirstquestion...".
-%
-% What it costs: the fake space is emitted in the *current* font, and character
-% 32 of a math font is \leftarrow. Inline math then breaks. On TeX Live 2026
-% (pdfTeX 1.40.29, newpxmath 1.551) the source "as $T \to 0$ this" renders as
-% "as T ->←0this": a stray left arrow, the following space eaten, and the 0
-% colliding with the next word. Verified at 320 dpi on 2026-09-03.
-%
-% The trap: this is toolchain-dependent. On an older TeX Live the same source
-% builds clean, extracts perfectly, and a page-by-page render diff shows only
-% antialiasing. Testing anywhere but the machine that builds the submission
-% will tell you it is safe. It is not. Check TeX Live 2026 specifically, and
-% look at an inline-math line, not just the display equations.
-
 \usepackage[english]{babel}
 \usepackage{csquotes}
 \usepackage{graphicx}
 \usepackage[maxbibnames=10,minbibnames=3]{kaobiblio}
 \usepackage{makecell}
+% Emit copyable word spaces only in text. Enabling this inside math causes
+% spurious glyphs with newpxmath on pdfTeX 1.40.29 (TeX Live 2026).
+\AtBeginDocument{%
+  \pdfglyphtounicode{space}{0020}%
+  \pdfinterwordspaceon
+  \everymath\expandafter{\the\everymath\pdfinterwordspaceoff\aftergroup\pdfinterwordspaceon}%
+  \BeforeBeginEnvironment{equation*}{\pdfinterwordspaceoff}%
+  \AfterEndEnvironment{equation*}{\pdfinterwordspaceon}%
+  \BeforeBeginEnvironment{align*}{\pdfinterwordspaceoff}%
+  \AfterEndEnvironment{align*}{\pdfinterwordspaceon}%
+}
+
+\usepackage{needspace}
 % Note: the kaobook class (styles/kao.sty) already loads algorithm2e, so the
 % algorithm environment is available without an extra package here.
 

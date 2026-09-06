@@ -169,12 +169,21 @@ introduced here.
 \section{Prompting conditions: instruction against worked examples}
 \label{sec:conditions}
 
-The original reports two prompting conditions, one giving sentence-length
+Farquhar et al.~\cite{semantic_entropy_nature_2024} report two prompting conditions, one giving sentence-length
 answers and one giving short phrases. They differ in two things at once: the
 instruction text and the number of worked examples. Any difference between them
 could come from either, or from both. This study collects all four
 combinations as a secondary analysis, on the same questions, models and seeds
 (Table~\ref{tab:conditions}).
+
+The configuration names combine the instruction and the number of worked
+examples: \texttt{chat} requests a brief, complete sentence, whereas
+\texttt{default} requests the briefest possible answer; \texttt{0shot} supplies
+no examples and \texttt{5shot} supplies five question--answer examples before
+the evaluated question. Thus \texttt{chat\_0shot} denotes the sentence
+instruction without examples, and \texttt{default\_5shot} denotes the brevity
+instruction with five examples. The \texttt{chat} label is inherited from the
+code and does not mean that a chat template is used.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}

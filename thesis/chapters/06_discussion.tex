@@ -2,7 +2,7 @@
 \label{ch:discussion}
 
 Semantic entropy performs well against the
-baselines in the original study, but grouping answers by meaning does not
+baselines evaluated by Farquhar et al.~\cite{semantic_entropy_nature_2024}, but grouping answers by meaning does not
 consistently improve on counting normalized answer strings. The result depends
 on the entailment model and on how correctness is judged.
 
@@ -73,6 +73,19 @@ whether answers mean the same thing. That model must be named when
 semantic-entropy results are reported.
 
 \subsection{Answer length alone does not explain the pattern}
+\label{sec:length-discussion}
+
+Farquhar et al.~\cite[Supplementary Note~7 and Supplementary Fig.~7]{semantic_entropy_nature_2024}
+report a larger advantage over naive entropy for sentence-length answers than
+for short phrases. The comparison in Section~\ref{sec:answer-length-results}
+shows the same direction: discrete semantic entropy's advantage over naive
+predictive entropy rises from 0.0110 for short phrases to 0.0628 for the
+sentence instruction without examples. Its advantage over surface entropy
+is smaller and uncertain with the default entailment model. The result
+therefore supports the reported contrast with naive entropy, while leaving
+open how much semantic grouping adds beyond string normalization.
+This comparison concerns question answering; it does not reproduce Farquhar
+et al.'s separate claim-level analysis of paragraph-length passages.
 
 Longer answers allow more ways to express the same meaning, but length alone
 does not explain the results. Changing the entailment model reverses which
@@ -131,23 +144,34 @@ token-overlap matching, but their labels are not ground truth
 either. There are no human annotations in this study to determine which rule
 better reflects actual correctness.
 
-\section{What reproduces from the original studies}
+\section{Comparison with Farquhar et al.\ and Kossen et al.}
 \label{sec:comparison-farquhar}
+\label{sec:reproduction}
 
 Semantic entropy performs better than the measured original baselines, and its
 discrete and likelihood-weighted forms perform similarly. These findings support key
 patterns reported by Farquhar et al.~\cite{semantic_entropy_nature_2024}.
 
-The comparison is limited to the configurations tested here. P(True) does not
-show the original model-size trend within the tested Llama models, but a
+The comparison is limited to the configurations tested here. Farquhar
+et al.~\cite{semantic_entropy_nature_2024} report that P(True) tends to improve
+with model size. P(True) does not show this trend within the tested Llama models, but a
 comparison within one family is not enough to reject a broader trend. The
 semantic-entropy comparator uses different entailment models in its comparisons
 with P(True) and the probes. The missing saved training feature limits exact
 reproduction of the probe fits.
 
-This is a reimplementation of the released procedure, not an exact repeat of
-the original experiment. The datasets, generating models, correctness judges,
-and answer lengths differ. The generation settings also allow the answer being
+Kossen et al.~\cite{kossen_semantic_entropy_probes_2024} evaluate probes both
+within their training tasks and on held-out tasks; their reported advantage
+over accuracy probes concerns transfer to unseen tasks. The six probe
+comparisons in Section~\ref{sec:paper-baselines} use in-distribution probes,
+trained and evaluated on separate questions from the same task. They do not
+test that transfer finding.
+
+The reimplementation uses three of Farquhar et al.'s five short-answer
+datasets: TriviaQA, NQ-Open, and SVAMP. It retains Mistral 7B Instruct and
+tests Llama-3.1 at 8B and 70B in place of LLaMA-2 Chat. This gives direct
+dataset overlap and partial model overlap, while testing a smaller grid.
+The generation settings also allow the answer being
 graded to be longer than the samples used to estimate uncertainty. Following
 the released code makes those choices traceable, but does not remove their
 effect on the results.

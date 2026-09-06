@@ -1,5 +1,7 @@
 \chapter{Results}
 \label{ch:results}
+% Keep paragraph and heading spacing fixed on pages containing large floats.
+\raggedbottom
 
 At a high level, semantic entropy is competitive but not a universal winner.
 The two semantic-entropy estimators are essentially tied at the top of the
@@ -16,28 +18,24 @@ averages those nine values. A positive AUROC difference favors the first method
 in the comparison. Intervals labeled \emph{units} resample those nine pairs;
 intervals labeled \emph{hierarchical} also resample records within each cell.
 
-Most values come from \texttt{measurements.csv}. The hierarchical intervals
-come from a record-level analysis that cannot be rerun from this table alone.
-Correctness labels come from token-F1 or
-an LLM grader; no human labels were collected, and agreement between the two
-LLM graders does not establish that either is correct.
-
 Generation seeds also cause variation. Table~\ref{tab:seed-noise} gives the
-AUROC range across the three seeds for the five entropy estimators. For
+AUROC range across the three seeds for the five entropy estimators and P(True). For
 discrete semantic entropy, the mean range is 0.0245; this is the seed-variation
-reference used in the figures, not a significance threshold. The same summary
-gives a mean range of 0.0473 for P(True), which is not included in the table.
+reference used in the figures, not a significance threshold. P(True) has a
+larger mean range of 0.0473.
 
 \input{includes/t_seed_noise.tex}
 
 \section{Sentence-length answers}
 \label{sec:sentence-length-results}
 
-On sentence-length answers (\texttt{chat\_0shot}) under the Qwen judge at
+The sentence-length condition (\texttt{chat\_0shot}) asks for a brief, complete
+sentence without worked examples (Section~\ref{sec:conditions}). Under the Qwen judge at
 $T=1.0$, likelihood-weighted semantic entropy reaches 0.758 and the discrete
 variant 0.757 on the default entailment model, against 0.736 for the
-clustering-free comparator (Table~\ref{tab:sentence-length}). Every comparator
-used in the original study falls below both semantic estimators.
+clustering-free comparator, surface entropy (Table~\ref{tab:sentence-length}).
+Both semantic estimators outperform the measured baselines from
+Farquhar et al.~\cite{semantic_entropy_nature_2024}.
 
 \input{includes/t_sentence_length.tex}
 
@@ -60,7 +58,8 @@ averages $+0.0015$, the smallest average change in the four-step decomposition.
 \section{Short-phrase answers}
 \label{sec:short-phrase-results}
 
-On short-phrase answers (\texttt{default\_5shot}) with the default entailment
+The short-phrase condition (\texttt{default\_5shot}) asks for the briefest
+possible answer and supplies five worked examples. With the default entailment
 model, the ordering depends on the correctness rule
 (Table~\ref{tab:short-phrase}). Under token-F1, surface entropy leads
 discrete semantic entropy by 0.0133. Under the Qwen judge the AUROC difference
@@ -93,27 +92,31 @@ differences under the LLM judges are below 0.003 AUROC, against the
 seed-variation reference of 0.0245. Including naive predictive entropy, the three-method spread is
 0.011 under the Qwen judge and 0.006 under the Llama judge.
 
-\section{What reproduces from the original study}
-\label{sec:reproduction}
+\section{Answer length}
+\label{sec:answer-length-results}
 
-The reimplementation follows the released
-procedure, but the datasets, models, and grading rules differ. This tests
-whether the reported patterns hold in the current setting, not whether an
-exact repeat gives the same results.
+Table~\ref{tab:answer-length} compares the four prompting conditions under the
+Qwen correctness judge at $T=1.0$, using the default entailment model.
+The sentence-length condition produces 255.2 characters on average, compared
+with 11.2 in the short-phrase condition. Discrete semantic entropy's AUROC
+advantage over naive predictive entropy is correspondingly larger: $+0.0628$
+against $+0.0110$. The likelihood-weighted estimator gives the same ordering,
+with advantages of $+0.0645$ and $+0.0110$.
 
-These results broadly agree with the published patterns. The semantic entropy
-probe comparison is only qualitative: Kossen et al. evaluate transfer to
-held-out tasks, while the six comparisons here use in-distribution probes.
-However, the P(True) model-size
-trend does not reproduce, although two sizes from one model family provide only
-a limited test. The answer-length difference is partly related to
-the different token limits inherited from the released code. The
-reimplementation also retains two defects from that code: token-F1 grading and
-the TriviaQA split contamination documented in Section~\ref{sec:datasets}.
+\input{includes/t_answer_length.tex}
 
-The original study is often read as showing that grouping answers by meaning
-produces the improvement. Its design does not isolate that step.
-Section~\ref{sec:se-vs-surface} adds the required comparison.
+The two added conditions fill in the comparison. With the brevity instruction
+and no examples (\texttt{default\_0shot}), answers average 69.8 characters and
+the discrete-semantic-minus-naive difference is $+0.0326$. With the sentence
+instruction and five examples (\texttt{chat\_5shot}), answers average only
+11.4 characters and the difference is $+0.0094$. The condition names describe
+the prompts; they do not guarantee the length of the generated answers.
+
+Against surface entropy, the corresponding differences are smaller, from
+$-0.0020$ to $+0.0204$. None of the four hierarchical intervals for this
+comparison excludes zero (Table~\ref{tab:canonical-eight}). The interpretation
+of this length pattern and its relation to Farquhar et al.\ are discussed in
+Section~\ref{sec:length-discussion}.
 
 \section{Separating the steps of the method}
 \label{sec:se-vs-surface}
@@ -207,11 +210,12 @@ a released cross-encoder with an LLM correctness judge, no interval excludes
 zero. Appendix~\ref{app:all-comparisons} gives all 24 paired differences and
 intervals.
 
-\section{Semantic entropy against the original's baselines}
+\section{Comparison with Farquhar's baselines and semantic entropy probes}
 \label{sec:paper-baselines}
 
 Table~\ref{tab:paper-baselines} gives the AUROC difference between discrete
-semantic entropy and each comparator used in the original study. Against
+semantic entropy and the baselines from Farquhar et al.~\cite{semantic_entropy_nature_2024},
+alongside the semantic entropy probe of Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}. Against
 P(True) the mean difference is $+0.025$ over six comparisons, with a range of
 $[+0.010, +0.042]$. Against the semantic
 entropy probe it is $+0.051$, range $[+0.031, +0.080]$, and against the
@@ -225,12 +229,11 @@ and \texttt{nli-deberta-v3-large} for the probes. These baseline contrasts
 therefore do not hold semantic entropy's entailment model fixed. P(True)
 itself does not use clustering.
 
-Table~\ref{tab:ptrue-size} reports P(True) by generator size. The original
-suggests the method ``seems to improve with model size''. Within the Llama
+Table~\ref{tab:ptrue-size} reports P(True) by generator size. Within the Llama
 family the ordering here is flat or inverted: 0.711 for the 70B model against
 0.726 for the 8B in \texttt{chat\_0shot}, and 0.819 against 0.826 in
-\texttt{default\_5shot}. Two sizes in one family is a weak test of a trend the
-original observes across three families.
+\texttt{default\_5shot}. Section~\ref{sec:comparison-farquhar} relates this
+comparison to Farquhar et al.'s model-size finding.
 
 \input{includes/t_ptrue_size.tex}
 
@@ -338,6 +341,7 @@ accuracy; the lowest is 0.3625.
 
 \input{includes/t_degenerate_cells.tex}
 
+\Needspace{0.48\textheight}
 \section{Summary of comparisons}
 \label{sec:secondary-results-overview}
 
@@ -346,7 +350,7 @@ decomposition and the evaluation checks. The entailment and correctness
 comparisons reuse stored answers. The temperature comparison changes the
 uncertainty samples while keeping the graded answers and LLM labels fixed.
 
-\begin{figure}[htb]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{factor_effects.pdf}
 \caption{Measured AUROC changes from method steps and evaluation choices.
@@ -355,3 +359,5 @@ uncertainty samples while keeping the graded answers and LLM labels fixed.
   fully crossed experiment.}
 \label{fig:factor-effects}
 \end{figure}
+\clearpage
+\flushbottom
