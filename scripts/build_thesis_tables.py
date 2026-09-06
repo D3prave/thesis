@@ -536,7 +536,7 @@ def t_longform():
         'biographies each, and claim-level grading by the '
         'Qwen judge. Strict bidirectional entailment throughout, which is not the rule '
         'the original study applies to paragraphs '
-        '(Section~\\ref{sec:longform-design}).',
+        'in the Farquhar paragraph experiment).',
         'tab:longform', '@{}lccc@{}',
         'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
 
