@@ -28,12 +28,11 @@ strict bidirectional entailment rule is used throughout this arm. Figure~\ref{fi
 and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the
 result.
 
-The long-form export is a separate evaluation pipeline from the short-answer
-grid. Its correctness export contains one available judge, and the repository
-does not retain the complete subject list and prepared input files. These
-limits affect reproducibility and mean that the long-form result is interpreted
-as evidence for the recorded paragraph setting, not as a length-only causal
-comparison.
+The retained long-form export supports regeneration of the reported tables and
+the coverage checks. Reproducing collection from source inputs would additionally
+require the original subject list and prepared input files. The result is
+therefore interpreted as evidence for the recorded paragraph setting, not as a
+length-only causal comparison.
 
 The hierarchical intervals are imported from
 \path{results/paired_bootstrap_se_vs_surface.csv}, produced by a separate

@@ -23,9 +23,9 @@ methods are nearly tied.
 The recorded long-form biography arm shows a stronger separation from string
 baselines: semantic entropy reaches 0.670 with large DeBERTa and 0.708 with
 Qwen, while surface and naive sample entropy are near 0.497. This extends the
-comparison to paragraph answers. Since that arm also changes the task and
-grading pipeline, it supports a long-form setting claim rather than a causal
-claim about length alone.
+comparison to paragraph answers. Because it is a separate paragraph-level arm,
+it supports a long-form setting claim rather than a causal claim about length
+alone.
 
 Changing the entailment model changes the conclusion. With the tested Qwen
 entailment model, semantic entropy improves on surface entropy under both LLM

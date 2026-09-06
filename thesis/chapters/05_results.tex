@@ -126,8 +126,8 @@ The long-form arm asks each generator to write a biography paragraph rather
 than a short answer. Each of the three generators is run with three seeds on
 500 biography prompts, and the Qwen judge scores the claims in each paragraph.
 Semantic entropy is computed over the complete paragraph. This is the direct
-long-answer test in the recorded data; unlike the short-answer tables, it uses
-one correctness judge and the long-form evaluation pipeline.
+long-answer test in the recorded data; it uses one correctness judge and a
+paragraph-level scoring setup.
 
 Table~\ref{tab:longform} shows a clear advantage for meaning-based grouping in
 this setting. Discrete semantic entropy reaches 0.670 with the large DeBERTa
@@ -149,13 +149,11 @@ across the three generators in Table~\ref{tab:longform-by-generator}.
 \label{fig:longform-comparison}
 \end{figure}
 
-These results show that semantic grouping can add substantial detection value
-for varied paragraphs, where exact strings are usually different even when
-their factual content overlaps. They are a long-form comparison, not a
-controlled experiment that changes only answer length: the task, claim-level
-grading, clustering rule, and available entailment models also differ from the
-short-answer arm. The result therefore extends the performance comparison to
-paragraphs without establishing that length alone caused the improvement.
+In this recorded arm, semantic grouping adds substantial detection value for
+varied paragraphs, where exact strings are usually different even when their
+factual content overlaps. It extends the performance comparison to paragraphs;
+because the paragraph-level setup differs from the short-answer arm, it does
+not establish that length alone caused the improvement.
 
 \section{Separating the steps of the method}
 \label{sec:se-vs-surface}
