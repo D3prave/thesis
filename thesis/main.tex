@@ -104,6 +104,16 @@
 % from the registration confirmation; it is deliberately left as a placeholder
 % here rather than translated, because an invented translation would not match
 % the registration. Replace \germantitle, then delete this comment.
+% The declaration and the list of aids describe AI use as coding and figure
+% generation only. That is accurate once the thesis text has been rewritten in
+% your own words. Until then this marker prints on both pages so the thesis
+% cannot be signed and bound while the wording understates what was done.
+% When the rewrite is finished, delete this command and its two uses.
+\newcommand{\rewritepending}{\par\vspace{0.6em}\noindent%
+  \textbf{TODO: sign only after the thesis text has been rewritten in your own
+  words. Until then the wording below understates the assistance used.}\par
+  \vspace{0.6em}}
+
 \newcommand{\germantitle}{\textbf{TODO: angemeldeten Titel auf Deutsch einsetzen}}
 \newcommand{\englishtitle}{Detecting Hallucinations in Large Language Models Using Semantic Entropy}
 
