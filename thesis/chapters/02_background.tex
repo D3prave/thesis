@@ -81,9 +81,7 @@ compare many of these methods on the same tasks~\cite{lm_polygraph_vashurin_2025
 
 An uncertainty score can help decide which answers to reject or check.
 This thesis evaluates ranking, not calibration: it asks whether incorrect
-answers receive higher uncertainty than correct ones. Rejection-accuracy
-metrics provide a secondary view of the retained answers
-(Appendix~\ref{sec:aurac-disagreement}).
+answers receive higher uncertainty than correct ones.
 
 Several related methods address the same problem without grouping by meaning.
 P(True)~\cite{kadavath_language_models_know_2022} asks the model whether its own
@@ -197,7 +195,7 @@ TriviaQA~\cite{joshi_triviaqa_2017} and NQ-Open~\cite{lee_nq_open_2019}, and
 arithmetic word problems with SVAMP~\cite{patel_svamp_2021}. The reasons for
 choosing these datasets, the prompt construction, and the
 reproduced question selection are in
-Chapter~\ref{ch:experimental_design} and Appendix~\ref{app:prompts}.
+Chapter~\ref{ch:experimental_design}.
 
 Semantic entropy sits between cheap checks of answer wording and expensive
 fact-checking. A fair test must keep generation, grouping, correctness scoring,

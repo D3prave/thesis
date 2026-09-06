@@ -825,6 +825,18 @@ if __name__ == '__main__':
 
 
 # ---------------------------------------------------------------- figures
+def method_comparison_summary(condition):
+    """Per-dataset/model seed means and sample SDs for the eight recorded methods."""
+    selected = []
+    for method in PRETTY:
+        backend = LG if method in ('accuracy_probe_uncertainty', 'probe_uncertainty') else XL
+        selected.append(T1[(T1.condition == condition) &
+                           (T1.entailment_backend == backend) &
+                           (T1.grader == QJ) & (T1.method == method)])
+    return pd.concat(selected).groupby(['dataset', 'model', 'method']).auroc.agg(
+        ['mean', 'std'])
+
+
 def figures(outdir='figures'):
     import matplotlib
     matplotlib.use('Agg')
@@ -877,70 +889,55 @@ def figures(outdir='figures'):
     fig.savefig(f'{outdir}/margin_forest.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/margin_forest.pdf')
 
-    # --- direct comparison of the recorded methods -----------------------
-    # Keep the recorded backend for each method: probes use the v3-large
-    # cross-encoder, while the other estimators use the released default.
-    # This is the visual counterpart to the complete method-summary tables.
+    # --- method bars by dataset and generator ----------------------------
     method_order = [
-        'semantic_entropy_full', 'discrete_semantic_entropy',
-        'surface_entropy', 'accuracy_probe_uncertainty',
-        'ptrue_uncertainty', 'naive_entropy', 'naive_sample_entropy',
-        'probe_uncertainty',
+        'semantic_entropy_full', 'discrete_semantic_entropy', 'surface_entropy',
+        'naive_entropy', 'naive_sample_entropy', 'ptrue_uncertainty',
+        'accuracy_probe_uncertainty', 'probe_uncertainty',
     ]
-    method_labels = {
-        'semantic_entropy_full': 'Semantic entropy, weighted',
-        'discrete_semantic_entropy': 'Semantic entropy, discrete',
-        'surface_entropy': 'Surface entropy',
-        'accuracy_probe_uncertainty': 'Accuracy probe',
-        'ptrue_uncertainty': 'P(True)',
-        'naive_entropy': 'Naive predictive',
-        'naive_sample_entropy': 'Naive sample',
-        'probe_uncertainty': 'Semantic entropy probe',
-    }
-    method_backend = {
-        'accuracy_probe_uncertainty': LG,
-        'probe_uncertainty': LG,
-    }
-    method_color = {
-        'semantic_entropy_full': INK,
-        'discrete_semantic_entropy': INK,
-        'surface_entropy': HL,
-        'accuracy_probe_uncertainty': '#4f6d7a',
-        'ptrue_uncertainty': MUTE,
-        'naive_entropy': MUTE,
-        'naive_sample_entropy': MUTE,
-        'probe_uncertainty': '#4f6d7a',
-    }
-    fig, axes = plt.subplots(1, 2, figsize=(6.0, 3.55), sharex=True, sharey=True)
-    for ax, cond, title in zip(
-            axes, ['chat_0shot', 'default_5shot'],
-            ['sentence-length answers', 'short-phrase answers']):
-        values = []
-        for m in method_order:
-            b = method_backend.get(m, XL)
-            sub = T1[(T1.condition == cond) & (T1.entailment_backend == b) &
-                     (T1.grader == QJ) & (T1.method == m)]
-            values.append(unit_stat(cells(sub)))
-        y = np.arange(len(method_order))[::-1]
-        for yy, m, value in zip(y, method_order, values):
-            c = method_color[m]
-            ax.plot(value, yy, 'o', ms=4.2, color=c, mec='white', mew=0.7, zorder=3)
-            ax.text(value + 0.004, yy, f'{value:.3f}', va='center', ha='left',
-                    fontsize=7.0, color=c, zorder=4)
-        ax.axvline(0.5, color=MUTE, lw=0.7, ls=':', zorder=1)
-        ax.set_title(title, fontsize=8.4)
-        ax.set_xlim(0.5, 0.86)
-        ax.set_xticks([0.5, 0.6, 0.7, 0.8])
-        ax.grid(axis='x', color='#dddddd', lw=0.45, zorder=0)
-        ax.tick_params(length=2, labelsize=7.2)
-        ax.spines['left'].set_visible(False)
-    axes[0].set_yticks(np.arange(len(method_order))[::-1])
-    axes[0].set_yticklabels([method_labels[m] for m in method_order], fontsize=7.2)
-    axes[1].tick_params(axis='y', left=False, labelleft=False)
-    axes[0].set_ylabel('uncertainty estimator', fontsize=8)
-    fig.supxlabel('AUROC (Qwen judge, $T=1.0$)', fontsize=8)
-    fig.savefig(f'{outdir}/method_comparison.pdf'); plt.close(fig)
-    print(f'  wrote {outdir}/method_comparison.pdf')
+    method_labels = [
+        'Semantic entropy, weighted', 'Semantic entropy, discrete',
+        'Surface entropy', 'Naive predictive entropy', 'Naive sample entropy',
+        'P(True)', 'Accuracy probe', 'Semantic entropy probe',
+    ]
+    colors = ['#0072b2', '#56b4e9', '#d55e00', '#7b6b8d',
+              '#aaaaaa', '#cc79a7', '#009e73', '#e5b732']
+    hatches = ['', '//', '', '', '//', '', '', '//']
+    datasets = [('triviaqa', 'TriviaQA'), ('nqopen', 'NQ-Open'), ('svamp', 'SVAMP')]
+    models = ['mistralai_Mistral-7B-Instruct-v0.3',
+              'meta-llama_Llama-3.1-8B-Instruct',
+              'meta-llama_Llama-3.1-70B-Instruct']
+    for condition, filename in [('chat_0shot', 'method_comparison'),
+                                ('default_5shot', 'method_comparison_short')]:
+        summary = method_comparison_summary(condition)
+        fig, axes = plt.subplots(1, 3, figsize=(6.8, 3.35), sharey=True)
+        width = 0.1
+        for ax, (dataset, title) in zip(axes, datasets):
+            for j, method in enumerate(method_order):
+                rows = summary.loc[[(dataset, model, method) for model in models]]
+                x = np.arange(3) + (j - 3.5) * width
+                ax.bar(x, rows['mean'], width * 0.94, yerr=rows['std'],
+                       color=colors[j], hatch=hatches[j], edgecolor='white',
+                       linewidth=0.25, capsize=1.2, zorder=3,
+                       error_kw={'elinewidth': 0.55, 'capthick': 0.55},
+                       label=method_labels[j] if dataset == 'triviaqa' else None)
+            ax.axhline(0.5, color=MUTE, lw=0.7, ls=':', zorder=2)
+            ax.set_title(title, fontsize=9)
+            ax.set_xticks(range(3))
+            ax.set_xticklabels(['Mistral\n7B', 'Llama 3.1\n8B', 'Llama 3.1\n70B'],
+                               fontsize=7)
+            ax.set_ylim(0, 1)
+            ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+            ax.grid(axis='y', color='#dddddd', lw=0.45, zorder=0)
+            ax.tick_params(length=2, labelsize=7)
+        axes[0].set_ylabel('AUROC', fontsize=8)
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0),
+                   ncol=4, fontsize=6.6, frameon=False, columnspacing=1.1,
+                   handlelength=1.6, handletextpad=0.5)
+        fig.tight_layout(rect=(0, 0, 1, 0.80), w_pad=1.0)
+        fig.savefig(f'{outdir}/{filename}.pdf')
+        plt.close(fig)
+        print(f'  wrote {outdir}/{filename}.pdf')
 
     # --- temperature ------------------------------------------------------
     fig, ax = plt.subplots(figsize=(4.4, 2.9))

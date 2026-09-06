@@ -80,7 +80,7 @@ TriviaQA~\cite{joshi_triviaqa_2017} for open-domain factual recall,
 NQ-Open~\cite{lee_nq_open_2019} for recall from real search queries, and
 SVAMP~\cite{patel_svamp_2021} for arithmetic word problems, where equivalence
 is about numbers rather than phrasing. Table~\ref{tab:dataset-samples} shows
-example records; Appendix~\ref{app:prompts} gives the prompt construction.
+example records.
 
 Each is loaded exactly as the released \texttt{data/data\_utils.py} loads it,
 including the loader's incidental behavior: a question mark is appended to
@@ -156,7 +156,6 @@ each selection advances the same sequence, their order determines which
 questions are evaluated. The final selection draws 400 questions per split,
 except that SVAMP's validation split contains only 300. The selected questions
 are fixed across run seeds, so every model and seed answers the same questions.
-Appendix~\ref{app:random-selection} shows the selection order in code.
 
 \paragraph{TriviaQA evaluation sets are 378 questions, not 400.} The
 SQuAD-format conversion stores one row per question and context pair, so questions
@@ -182,8 +181,7 @@ combinations as a secondary analysis, on the same questions, models and seeds
 \centering
 \small
 \caption{The four prompting conditions. The first and last are the original
-  study's two; the middle two complete the $2\times2$ design. Recorded answer
-  lengths are reported with the secondary results in Table~\ref{tab:factorial}.}
+  study's two; the middle two complete the $2\times2$ design.}
 \label{tab:conditions}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -265,9 +263,7 @@ temperature $0.1$ with \texttt{do\_sample=True}.
 This answer has a 256-token budget, while each of the ten entropy samples has a
 50-token budget. Correctness can therefore be judged on an answer about five
 times longer than the answers used to estimate uncertainty. This changes the
-evaluation setup relative to a shared token budget. The longer answers observed
-here are reported in Section~\ref{sec:reproduction}, with the detailed
-answer-length check in Appendix~\ref{app:collection-checks}.
+evaluation setup relative to a shared token budget.
 
 \paragraph{Seeds.} Three run seeds (42, 43, 44) vary sampling only. The worked
 examples and evaluated questions are fixed, so the seeds are repeated samples
@@ -398,9 +394,6 @@ one half. A score of $0.5$ is random and $1.0$ is perfect. AUROC depends on
 the ranking rather than the units of the uncertainty score.
 
 Raw answer accuracy is reported as context, not as detector performance.
-A secondary analysis uses rejection-accuracy curves and their area (AURAC).
-Appendix~\ref{sec:aurac-disagreement} gives the definitions, a worked example,
-and the comparison with AUROC.
 
 \section{Statistical procedure}
 \label{sec:statistics}
@@ -457,14 +450,6 @@ compare it with the differences between methods.
 \section{Where this study differs from the original}
 \label{sec:deviation-register}
 
-A replication must state both how the released code differs from the paper
-and how this study differs from both. Table~\ref{tab:code-divergence} records
-nine implementation details, including differences, clarifications and the
-most-likely-answer token-budget exception. Table~\ref{tab:deviation-register}
-records the study's changes to
-models, datasets, graders, prompting conditions and temperatures.
-Both full registers are in Appendix~\ref{app:deviation-registers}.
-
 The main validity concerns are stated in the sections where they matter. This
 study uses open models in place of proprietary judges, has no human correctness
 labels, and evaluates three of the original five question sets. It also adds
@@ -485,7 +470,6 @@ record the code revision and experiment settings, and check the requested
 clustering settings before accepting an output. This makes it possible to
 repeat an analysis without generating new answers.
 
-Appendix~\ref{app:hpc-details} describes the computing resources, libraries,
-job checks and stored metadata. Appendix~\ref{app:schema} describes the
+Appendix~\ref{app:schema} describes the
 measurement package and the limits of what it can reproduce without the
 underlying record files.

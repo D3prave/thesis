@@ -66,7 +66,6 @@ $\widehat{H}_{\mathrm{lex}}(x)$ & surface entropy score over normalized
                                   called \emph{surface entropy} in
                                   Chapter~\ref{ch:results}) \\
 AUROC & area under the receiver operating characteristic curve \\
-AURAC & area under the rejection-accuracy curve \\
 \hline
 \end{tabular}
 \end{table}
@@ -223,8 +222,7 @@ same answers can therefore change the clusters and their entropy without
 changing any entailment judgment. An earlier implementation joined answers
 through such chains, but the released code does not. This thesis uses the
 released anchor scan throughout. Algorithm~\ref{alg:clustering} states the
-procedure exactly, and Appendix~\ref{app:order-dependence} gives a complete
-worked example of its order dependence.
+procedure exactly.
 The experiments do not measure the size of this order effect. Changing the
 entailment model, as in Section~\ref{sec:clustering-sensitivity}, tests a
 different factor and does not bound sensitivity to sample order.
@@ -421,8 +419,6 @@ partition a connected-components grouping would. This yields $K=3$ clusters:
   c_2 = \{y_3\},\quad
   c_3 = \{y_4\}.
 \]
-Appendix~\ref{app:order-dependence} explains why that agreement can
-fail.
 
 \paragraph{Step 3: Empirical probabilities.}
 \[
@@ -522,14 +518,11 @@ A twenty-shot prefix drawn from the training split comes first. The released
 ``true'' option, \texttt{A}. The final uncertainty score is
 $1-\exp(\log P(\texttt{A})) = 1-P(\texttt{A})$, so larger values mean
 greater uncertainty. This probability is not renormalized over the two answer
-options. This thesis follows that scoring procedure, and
-Section~\ref{sec:deviation-register} records the difference from the published
-description. P(True) reuses the stored samples and needs no probe training.
+options. This thesis follows that scoring procedure.
+P(True) reuses the stored samples and needs no probe training.
 
 \textbf{Embedding regression} is a close cousin of the SEP probe: the same kind
 of linear model on the same hidden states of the same most-likely answers, but
 trained on \emph{judged correctness} instead of a semantic-entropy threshold.
 It is called the \emph{accuracy probe} because of this training target.
 The main comparison trains and tests on disjoint questions from the same task.
-A secondary test of transfer between tasks is reported in
-Appendix~\ref{sec:probe-results}.
