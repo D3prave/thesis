@@ -161,6 +161,12 @@ results_T*
 # Local seminar report — not part of the thesis repo
 seminar_report/
 
+# Local archive of reviews, old exports, and other working material
+_local/
+
+# Local supervisor excerpt (editable source and generated preview; never track)
+thesis/excerpt/
+
 # --- thesis inputs: exempted so a clone can rebuild the PDF ---
 # The blanket ignores above keep bulky artifacts out. These specific files are
 # inputs the thesis depends on, so they are tracked.

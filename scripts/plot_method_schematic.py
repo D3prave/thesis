@@ -80,7 +80,7 @@ arrow(26, 20, 40, 13.5, ORANGE)
 arrow(74, 20, 60, 13.5, GREEN)
 box(27, 1, 46, 12, None,
     "3. Score:  high entropy $\\Rightarrow$ flag the answer as risky\n"
-    "low entropy $\\Rightarrow$ treat it as reliable",
+    "low entropy does not guarantee a correct answer",
     FILL_GREY, GREY, body_fs=12)
 
 fig.suptitle("Semantic entropy: measure uncertainty over meanings, not over wordings",

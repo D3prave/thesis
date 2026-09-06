@@ -1,44 +1,32 @@
 \chapter{Results}
 \label{ch:results}
 
-\section{How to read the numbers}
-\label{sec:how-to-read}
+At a high level, semantic entropy is competitive but not a universal winner.
+The two semantic-entropy estimators are essentially tied at the top of the
+sentence-length comparison; on short-phrase answers the leading methods are
+nearly tied, and surface entropy leads under token-F1. Figure~\ref{fig:method-comparison}
+puts the recorded methods side by side; the sections that follow show how the
+ranking changes with the evaluation choices.
 
-A \emph{comparison} is one reported
-combination of prompting condition, entailment model, correctness rule, and
-pair of methods. An \emph{AUROC difference} is the first method's AUROC minus
-the second's, so a positive value favors the first method. The secondary
-analysis of the two rejection-accuracy metrics is reported in
-Appendix~\ref{sec:aurac-disagreement}.
+The results below compare uncertainty estimators under the settings named in
+each table. Unless stated otherwise, each mean first averages the three
+generation seeds within each of the nine dataset--model pairs and then
+averages those nine values. A positive AUROC difference favors the first method
+in the comparison. Intervals labeled \emph{units} resample those nine pairs;
+intervals labeled \emph{hierarchical} also resample records within each cell.
 
-Except for the hand-written reproduction scorecard in
-Table~\ref{tab:reproduction}, one aggregation script assembles every table
-from the measurement package described in Appendix~\ref{app:schema}. Most values come from \texttt{measurements.csv}.
-The hierarchical confidence intervals and the out-of-distribution probe rows
-are imported from two record-level analyses that the published package cannot
-rerun without the underlying record data.
+Most values come from the measurement package described in Appendix~\ref{app:schema}
+and stored in \texttt{measurements.csv}. The hierarchical intervals and the
+out-of-distribution probe rows come from record-level analyses that cannot be
+rerun from the exported table alone. Correctness labels come from token-F1 or
+an LLM grader; no human labels were collected, and agreement between the two
+LLM graders does not establish that either is correct.
 
-\paragraph{Nine units, not twenty-seven cells.} An aggregate first averages the
-three seeds within each of the nine (dataset, model) resampling units. It then
-averages those nine values. Intervals labeled \emph{units} resample the nine
-units 2{,}000 times. Intervals labeled \emph{hierarchical} also resample the
-records within each selected cell. When an interval excludes zero, the data
-distinguish the two methods under that resampling scheme.
-
-Discrete semantic entropy ranges from 0.751 to 0.823 on the same set of
-generations, depending only on which model judges entailment. Each
-semantic-entropy result therefore names its entailment model.
-
-The correctness labels come from token-F1 or an LLM grader. There are no
-human labels in this study. Agreement between the two LLM graders does not
-establish that either is correct.
-
-\paragraph{Variation across generation seeds.} Table~\ref{tab:seed-noise} gives
-the AUROC range across the three run seeds for the five entropy estimators.
-For discrete semantic entropy, the mean range is 0.0245; this is the
-seed-variation reference used in the figures, not a significance threshold.
-The same seed summary gives a mean range of 0.0473 for P(True), which is not
-included in Table~\ref{tab:seed-noise}.
+Generation seeds also cause variation. Table~\ref{tab:seed-noise} gives the
+AUROC range across the three seeds for the five entropy estimators. For
+discrete semantic entropy, the mean range is 0.0245; this is the seed-variation
+reference used in the figures, not a significance threshold. The same summary
+gives a mean range of 0.0473 for P(True), which is not included in the table.
 
 \input{includes/t_seed_noise.tex}
 
@@ -54,8 +42,20 @@ used in the original study falls below both semantic estimators.
 \input{includes/t_sentence_length.tex}
 
 The two semantic estimators differ by 0.002, well below the seed range. Over
-all 648 cells at $T=1.0$ their mean difference is $-0.0015$, the smallest
-average change in the four-step decomposition.
+all 648 cells at $T=1.0$, likelihood-weighted minus discrete semantic entropy
+averages $+0.0015$, the smallest average change in the four-step decomposition.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\linewidth]{method_comparison.pdf}
+\caption{Absolute AUROC of the recorded uncertainty estimators under the Qwen
+  correctness judge at $T=1.0$. Each point averages the three seeds within
+  each of nine dataset--model pairs and then averages those pairs. Probe
+  scores use the \texttt{nli-deberta-v3-large} entailment model; the other
+  methods use the released-code default. Higher is better; the dotted line is
+  chance level.}
+\label{fig:method-comparison}
+\end{figure}
 
 \section{Short-phrase answers}
 \label{sec:short-phrase-results}

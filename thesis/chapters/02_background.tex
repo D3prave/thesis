@@ -128,9 +128,8 @@ Two kinds of model make this judgment. The first is a \emph{cross-encoder}
 trained on inference data such as MultiNLI~\cite{williams_multinli_2018}. A
 cross-encoder reads both sentences together and compares them directly. The
 released code loads a DeBERTa model~\cite{he_deberta_2021}, and this thesis also
-uses DeBERTa-v3 models~\cite{he_debertav3_2021,%
-sentence_transformers_nli_deberta_v3_large_2022,%
-sentence_transformers_nli_deberta_v3_base_2022}. A \emph{bi-encoder}, in contrast,
+uses the DeBERTa-v3-large cross-encoder~\cite{he_debertav3_2021,%
+sentence_transformers_nli_deberta_v3_large_2022}. A \emph{bi-encoder}, in contrast,
 reads each sentence separately. A cross-encoder must process each compared pair
 together. The second kind is a general instruction-tuned language model that
 receives the comparison as a written question.

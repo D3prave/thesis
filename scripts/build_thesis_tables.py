@@ -222,7 +222,7 @@ def t_canonical_eight():
     return table(
         'Discrete semantic entropy against surface entropy on the entailment model the '
         'released code loads, under LLM grading: four prompting conditions crossed with '
-        'two independent judges. AUROC differences and 95\\,\\% intervals come from the '
+        'two different LLM judges. AUROC differences and 95\\,\\% intervals come from the '
         'hierarchical '
         'paired bootstrap, which resamples both the nine (dataset, model) units and the '
         'records within them. Not one of the eight intervals excludes zero.',
@@ -784,8 +784,8 @@ def t_seed_noise():
                       round(float(s.mean_seed_range.mean()), 4)))
     return table(
         'Variation across generation seeds. The table gives the AUROC range across the '
-        'three seeds, averaged over dataset--model combinations. An AUROC difference '
-        'smaller than these values falls within the variation caused by generation sampling.',
+        'three seeds, averaged over dataset--model combinations. These ranges are '
+        'descriptive references, not thresholds for statistical significance.',
         'tab:seed-noise', '@{}lcc@{}',
         'Method & Mean seed range & Max seed range \\\\', rows)
 
@@ -876,6 +876,71 @@ def figures(outdir='figures'):
     ax.tick_params(length=2)
     fig.savefig(f'{outdir}/margin_forest.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/margin_forest.pdf')
+
+    # --- direct comparison of the recorded methods -----------------------
+    # Keep the recorded backend for each method: probes use the v3-large
+    # cross-encoder, while the other estimators use the released default.
+    # This is the visual counterpart to the complete method-summary tables.
+    method_order = [
+        'semantic_entropy_full', 'discrete_semantic_entropy',
+        'surface_entropy', 'accuracy_probe_uncertainty',
+        'ptrue_uncertainty', 'naive_entropy', 'naive_sample_entropy',
+        'probe_uncertainty',
+    ]
+    method_labels = {
+        'semantic_entropy_full': 'Semantic entropy, weighted',
+        'discrete_semantic_entropy': 'Semantic entropy, discrete',
+        'surface_entropy': 'Surface entropy',
+        'accuracy_probe_uncertainty': 'Accuracy probe',
+        'ptrue_uncertainty': 'P(True)',
+        'naive_entropy': 'Naive predictive',
+        'naive_sample_entropy': 'Naive sample',
+        'probe_uncertainty': 'Semantic entropy probe',
+    }
+    method_backend = {
+        'accuracy_probe_uncertainty': LG,
+        'probe_uncertainty': LG,
+    }
+    method_color = {
+        'semantic_entropy_full': INK,
+        'discrete_semantic_entropy': INK,
+        'surface_entropy': HL,
+        'accuracy_probe_uncertainty': '#4f6d7a',
+        'ptrue_uncertainty': MUTE,
+        'naive_entropy': MUTE,
+        'naive_sample_entropy': MUTE,
+        'probe_uncertainty': '#4f6d7a',
+    }
+    fig, axes = plt.subplots(1, 2, figsize=(6.0, 3.55), sharex=True, sharey=True)
+    for ax, cond, title in zip(
+            axes, ['chat_0shot', 'default_5shot'],
+            ['sentence-length answers', 'short-phrase answers']):
+        values = []
+        for m in method_order:
+            b = method_backend.get(m, XL)
+            sub = T1[(T1.condition == cond) & (T1.entailment_backend == b) &
+                     (T1.grader == QJ) & (T1.method == m)]
+            values.append(unit_stat(cells(sub)))
+        y = np.arange(len(method_order))[::-1]
+        for yy, m, value in zip(y, method_order, values):
+            c = method_color[m]
+            ax.plot(value, yy, 'o', ms=4.2, color=c, mec='white', mew=0.7, zorder=3)
+            ax.text(value + 0.004, yy, f'{value:.3f}', va='center', ha='left',
+                    fontsize=7.0, color=c, zorder=4)
+        ax.axvline(0.5, color=MUTE, lw=0.7, ls=':', zorder=1)
+        ax.set_title(title, fontsize=8.4)
+        ax.set_xlim(0.5, 0.86)
+        ax.set_xticks([0.5, 0.6, 0.7, 0.8])
+        ax.grid(axis='x', color='#dddddd', lw=0.45, zorder=0)
+        ax.tick_params(length=2, labelsize=7.2)
+        ax.spines['left'].set_visible(False)
+    axes[0].set_yticks(np.arange(len(method_order))[::-1])
+    axes[0].set_yticklabels([method_labels[m] for m in method_order], fontsize=7.2)
+    axes[1].tick_params(axis='y', left=False, labelleft=False)
+    axes[0].set_ylabel('uncertainty estimator', fontsize=8)
+    fig.supxlabel('AUROC (Qwen judge, $T=1.0$)', fontsize=8)
+    fig.savefig(f'{outdir}/method_comparison.pdf'); plt.close(fig)
+    print(f'  wrote {outdir}/method_comparison.pdf')
 
     # --- temperature ------------------------------------------------------
     fig, ax = plt.subplots(figsize=(4.4, 2.9))
@@ -973,7 +1038,7 @@ def figures(outdir='figures'):
          ('dataset', g.groupby('dataset').auroc.mean().max()-g.groupby('dataset').auroc.mean().min(),'m'),
          ('answer normalization', m(**{**base,'method':'surface_entropy'})-m(**{**base,'method':'naive_sample_entropy'}),'s'),
          ('prompting condition', m(**{**base,'condition':'default_5shot'})-m(**base),'m'),
-         ('counting vs likelihood', m(**{**base,'method':'surface_entropy'})-m(**{**base,'method':'naive_entropy'}),'s'),
+         ('normalized counts vs likelihoods', m(**{**base,'method':'surface_entropy'})-m(**{**base,'method':'naive_entropy'}),'s'),
          ('clustering by meaning', m(**base)-m(**{**base,'method':'surface_entropy'}),'s'),
          ('correctness rule', m(**{**base,'grader':'llm_llama-3.1-70b'})-m(**{**base,'grader':'squad_token_f1'}),'m')]
     eff=sorted(eff,key=lambda x:-abs(x[1]))

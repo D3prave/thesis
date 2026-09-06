@@ -141,9 +141,9 @@ F1 threshold & $\mathrm{F1} \ge 50.0$, inclusive \\
 Most-likely answer & A temperature-$0.1$ sample with
   \texttt{do\_sample=True}, not a greedy decode \\
 \addlinespace[2pt]
-Token budgets & The paper states 50 new tokens and the code's default is also
-  50, which is what the ten samples use here; only the most-likely answer
-  departs, at 256, inherited from the probe-feature path \\
+Token budgets & The ten samples use the released code's default of 50 new
+  tokens. The most-likely answer uses 256, inherited from the probe-feature
+  path \\
 \addlinespace[2pt]
 Correctness metric & The code supports
   \texttt{--metric \{squad, llm, llm\_gpt-3.5, llm\_gpt-4\}}; the paper
