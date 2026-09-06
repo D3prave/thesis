@@ -43,7 +43,7 @@ Farquhar et al.~\cite{semantic_entropy_nature_2024}.
 
 \input{includes/t_sentence_length.tex}
 
-The two semantic estimators differ by 0.002, well below the seed range. Over
+The two semantic estimators differ by 0.0017, well below the seed range. Over
 all 648 cells at $T=1.0$, likelihood-weighted minus discrete semantic entropy
 averages $+0.0015$, the smallest average change in the four-step decomposition.
 
@@ -139,13 +139,19 @@ with the larger entailment models in this setting. Discrete semantic entropy
 reaches 0.670 with the large DeBERTa entailment model and 0.708 with the Qwen
 entailment model. Surface entropy and naive sample entropy remain near chance
 at 0.497. For both larger entailment models, the same point-estimate advantage
-appears across the three generators in Table~\ref{tab:longform-by-generator}.
+appears across the three generators in Table~\ref{tab:longform-by-generator}
+and Figure~\ref{fig:longform-comparison}. The two smaller entailment settings
+behave differently. Exact matching places every differing paragraph in its own
+group, so it scores exactly what the string baselines score. The base model
+exceeds the string baselines for Mistral-7B, at 0.628 against 0.500, but falls
+below them for both Llama generators, so it does not show the advantage
+consistently.
 
 \input{includes/t_longform.tex}
 
 \input{includes/t_longform_by_generator.tex}
 
-\begin{figure}[htb]
+\begin{figure*}[htb]
 \centering
 \includegraphics[width=\linewidth]{longform_comparison.pdf}
 \caption{Long-form biography AUROC by generator and entailment model. The
@@ -153,7 +159,7 @@ appears across the three generators in Table~\ref{tab:longform-by-generator}.
   are surface entropy and naive sample entropy. Each point averages three
   generation seeds. The horizontal gray line marks chance.}
 \label{fig:longform-comparison}
-\end{figure}
+\end{figure*}
 
 In this recorded evaluation, semantic grouping adds substantial detection value for
 varied paragraphs, where exact strings are usually different even when their
@@ -289,6 +295,7 @@ DeBERTa-v3 model, 0.757 with the released-code default, and 0.823 with Qwen-72B.
 Surface entropy is 0.7364 under all three because it does not use an entailment
 model. The AUROC differences are $+0.0147$, $+0.0204$, and
 $+0.0867$; only the last has an interval that excludes zero.
+Figure~\ref{fig:backend-ladder} plots the three values against that reference.
 
 \input{includes/t_backend.tex}
 
@@ -315,12 +322,14 @@ deduplicated evaluation set.
 
 \paragraph{The entailment model changes which generator benefits most.}
 Table~\ref{tab:backend-by-model} splits the sentence-length AUROC difference by
-generator. On the default entailment model the generator with the longest answers,
-Llama-3.1-8B at 667 mean characters, has the smallest difference at $+0.012$, while
-the two short-answer generators sit at $+0.026$ and $+0.029$. Substituting the
-72B entailment model inverts the ordering: the same generator now has the
-largest difference at $+0.132$, against $+0.067$ and $+0.062$. The generations are
-identical across the entailment-model columns.
+generator. Under the Llama judge, on the default entailment model, the generator
+with the longest answers, Llama-3.1-8B at 667 mean characters, has the smallest
+difference at $+0.012$, while the two short-answer generators sit at $+0.026$
+and $+0.029$. Substituting the 72B entailment model inverts the ordering: the
+same generator now has the largest difference at $+0.132$, against $+0.067$ and
+$+0.062$. Under the Qwen judge the ordering is the same on both entailment
+models, at $+0.006$, $+0.022$ and $+0.033$, then $+0.121$, $+0.068$ and
+$+0.071$. The generations are identical across the entailment-model columns.
 
 \input{includes/t_backend_by_model.tex}
 
@@ -397,7 +406,10 @@ uncertainty samples while keeping the graded answers and LLM labels fixed.
 \centering
 \includegraphics[width=\linewidth]{factor_effects.pdf}
 \caption{Measured AUROC changes from method steps and evaluation choices.
-  Hatched bars show method steps; solid bars show evaluation choices. The
+  Hatched bars show method steps, each averaged over the same 24 comparisons as
+  Table~\ref{tab:ladder}. Solid bars show evaluation choices, each the range
+  within the reference slice (\texttt{chat\_0shot}, released-code entailment
+  model, Qwen judge). The two groups are therefore measured differently and the
   figure combines the comparisons described in this chapter rather than one
   fully crossed experiment.}
 \label{fig:factor-effects}

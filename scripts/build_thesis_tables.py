@@ -530,11 +530,14 @@ def t_longform():
             'When all ten sampled biographies differ, every sample forms its own string '
             'group and the string-based entropy is constant. The released-code default '
             '\\texttt{deberta-v2-xlarge-mnli} was not '
-            'applied in this exploratory experiment.')
+            'applied in this evaluation.')
     return table(
-        'Exploratory long-form experiment: nine model--seed runs, 500 '
+        'Separate long-form evaluation: nine model--seed runs, 500 '
         'biographies each, and claim-level grading by the '
-        'Qwen judge. Strict bidirectional entailment is used throughout.',
+        'Qwen judge. Strict bidirectional entailment is used throughout. '
+        'Each score covers a whole paragraph, so this evaluation runs '
+        'alongside the short-answer grid rather than isolating answer length '
+        'within it.',
         'tab:longform', '@{}lccc@{}',
         'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
 
@@ -761,9 +764,10 @@ def t_longform_by_generator():
                     for m in ['discrete_semantic_entropy', 'surface_entropy', 'naive_sample_entropy']]
             rows.append(BACKEND[b] + ' & ' + ' & '.join(fmt(v,4) for v in vals) + r' \\')
         rows.append(r'\addlinespace[4pt]')
-    return table('Exploratory biography AUROC by generator, averaged over three '
+    return table('Long-form biography AUROC by generator, averaged over three '
                  'seeds. This expands the nine-run averages in '
-                 r'Table~\ref{tab:longform}; the same provenance and grading limits apply.',
+                 r'Table~\ref{tab:longform}; the same paragraph-level scoring, '
+                 'provenance and grading limits apply.',
                  'tab:longform-by-generator', '@{}lccc@{}',
                  'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows)
 
@@ -968,7 +972,12 @@ def figures(outdir='figures'):
     ]
     colors = ['#0072b2', '#56b4e9', '#d55e00', '#7b6b8d',
               '#aaaaaa', '#cc79a7', '#009e73', '#e5b732']
-    hatches = ['', '//', '', '', '//', '', '', '//']
+    # Greyscale rule: no two series may share both a near-identical greyscale
+    # value and the same hatch. Luminances (Rec.709) are 94, 164, 113, 113,
+    # 170, 142, 121, 183. That puts surface/naive-predictive/accuracy-probe in
+    # one cluster and discrete-SE/naive-sample in another, so those are split
+    # by pattern rather than by colour alone.
+    hatches = ['', '//', '\\\\', '', 'xx', '', '..', '//']
     datasets = [('triviaqa', 'TriviaQA'), ('nqopen', 'NQ-Open'), ('svamp', 'SVAMP')]
     models = ['mistralai_Mistral-7B-Instruct-v0.3',
               'meta-llama_Llama-3.1-8B-Instruct',
@@ -1095,14 +1104,31 @@ def figures(outdir='figures'):
           (sa.method=='discrete_semantic_entropy')]
     g=T1[(T1.condition=='chat_0shot')&(T1.entailment_backend==XL)&(T1.grader==QJ)&
          (T1.method=='discrete_semantic_entropy')]
+    def step24(hi, lo):
+        """Mean AUROC change for one method step over all 24 comparisons.
+
+        This is the same basis as Table 5.7 (tab:ladder). The evaluation-choice
+        bars below are ranges within one reference slice instead, which the
+        caption states. Method steps previously used that single slice too,
+        which made clustering by meaning read 0.020 here against +0.0016 in
+        the table.
+        """
+        mus = []
+        for _, sub in T1.groupby(['condition', 'entailment_backend', 'grader']):
+            d = paired(sub, hi, lo)
+            if len(d) < 9:
+                continue
+            mus.append(d.groupby(level=[0, 1]).mean().mean())
+        return float(np.mean(mus))
+
     eff=[('sampling temperature', sw[sw.temperature==1.0].auroc.mean()-sw[sw.temperature==0.1].auroc.mean(),'m'),
          ('generator', g.groupby('model').auroc.mean().max()-g.groupby('model').auroc.mean().min(),'m'),
          ('entailment model', m(**{**base,'entailment_backend':QW})-m(**{**base,'entailment_backend':LG}),'m'),
          ('dataset', g.groupby('dataset').auroc.mean().max()-g.groupby('dataset').auroc.mean().min(),'m'),
-         ('answer normalization', m(**{**base,'method':'surface_entropy'})-m(**{**base,'method':'naive_sample_entropy'}),'s'),
+         ('answer normalization', step24('surface_entropy','naive_sample_entropy'),'s'),
          ('prompting condition', m(**{**base,'condition':'default_5shot'})-m(**base),'m'),
-         ('normalized counts vs likelihoods', m(**{**base,'method':'surface_entropy'})-m(**{**base,'method':'naive_entropy'}),'s'),
-         ('clustering by meaning', m(**base)-m(**{**base,'method':'surface_entropy'}),'s'),
+         ('normalized counts vs likelihoods', step24('surface_entropy','naive_entropy'),'s'),
+         ('clustering by meaning', step24('discrete_semantic_entropy','surface_entropy'),'s'),
          ('correctness rule', m(**{**base,'grader':'llm_llama-3.1-70b'})-m(**{**base,'grader':'squad_token_f1'}),'m')]
     eff=sorted(eff,key=lambda x:-abs(x[1]))
     fig,ax=plt.subplots(figsize=(5.2,3.3))
@@ -1115,8 +1141,8 @@ def figures(outdir='figures'):
         ax.text(v+0.003, yy, f'{v:.3f}', va='center', ha='left', fontsize=7.4,
                 color=ACCENT if step else INK, zorder=4)
     ax.axvline(NOISE, color=MUTE, lw=0.9, ls=(0,(4,2)), zorder=2)
-    ax.text(NOISE+0.002, -0.55, f'mean seed range {NOISE:.4f}', fontsize=6.6, color=MUTE,
-            va='center', ha='left')
+    ax.text(NOISE+0.002, len(eff)-0.35, f'mean seed range {NOISE:.4f}', fontsize=6.6,
+            color=MUTE, va='bottom', ha='left')
     ax.set_yticks(y); ax.set_yticklabels([e[0] for e in eff], fontsize=7.4)
     ax.set_xlim(0, 0.225); ax.set_xlabel('AUROC change in the indicated comparison')
     ax.tick_params(length=2); ax.spines['left'].set_visible(False)
