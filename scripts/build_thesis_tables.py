@@ -534,9 +534,7 @@ def t_longform():
     return table(
         'Exploratory long-form experiment: nine model--seed runs, 500 '
         'biographies each, and claim-level grading by the '
-        'Qwen judge. Strict bidirectional entailment throughout, which is not the rule '
-        'the original study applies to paragraphs '
-        'in the Farquhar paragraph experiment).',
+        'Qwen judge. Strict bidirectional entailment is used throughout.',
         'tab:longform', '@{}lccc@{}',
         'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
 
@@ -858,6 +856,52 @@ def method_comparison_summary(condition):
         ['mean', 'std'])
 
 
+def longform_comparison_figure(outdir):
+    """Plot long-form semantic entropy by entailment model and generator."""
+    import matplotlib.pyplot as plt
+
+    backends = [
+        ('exact-match', 'Exact\nmatch'),
+        ('posthoc-nli-deberta-v3-base', 'DeBERTa\nbase'),
+        ('posthoc-nli-deberta-v3-large', 'DeBERTa\nlarge'),
+        ('posthoc-llm-judge-qwen2.5-72b-instruct', 'Qwen\n72B'),
+    ]
+    models = [
+        ('Mistral-7B', 'Mistral 7B'),
+        ('Llama-3.1-8B', 'Llama 3.1 8B'),
+        ('Llama-3.1-70B', 'Llama 3.1 70B'),
+    ]
+    fig, axes = plt.subplots(1, 3, figsize=(6.7, 2.75), sharey=True)
+    for ax, (model, title) in zip(axes, models):
+        dse = []
+        for backend, _ in backends:
+            sub = lf[(lf.model == model) & (lf.entailment_backend == backend) &
+                     (lf.method == 'discrete_semantic_entropy')]
+            dse.append(float(sub.auroc.mean()))
+        surface = float(lf[(lf.model == model) & (lf.method == 'surface_entropy')].auroc.mean())
+        naive = float(lf[(lf.model == model) & (lf.method == 'naive_sample_entropy')].auroc.mean())
+        x = np.arange(len(backends))
+        ax.plot(x, dse, color='#0072b2', marker='o', lw=1.5, ms=4,
+                label='Discrete semantic entropy', zorder=4)
+        ax.axhline(surface, color='#d55e00', lw=1.1, ls='--', label='Surface entropy')
+        ax.axhline(naive, color='#7b6b8d', lw=1.1, ls=':', label='Naive sample entropy')
+        ax.axhline(0.5, color='#999999', lw=0.6, zorder=1)
+        ax.set_title(title, fontsize=8.5)
+        ax.set_xticks(x)
+        ax.set_xticklabels([label for _, label in backends], fontsize=6.4)
+        ax.set_ylim(0.45, 0.78)
+        ax.set_yticks([0.5, 0.6, 0.7])
+        ax.grid(axis='y', color='#dddddd', lw=0.45, zorder=0)
+        ax.tick_params(length=2, labelsize=6.8)
+    axes[0].set_ylabel('AUROC', fontsize=8)
+    axes[0].legend(frameon=False, fontsize=6.3, loc='upper left',
+                   bbox_to_anchor=(0, 1.02), handlelength=1.6)
+    fig.tight_layout(w_pad=0.8)
+    fig.savefig(os.path.join(outdir, 'longform_comparison.pdf'))
+    plt.close(fig)
+
+
+
 def figures(outdir='figures'):
     import matplotlib
     matplotlib.use('Agg')
@@ -867,6 +911,7 @@ def figures(outdir='figures'):
                          'axes.spines.right': False, 'figure.dpi': 200,
                          'savefig.bbox': 'tight', 'axes.linewidth': 0.6,
                          'xtick.major.width': 0.6, 'ytick.major.width': 0.6})
+    longform_comparison_figure(outdir)
     INK, MUTE, HL = '#1a1a1a', '#8c8c8c', '#c1440e'
     SURF, ACCENT = '#fcfcfb', '#c1440e'
 

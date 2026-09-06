@@ -139,6 +139,16 @@ across the three generators in Table~\ref{tab:longform-by-generator}.
 
 \input{includes/t_longform_by_generator.tex}
 
+\begin{figure}[htb]
+\centering
+\includegraphics[width=\linewidth]{longform_comparison.pdf}
+\caption{Long-form biography AUROC by generator and entailment model. The
+  blue line is discrete semantic entropy; dashed orange and dotted purple lines
+  are surface entropy and naive sample entropy. Each point averages three
+  generation seeds. The horizontal gray line marks chance.}
+\label{fig:longform-comparison}
+\end{figure}
+
 These results show that semantic grouping can add substantial detection value
 for varied paragraphs, where exact strings are usually different even when
 their factual content overlaps. They are a long-form comparison, not a
