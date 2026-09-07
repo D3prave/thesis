@@ -130,10 +130,10 @@ Section~\ref{sec:length-discussion}.
 The long-form biography evaluation asks each generator to write a biography paragraph rather
 than a short answer. Each of the three generators is run with three seeds on
 500 biography prompts, and the Qwen judge scores the claims in each paragraph.
+
 Each AUROC entry is one score per generated paragraph: the correctness label
 comes from claim-level automated grading, while semantic entropy is computed
-over the complete paragraph. This is the direct long-answer test in the
-recorded data. It uses one correctness judge and a paragraph-level scoring
+over the complete paragraph. It uses one correctness judge and a paragraph-level scoring
 setup.
 
 Table~\ref{tab:longform} shows higher recorded AUROC for meaning-based grouping
@@ -155,7 +155,16 @@ consistently.
 
 \input{includes/t_longform.tex}
 
-\input{includes/t_longform_by_generator.tex}
+Semantic grouping adds substantial detection value for varied paragraphs, where
+exact strings are usually different even when their factual content overlaps.
+
+This continues the pattern of Section~\ref{sec:answer-length-results}: the
+advantage grows with answer length, and it is largest here. The margin over
+surface entropy is also the widest in the study. The pooled gap is $+0.174$
+with large DeBERTa, with a records-only 95\,\% interval of $[+0.157,+0.190]$,
+and $+0.212$ with Qwen, with an interval of $[+0.196,+0.228]$. These intervals
+hold generators and seeds fixed and are narrower in scope than the
+short-answer hierarchical intervals.
 
 \begin{figure*}[htb]
 \centering
@@ -167,19 +176,7 @@ consistently.
 \label{fig:longform-comparison}
 \end{figure*}
 
-Semantic grouping adds substantial detection value for varied paragraphs, where
-exact strings are usually different even when their factual content overlaps.
-This continues the pattern of Section~\ref{sec:answer-length-results}: the
-advantage grows with answer length, and it is largest here. The margin over
-surface entropy is also the widest in the study. The pooled gap is $+0.174$
-with large DeBERTa, with a records-only 95\,\% interval of $[+0.157,+0.190]$,
-and $+0.212$ with Qwen, with an interval of $[+0.196,+0.228]$. These intervals
-hold generators and seeds fixed and are narrower in scope than the
-short-answer hierarchical intervals. The biography runs differ from the
-short-answer grid in other ways too, using different prompts, claim-level
-grading and a single dataset and judge. Qwen is also one of the entailment
-models. These runs form a second setting rather than a longer condition
-inside that grid.
+\input{includes/t_longform_by_generator.tex}
 
 \section{Separating the steps of the method}
 \label{sec:se-vs-surface}
@@ -235,9 +232,6 @@ Grouping samples by meaning adds $0.0016$ AUROC over \mbox{normalized-string} co
 on average and is positive in 14 of 24 comparisons, while seven intervals favor
 normalized-string counting instead. Weighting the meaning groups by likelihood
 adds $0.0015$ AUROC on average.
-
-The rest of this section examines the third step, the one the method is named
-after.
 
 \subsection{The default entailment model under LLM grading}
 
@@ -404,8 +398,7 @@ entropy's advantage at 0.0485 AUROC with the default entailment model, compared
 with 0.0506 before exclusion.
 
 The result is a change in how the detectors are evaluated, even though neither
-detector's scores change. Reporting a method ranking without naming the grader
-would hide this dependence. Appendix~\ref{sec:correctness-comparison} gives the
+detector's scores change. Appendix~\ref{sec:correctness-comparison} gives the
 accuracy comparisons and exclusion checks in full.
 
 \Needspace{20\baselineskip}
