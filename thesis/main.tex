@@ -32,6 +32,11 @@
   \AfterEndEnvironment{align*}{\pdfinterwordspaceon}%
 }
 
+% algorithm2e prints a semicolon at the end of every pseudocode line by
+% default. \; stays as the line terminator in the source, but nothing is
+% printed, so no semicolon appears anywhere in the document.
+\DontPrintSemicolon
+
 \usepackage{needspace}
 % Note: the kaobook class (styles/kao.sty) already loads algorithm2e, so the
 % algorithm environment is available without an extra package here.
