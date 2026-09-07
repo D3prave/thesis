@@ -29,11 +29,9 @@ answer length causes the observed AUROC differences.
 \section{How answers are graded}
 \label{sec:correctness-comparison}
 
-An answer's correctness label is the decision that it is correct or incorrect.
-The grading rule determines that decision: token-F1 uses word overlap with a
-reference answer, while an LLM judge evaluates the answer against the reference.
-This check asks whether choosing a different grading rule changes which
-uncertainty method performs better.
+This appendix gives the detailed comparisons supporting
+Section~\ref{sec:grading-results}, using the grading rules defined in
+Section~\ref{sec:correctness}.
 
 Table~\ref{tab:correctness} grades identical answers three ways. In
 \texttt{chat\_0shot} the token-overlap rule scores the generators at 0.344 mean

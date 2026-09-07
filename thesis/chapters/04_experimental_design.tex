@@ -337,9 +337,12 @@ still name the entailment model explicitly because the choice changes the score.
 \section{Correctness: three rules on identical answers}
 \label{sec:correctness}
 
-Correctness is a separate step applied to the finished most-likely answer, so
-the rule can be varied while the estimators stay fixed. Three are recorded
-(Table~\ref{tab:graders}), and they do not always agree.
+A correctness label records whether an answer is graded correct or incorrect.
+Grading is a separate step applied to the finished most-likely answer, so the
+grading rule can change while the answer and its uncertainty scores stay fixed.
+This study uses three rules: token-F1 measures word overlap with a reference
+answer, while the Qwen and Llama language models judge correctness against the
+reference. Table~\ref{tab:graders} specifies the rules; they do not always agree.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}

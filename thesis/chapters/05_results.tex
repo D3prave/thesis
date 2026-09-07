@@ -13,10 +13,7 @@ compare all eight methods within each dataset and model; the sections that
 follow show how the ranking changes with the evaluation choices.
 
 The results below compare uncertainty estimators under the settings named in
-each table. In the short-answer evaluation, each grading rule decides whether
-an answer is correct or incorrect. AUROC measures how well the uncertainty
-scores distinguish answers graded incorrect from those graded correct.
-Unless stated otherwise, each mean first averages the three
+each table. Unless stated otherwise, each mean first averages the three
 generation seeds within each of the nine dataset--generator pairs (one dataset
 and one generating model) and then averages those nine values. A \emph{cell} is
 one dataset--generator--seed combination. A positive AUROC difference favors
@@ -373,19 +370,9 @@ graders.
 \section{How answers are graded}
 \label{sec:grading-results}
 
-To test whether uncertainty helps detect mistakes, the evaluation first needs
-a decision about each answer: is it correct or incorrect? This decision is
-called a \emph{correctness label}. The uncertainty methods do not make that
-decision. They assign uncertainty scores, and AUROC measures whether answers
-graded incorrect tend to receive higher scores than answers graded correct.
-
-This study uses three ways to grade an answer. Token-F1 measures word overlap
-with a reference answer and applies a threshold to decide whether the answer
-counts as correct. The other two graders, Qwen and Llama, are language models
-asked to judge correctness against the reference. Word overlap can penalize a
-correct answer that uses extra words. For example, ``Paris'' and ``The capital
-of France is Paris'' answer the same question, but receive different
-word-overlap scores against the reference ``Paris''.
+The three grading rules in Section~\ref{sec:correctness} decide whether an
+answer counts as correct or incorrect. This comparison changes only that
+decision: the answers and their uncertainty scores stay fixed.
 
 The choice of grader changes the result for sentence-length answers. On the
 same answers and uncertainty scores, surface entropy leads discrete semantic
