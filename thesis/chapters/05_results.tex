@@ -143,9 +143,10 @@ entailment model. Surface entropy and naive sample entropy remain near chance
 at 0.497. These string-based methods do not use an entailment model, so their
 results are unchanged across entailment settings. When all ten samples form
 distinct string groups, each group has the same frequency and the string-based
-entropy is constant. For both larger entailment models, the same point-estimate advantage
+entropy is constant. For both larger entailment models, the same advantage
 appears across the three generators in Table~\ref{tab:longform-by-generator}
-and Figure~\ref{fig:longform-comparison}. The two smaller entailment settings
+and Figure~\ref{fig:longform-comparison}. Every records-only interval for these
+generator-level comparisons excludes zero. The two smaller entailment settings
 behave differently. Exact matching places every differing paragraph in its own
 group, so it scores exactly what the string baselines score. The base model
 exceeds the string baselines for Mistral-7B, at 0.628 against 0.500, but falls
@@ -170,11 +171,15 @@ Semantic grouping adds substantial detection value for varied paragraphs, where
 exact strings are usually different even when their factual content overlaps.
 This continues the pattern of Section~\ref{sec:answer-length-results}: the
 advantage grows with answer length, and it is largest here. The margin over
-surface entropy is also the widest in the study, although the biography runs
-carry no confidence intervals. The biography runs differ from the
+surface entropy is also the widest in the study. The pooled gap is $+0.174$
+with large DeBERTa, with a records-only 95\,\% interval of $[+0.157,+0.190]$,
+and $+0.212$ with Qwen, with an interval of $[+0.196,+0.228]$. These intervals
+hold generators and seeds fixed and are narrower in scope than the
+short-answer hierarchical intervals. The biography runs differ from the
 short-answer grid in other ways too, using different prompts, claim-level
-grading and a single judge, so they form a second setting rather than a longer
-condition inside that grid.
+grading and a single dataset and judge. Qwen is also one of the entailment
+models. These runs form a second setting rather than a longer condition
+inside that grid.
 
 \section{Separating the steps of the method}
 \label{sec:se-vs-surface}

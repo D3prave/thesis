@@ -28,11 +28,39 @@ strict bidirectional entailment rule is used throughout. Figure~\ref{fig:longfor
 and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the
 result.
 
+The records-only intervals are read from
+\path{results/paired_bootstrap_longform.csv}, an unchanged copy of the verified
+export recorded in commit \texttt{020f3ea}. The analysis script,
+\path{src/scripts/paired_bootstrap_bio_records.py}, reuses the AUROC and paired
+bootstrap functions in \path{scripts/paired_bootstrap_hierarchical.py}.
+It reads saved labeled biography records from
+\path{results_sep_v3_bio/phase1/} and \path{results_sep_v3_bio/phase2/} on Alex.
+The source paths and file hashes are listed in
+\path{results/paired_bootstrap_bio_records_sources.csv}. Labels were checked
+against the nine saved Qwen grading files without relabeling any records.
+The recorded NLI runs in this biography family also ran on Alex GPUs.
+
+For each of 2{,}000 resamples, with random seed 20260831, the analysis draws
+500 biographies with replacement within each generator--seed run. Both
+estimators and the correctness label use the same sampled indices. Draws are
+independent across runs. It averages the paired AUROC differences over the
+three seeds, then equally over the three generators for the pooled result.
+The 95\,\% intervals are the 2.5th and 97.5th percentiles of these differences.
+All 108 relevant run-level AUROCs match the measurement export at its recorded
+six-decimal precision. No resample had an undefined AUROC.
+
+The dataset, generators, and seeds remain fixed. With one dataset and three
+dataset--generator units, no unit or hierarchical intervals were computed.
+These are the permissive records-only intervals described in
+Section~\ref{sec:statistics}, not estimates of uncertainty across
+new datasets and generators. The evaluation also uses one correctness judge,
+Qwen, which is one of the entailment models.
+
 The retained export supports regeneration of the reported tables and coverage
 checks. Reproducing collection from source inputs would require the original
 subject list and prepared input files.
 
-The hierarchical intervals are imported from
+The short-answer hierarchical intervals are imported from
 \path{results/paired_bootstrap_se_vs_surface.csv}, produced by a separate
 record-level analysis. Rebuilding the tables from these exports is not the same
 as recomputing every value from raw answers. The local coverage check verifies
@@ -82,7 +110,7 @@ NQ-Open and SVAMP contain no repeats in the selected sets.
 \section{Bootstrap details}
 \label{sec:bootstrap-assumptions}
 
-The saved paired analysis uses 2,000 resamples. Within each selected
+The saved short-answer paired analysis uses 2,000 resamples. Within each selected
 dataset--generator pair, it averages the three seed-level AUROC differences,
 then averages over the nine selected pairs. Record resampling keeps the
 compared methods paired within a seed cell, but draws question indices

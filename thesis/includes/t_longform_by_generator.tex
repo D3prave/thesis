@@ -4,31 +4,31 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Long-form biography AUROC by generator, averaged over three seeds. This expands the nine-run averages in Table~\ref{tab:longform}. The same paragraph-level scoring, provenance and grading limits apply.}
+\caption{Long-form biography AUROC by generator, averaged over three seeds. This expands the nine-run averages in Table~\ref{tab:longform}. The final columns give discrete SE minus each string baseline and records-only 95\,\% intervals from 2,000 paired resamples within runs. The three seeds stay fixed. These conditional intervals do not include variation across datasets or generators.}
 \label{tab:longform-by-generator}
 \begingroup
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Entailment model & Discrete SE & Surface & Naive sample \\
+Entailment & \makecell{Discrete\\SE} & Surface & \makecell{Naive\\sample} & \makecell{$\Delta$ surface\\95\,\% CI} & \makecell{$\Delta$ naive sample\\95\,\% CI} \\
 \midrule
-\multicolumn{4}{@{}l}{Llama-3.1-70B} \\*
-\texttt{exact-match} & 0.4918 & 0.4918 & 0.4943 \\
-\texttt{nli-deberta-v3-base} & 0.4759 & 0.4918 & 0.4943 \\
-\texttt{nli-deberta-v3-large} & 0.6730 & 0.4918 & 0.4943 \\
-\texttt{Qwen2.5-72B-Instruct} & 0.6963 & 0.4918 & 0.4943 \\
+\multicolumn{6}{@{}l}{Llama-3.1-70B} \\*
+Exact match & 0.4918 & 0.4918 & 0.4943 & \makecell{+0.000\\{[+0.000, +0.000]}} & \makecell{-0.003\\{[-0.006, +0.000]}} \\
+\makecell[l]{DeBERTa\\v3-base} & 0.4759 & 0.4918 & 0.4943 & \makecell{-0.016\\{[-0.044, +0.013]}} & \makecell{-0.018\\{[-0.047, +0.012]}} \\
+\makecell[l]{DeBERTa\\v3-large} & 0.6730 & 0.4918 & 0.4943 & \makecell{+0.181\\{[+0.154, +0.208]}} & \makecell{+0.179\\{[+0.150, +0.207]}} \\
+Qwen-72B & 0.6963 & 0.4918 & 0.4943 & \makecell{+0.205\\{[+0.179, +0.230]}} & \makecell{+0.202\\{[+0.176, +0.228]}} \\
 \addlinespace[4pt]
-\multicolumn{4}{@{}l}{Llama-3.1-8B} \\*
-\texttt{exact-match} & 0.4978 & 0.4978 & 0.4978 \\
-\texttt{nli-deberta-v3-base} & 0.4699 & 0.4978 & 0.4978 \\
-\texttt{nli-deberta-v3-large} & 0.6117 & 0.4978 & 0.4978 \\
-\texttt{Qwen2.5-72B-Instruct} & 0.6815 & 0.4978 & 0.4978 \\
+\multicolumn{6}{@{}l}{Llama-3.1-8B} \\*
+Exact match & 0.4978 & 0.4978 & 0.4978 & \makecell{+0.000\\{[+0.000, +0.000]}} & \makecell{+0.000\\{[+0.000, +0.000]}} \\
+\makecell[l]{DeBERTa\\v3-base} & 0.4699 & 0.4978 & 0.4978 & \makecell{-0.028\\{[-0.057, +0.001]}} & \makecell{-0.028\\{[-0.056, +0.001]}} \\
+\makecell[l]{DeBERTa\\v3-large} & 0.6117 & 0.4978 & 0.4978 & \makecell{+0.114\\{[+0.080, +0.146]}} & \makecell{+0.114\\{[+0.081, +0.146]}} \\
+Qwen-72B & 0.6815 & 0.4978 & 0.4978 & \makecell{+0.184\\{[+0.155, +0.213]}} & \makecell{+0.184\\{[+0.155, +0.212]}} \\
 \addlinespace[4pt]
-\multicolumn{4}{@{}l}{Mistral-7B} \\*
-\texttt{exact-match} & 0.5000 & 0.5000 & 0.5000 \\
-\texttt{nli-deberta-v3-base} & 0.6276 & 0.5000 & 0.5000 \\
-\texttt{nli-deberta-v3-large} & 0.7262 & 0.5000 & 0.5000 \\
-\texttt{Qwen2.5-72B-Instruct} & 0.7475 & 0.5000 & 0.5000 \\
+\multicolumn{6}{@{}l}{Mistral-7B} \\*
+Exact match & 0.5000 & 0.5000 & 0.5000 & \makecell{+0.000\\{[+0.000, +0.000]}} & \makecell{+0.000\\{[+0.000, +0.000]}} \\
+\makecell[l]{DeBERTa\\v3-base} & 0.6276 & 0.5000 & 0.5000 & \makecell{+0.128\\{[+0.101, +0.154]}} & \makecell{+0.128\\{[+0.100, +0.156]}} \\
+\makecell[l]{DeBERTa\\v3-large} & 0.7262 & 0.5000 & 0.5000 & \makecell{+0.226\\{[+0.199, +0.252]}} & \makecell{+0.226\\{[+0.198, +0.254]}} \\
+Qwen-72B & 0.7475 & 0.5000 & 0.5000 & \makecell{+0.247\\{[+0.220, +0.273]}} & \makecell{+0.247\\{[+0.221, +0.275]}} \\
 \addlinespace[4pt]
 \bottomrule
 \end{tabular}

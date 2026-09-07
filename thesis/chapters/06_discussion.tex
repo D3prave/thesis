@@ -98,10 +98,14 @@ against 0.497 for surface and naive sample entropy. Meaning-based grouping
 becomes valuable when generated paragraphs vary in wording. This is the largest
 gap measured anywhere in the study. In the short-answer grid semantic entropy
 pulls away from surface entropy only with the Qwen entailment model, whereas
-here both larger entailment models show the gap, although the biography runs
-carry no confidence intervals. The biography runs also change the dataset, the grading
-scheme and the number of judges, so they extend the length pattern rather than
-isolating length by itself.
+here both larger entailment models show the gap. The pooled records-only
+95\,\% intervals are $[+0.157,+0.190]$ for large DeBERTa and
+$[+0.196,+0.228]$ for Qwen. They exclude zero while holding generators and
+seeds fixed, so they do not offer the same evidence across tasks as the
+short-answer hierarchical intervals. The biography runs use one dataset and
+one judge, Qwen, which is also an entailment model. They also change the
+grading scheme, so they extend the length pattern rather than isolating
+length by itself.
 
 Longer answers allow more ways to express the same meaning, but length is not
 the only factor. Changing the entailment model reverses which generator gains

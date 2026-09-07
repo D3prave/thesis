@@ -71,6 +71,7 @@ sa = d[d.arm == 'short_answer']
 lf = d[d.arm == 'long_form']
 T1 = sa[sa.temperature == 1.0]
 BOOT = pd.read_csv(res('paired_bootstrap_se_vs_surface.csv'))
+LONGFORM_BOOT = pd.read_csv(res('paired_bootstrap_longform.csv'))
 E7   = pd.read_csv(res('e7_cross_dataset.csv'))
 SEED_VARIABILITY = pd.read_csv(aux('seed_variability.csv'))
 SEED_REFERENCE = float(SEED_VARIABILITY.loc[
@@ -508,6 +509,34 @@ def t_factorial():
 
 
 # ---------------------------------------------------------------- 5.7 long-form
+LONGFORM_BACKEND = {
+    'exact-match': 'Exact match',
+    'posthoc-nli-deberta-v3-base': r'\makecell[l]{DeBERTa\\v3-base}',
+    'posthoc-nli-deberta-v3-large': r'\makecell[l]{DeBERTa\\v3-large}',
+    'posthoc-llm-judge-qwen2.5-72b-instruct': 'Qwen-72B',
+}
+LONGFORM_HEADER = (r'Entailment & \makecell{Discrete\\SE} & Surface & '
+                   r'\makecell{Naive\\sample} & \makecell{$\Delta$ surface\\95\,\% CI} & '
+                   r'\makecell{$\Delta$ naive sample\\95\,\% CI} \\')
+
+
+def longform_intervals(model, backend):
+    values = []
+    for right in ['surface_entropy', 'naive_sample_entropy']:
+        selected = LONGFORM_BOOT[(LONGFORM_BOOT.model == model) &
+                                 (LONGFORM_BOOT.entailment_backend == backend) &
+                                 (LONGFORM_BOOT.right == right)]
+        if len(selected) != 1 or selected.iloc[0].scheme != 'records-only':
+            raise ValueError(f'missing or invalid records-only interval: {model}, {backend}, {right}')
+        r = selected.iloc[0]
+        values.append(r'\makecell{' + fmtpm(r.delta, 3) + r'\\{[' +
+                      fmtpm(r.records_lo, 3) + ', ' + fmtpm(r.records_hi, 3) + ']}}')
+        AUDIT.append(('5.4 long-form records-only', f'{model}|{backend}|{right}',
+                      'delta/lo/hi/p/n_records',
+                      (r.delta, r.records_lo, r.records_hi, r.records_p, int(r.n_records))))
+    return ' & '.join(values)
+
+
 def t_longform():
     rows = []
     for b in ['exact-match', 'posthoc-nli-deberta-v3-base', 'posthoc-nli-deberta-v3-large',
@@ -516,11 +545,12 @@ def t_longform():
         v = {m: sub[sub.method == m].auroc.mean()
              for m in ['discrete_semantic_entropy', 'surface_entropy',
                        'naive_sample_entropy']}
-        nm = BACKEND[b]
+        nm = LONGFORM_BACKEND[b]
         if b == 'posthoc-llm-judge-qwen2.5-72b-instruct':
             nm = r'\textbf{' + nm + '}'
         rows.append(f'{nm} & {fmt(v["discrete_semantic_entropy"],4)} & '
-                    f'{fmt(v["surface_entropy"],4)} & {fmt(v["naive_sample_entropy"],4)} \\\\')
+                    f'{fmt(v["surface_entropy"],4)} & {fmt(v["naive_sample_entropy"],4)} & '
+                    + longform_intervals('all', b) + r' \\')
         AUDIT.append(('5.7 long-form', b, 'dse',
                       round(float(v['discrete_semantic_entropy']), 4)))
     acc = lf.accuracy.mean()
@@ -532,10 +562,11 @@ def t_longform():
         'Separate long-form evaluation: nine model--seed runs, 500 '
         'biographies each, and claim-level grading by the '
         'Qwen judge. Strict bidirectional entailment is used throughout. '
-        'Each score covers a whole paragraph. The setting also differs in '
-        'dataset and grading, so it runs alongside the short-answer grid.',
-        'tab:longform', '@{}lccc@{}',
-        'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
+        'Each score covers a whole paragraph. The final columns give discrete SE '
+        'minus each string baseline and records-only 95\\,\\% intervals from '
+        '2,000 paired resamples within runs. Generators and seeds stay fixed. '
+        'These intervals exclude variation between dataset--generator units.',
+        'tab:longform', '@{}lccccc@{}', LONGFORM_HEADER, rows, note=note)
 
 
 # ---------------------------------------------------------------- 5.8 temperature
@@ -753,19 +784,22 @@ def t_complete_temperature():
 def t_longform_by_generator():
     rows = []
     for model, sub in lf.groupby('model', sort=True):
-        rows.append(r'\multicolumn{4}{@{}l}{' + model.split('_', 1)[-1].replace('-Instruct-v0.3','').replace('-Instruct','') + r'} \\*')
+        rows.append(r'\multicolumn{6}{@{}l}{' + model.split('_', 1)[-1].replace('-Instruct-v0.3','').replace('-Instruct','') + r'} \\*')
         for b in ['exact-match', 'posthoc-nli-deberta-v3-base',
                   'posthoc-nli-deberta-v3-large', 'posthoc-llm-judge-qwen2.5-72b-instruct']:
             vals = [sub[(sub.entailment_backend == b) & (sub.method == m)].auroc.mean()
                     for m in ['discrete_semantic_entropy', 'surface_entropy', 'naive_sample_entropy']]
-            rows.append(BACKEND[b] + ' & ' + ' & '.join(fmt(v,4) for v in vals) + r' \\')
+            rows.append(LONGFORM_BACKEND[b] + ' & ' + ' & '.join(fmt(v,4) for v in vals) +
+                        ' & ' + longform_intervals(model, b) + r' \\')
         rows.append(r'\addlinespace[4pt]')
     return table('Long-form biography AUROC by generator, averaged over three '
                  'seeds. This expands the nine-run averages in '
-                 r'Table~\ref{tab:longform}. The same paragraph-level scoring, '
-                 'provenance and grading limits apply.',
-                 'tab:longform-by-generator', '@{}lccc@{}',
-                 'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows)
+                 r'Table~\ref{tab:longform}. The final columns give discrete SE '
+                 'minus each string baseline and records-only 95\\,\\% intervals '
+                 'from 2,000 paired resamples within runs. The three seeds stay '
+                 'fixed. These conditional intervals do not include variation '
+                 'across datasets or generators.',
+                 'tab:longform-by-generator', '@{}lccccc@{}', LONGFORM_HEADER, rows)
 
 
 def t_answer_length():
@@ -829,7 +863,6 @@ if __name__ == '__main__':
     write('t_backend_by_model.tex', t_backend_by_model())
     write('t_cluster_counts.tex',    t_cluster_counts())
     write('t_factorial.tex',         t_factorial())
-    write('t_longform.tex',          t_longform())
     write('t_temperature.tex',       t_temperature())
     write('t_correctness.tex',       t_correctness())
     write('t_degenerate_cells.tex',  t_degenerate_cells())
@@ -837,6 +870,8 @@ if __name__ == '__main__':
     write('t_probes.tex',            t_probes())
     write('t_complete_t1.tex',       t_complete_t1())
     write('t_complete_temperature.tex', t_complete_temperature())
+    # Imported records-only intervals do not consume the shared unit-CI RNG.
+    write('t_longform.tex',          t_longform())
     write('t_longform_by_generator.tex', t_longform_by_generator())
     print('\n--- audit trail ---')
     for a in AUDIT:

@@ -23,11 +23,15 @@ methods are nearly tied.
 The recorded long-form biography evaluation has higher AUROC for semantic
 entropy than for the string baselines with the larger entailment models:
 semantic entropy reaches 0.670 with large DeBERTa and 0.708 with Qwen, while
-surface and naive sample entropy are near 0.497. This is the largest gap
+surface and naive sample entropy are near 0.497. The pooled gaps over surface
+entropy have records-only 95\,\% intervals of $[+0.157,+0.190]$ and
+$[+0.196,+0.228]$, respectively. These intervals hold generators and seeds
+fixed and do not capture variation across datasets and generators. This is the largest gap
 measured in the study, and it continues the pattern seen across the
 short-answer prompting conditions, where the advantage grows with answer
-length. The biography runs also change the dataset and the grading scheme, so
-length is not isolated on its own.
+length. The biography runs use one dataset and one judge, Qwen, which is also
+an entailment model. They also change the grading scheme, so length is not
+isolated on its own.
 
 Changing the entailment model changes the conclusion. With the tested Qwen
 entailment model, semantic entropy improves on surface entropy under both LLM

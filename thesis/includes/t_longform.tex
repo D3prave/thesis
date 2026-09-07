@@ -4,18 +4,18 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Separate long-form evaluation: nine model--seed runs, 500 biographies each, and claim-level grading by the Qwen judge. Strict bidirectional entailment is used throughout. Each score covers a whole paragraph. The setting also differs in dataset and grading, so it runs alongside the short-answer grid.}
+\caption{Separate long-form evaluation: nine model--seed runs, 500 biographies each, and claim-level grading by the Qwen judge. Strict bidirectional entailment is used throughout. Each score covers a whole paragraph. The final columns give discrete SE minus each string baseline and records-only 95\,\% intervals from 2,000 paired resamples within runs. Generators and seeds stay fixed. These intervals exclude variation between dataset--generator units.}
 \label{tab:longform}
 \begingroup
 \setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Entailment model & Discrete SE & Surface & Naive sample \\
+Entailment & \makecell{Discrete\\SE} & Surface & \makecell{Naive\\sample} & \makecell{$\Delta$ surface\\95\,\% CI} & \makecell{$\Delta$ naive sample\\95\,\% CI} \\
 \midrule
-\texttt{exact-match} & 0.4965 & 0.4965 & 0.4973 \\
-\texttt{nli-deberta-v3-base} & 0.5245 & 0.4965 & 0.4973 \\
-\texttt{nli-deberta-v3-large} & 0.6703 & 0.4965 & 0.4973 \\
-\textbf{\texttt{Qwen2.5-72B-Instruct}} & 0.7084 & 0.4965 & 0.4973 \\
+Exact match & 0.4965 & 0.4965 & 0.4973 & \makecell{+0.000\\{[+0.000, +0.000]}} & \makecell{-0.001\\{[-0.002, +0.000]}} \\
+\makecell[l]{DeBERTa\\v3-base} & 0.5245 & 0.4965 & 0.4973 & \makecell{+0.028\\{[+0.013, +0.045]}} & \makecell{+0.027\\{[+0.011, +0.043]}} \\
+\makecell[l]{DeBERTa\\v3-large} & 0.6703 & 0.4965 & 0.4973 & \makecell{+0.174\\{[+0.157, +0.190]}} & \makecell{+0.173\\{[+0.156, +0.190]}} \\
+\textbf{Qwen-72B} & 0.7084 & 0.4965 & 0.4973 & \makecell{+0.212\\{[+0.196, +0.228]}} & \makecell{+0.211\\{[+0.196, +0.227]}} \\
 \bottomrule
 \end{tabular}
 \endgroup

@@ -122,6 +122,41 @@ def check_supporting_exports(rows):
     for r in ood:
         if not math.isfinite(float(r['auroc'])) or not 0<=float(r['auroc'])<=1:
             raise ValueError('invalid out-of-distribution AUROC')
+    check_longform_bootstrap(rows, read_rows(ROOT / 'results/paired_bootstrap_longform.csv'))
+
+
+def check_longform_bootstrap(rows, boot):
+    longform = [r for r in rows if r['arm'] == 'long_form']
+    models = {r['model'] for r in longform}
+    backends = {r['entailment_backend'] for r in longform}
+    expected = set(itertools.product(models | {'all'}, backends,
+                                     ('surface_entropy', 'naive_sample_entropy')))
+    observed = set()
+    for r in boot:
+        key = (r['model'], r['entailment_backend'], r['right'])
+        if key not in expected or key in observed:
+            raise ValueError(f'duplicate or unexpected long-form comparison: {key}')
+        observed.add(key)
+        if (r['scheme'] != 'records-only' or r['left'] != 'discrete_semantic_entropy'
+                or r['arm'] != 'long_form' or r['grader'] != 'llm_qwen2.5-72b'
+                or int(r['resamples']) != 2000 or int(r['seed']) != 20260831
+                or any(k.startswith(('hier_', 'units_')) for k in r)):
+            raise ValueError(f'invalid long-form records-only scheme: {key}')
+        n = 3 if r['model'] == 'all' else 1
+        if tuple(int(r[k]) for k in ('n_units', 'n_cells', 'n_records')) != (n, 3*n, 1500*n):
+            raise ValueError(f'invalid long-form coverage: {key}')
+        lo, hi, p = (float(r[f'records_{field}']) for field in ('lo', 'hi', 'p'))
+        if not (-1 <= lo <= hi <= 1 and 0 <= p <= 1):
+            raise ValueError(f'invalid long-form interval: {key}')
+        sub = [m for m in longform if m['entailment_backend'] == r['entailment_backend']
+               and r['model'] in (m['model'], 'all')]
+        means = [sum(float(m['auroc']) for m in sub if m['method'] == method) / (3*n)
+                 for method in (r['left'], r['right'])]
+        delta = float(r['delta'])
+        if not math.isfinite(delta) or abs(means[0] - means[1] - delta) > 0.000002:
+            raise ValueError(f'long-form point estimate differs from measurements: {key}')
+    if observed != expected:
+        raise ValueError('incomplete long-form bootstrap comparisons')
 
 
 if __name__ == '__main__':
@@ -129,4 +164,5 @@ if __name__ == '__main__':
     count = check_measurements(rows)
     check_supporting_exports(rows)
     print(f'Coverage OK: {len(rows)} measurements, {count} complete configuration groups; '
-          '24 paired comparisons and 108 out-of-distribution probe measurements checked.')
+          '24 short-answer and 32 records-only long-form paired comparisons, '
+          'and 108 out-of-distribution probe measurements checked.')

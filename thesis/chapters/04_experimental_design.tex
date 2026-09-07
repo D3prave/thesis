@@ -20,7 +20,11 @@ The thesis also reports a separate long-form biography evaluation. Its setup is
 documented in Appendix~\ref{app:longform-details}, and its results are
 reported in Section~\ref{sec:longform-results}. It uses different prompts,
 claim-level grading and a single judge, so it is a second setting alongside the
-short-answer grid rather than a longer condition within it.
+short-answer grid rather than a longer condition within it. Its paired AUROC
+differences have records-only 95\,\% intervals from 2{,}000 resamples within
+each run, with generators and seeds held fixed. With one dataset and three
+dataset--generator units, this arm uses neither unit nor hierarchical resampling.
+Its intervals do not measure uncertainty across new datasets and generators.
 
 \section{The experimental grid at a glance}
 \label{sec:grid-at-a-glance}
@@ -454,7 +458,7 @@ seeds within each unit and then averages over the nine units. The reported
 prompts alone does not include variation between dataset--generator units and
 cannot describe uncertainty across a wider population of tasks.
 
-\paragraph{Other intervals.} The generated summary tables use 95\,\% bootstrap
+\paragraph{Other intervals.} The short-answer summary tables use 95\,\% bootstrap
 intervals from 2{,}000 resamples of dataset--generator units after averaging
 over seeds. They hold the question records fixed. The paired comparison tables
 instead use the hierarchical intervals described above. These are individual
