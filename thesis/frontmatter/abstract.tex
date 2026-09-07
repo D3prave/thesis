@@ -10,7 +10,7 @@ Shannon entropy then measures how widely the samples are spread across the
 groups. Agreement in meaning suggests lower risk, while conflicting meanings
 suggest higher risk.
 
-This thesis does not propose a new method. It reimplements the published method
+This study implements the published method
 by following the authors' released code. The experiments use three open
 language models, three short-answer benchmarks, and a long-form biography
 evaluation. The main goal is to
@@ -49,5 +49,4 @@ remain conditional on the correctness rules, the limited dataset--model grid,
 and possible shared biases between semantic grouping and grading.
 
 Semantic entropy is therefore a useful detector in the tested settings, but
-it is not consistently the best method. Its advantage must be stated together
-with the comparator, prompting condition, entailment model, and evaluation rule.
+it is not consistently the best method. Its advantage is dependent on the comparator, the entailment model, the correctness rule, and the answer length.
