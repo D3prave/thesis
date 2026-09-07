@@ -398,16 +398,34 @@ detector's scores change. Reporting a method ranking without naming the grader
 would hide this dependence. Appendix~\ref{sec:correctness-comparison} gives the
 accuracy comparisons and exclusion checks in full.
 
-\Needspace{8\baselineskip}
+\Needspace{20\baselineskip}
 \section{Summary of comparisons}
 \label{sec:secondary-results-overview}
 
-Under LLM grading, semantic entropy leads the measured baselines for
-sentence-length answers, while its advantage over surface entropy is small for
-short phrases. The separate biography evaluation shows a larger advantage with
-the two larger entailment models. The method comparisons also show that
-normalizing answer strings contributes more on average than semantic grouping.
-The size of semantic entropy's advantage depends
-on the entailment model and sampling temperature.
+The comparisons show different degrees of separation between the methods.
+For sentence-length answers under the Qwen judge at $T=1.0$, the two semantic
+estimators have the highest mean AUROCs among the eight methods
+(Table~\ref{tab:sentence-length}). With the default entailment model, their
+advantage over surface entropy is smaller than their advantage over naive
+predictive entropy. For short phrases, discrete semantic and surface entropy
+differ by less than 0.003 AUROC under either LLM judge
+(Table~\ref{tab:short-phrase}).
+
+Changing the entailment model widens the sentence-length comparison: discrete
+semantic entropy's advantage over surface entropy rises from 0.0204 with the
+default model to 0.0867 with Qwen. The first confidence interval includes zero;
+the second excludes it (Table~\ref{tab:backend}). In the separate biography
+evaluation, the large DeBERTa and Qwen entailment models yield AUROCs of 0.670
+and 0.708, respectively, while the string baselines remain near 0.497
+(Table~\ref{tab:longform}).
+
+The comparisons between consecutive method steps also differ in consistency.
+Normalization increases mean AUROC in all 24 comparisons; semantic grouping
+does so in 14, and likelihood weighting in 12 (Table~\ref{tab:ladder}). The
+temperature sweep under the Qwen judge reverses the ordering of naive
+predictive entropy relative to discrete semantic and surface entropy between
+$T=0.1$ and $T=1.0$ (Section~\ref{sec:temperature-sensitivity}). Changing the
+grader reverses the mean ordering of discrete semantic and surface entropy on
+fixed answers (Section~\ref{sec:grading-results}).
 \clearpage
 \flushbottom
