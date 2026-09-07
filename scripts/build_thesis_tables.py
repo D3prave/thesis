@@ -969,11 +969,11 @@ def figures(outdir='figures'):
     ]
     colors = ['#0072b2', '#56b4e9', '#d55e00', '#7b6b8d',
               '#aaaaaa', '#cc79a7', '#009e73', '#e5b732']
-    # Greyscale rule: no two series may share both a near-identical greyscale
+    # Grayscale rule: no two series may share both a near-identical grayscale
     # value and the same hatch. Luminances (Rec.709) are 94, 164, 113, 113,
     # 170, 142, 121, 183. That puts surface/naive-predictive/accuracy-probe in
     # one cluster and discrete-SE/naive-sample in another, so those are split
-    # by pattern rather than by colour alone.
+    # by pattern rather than by color alone.
     hatches = ['', '//', '\\\\', '', 'xx', '', '..', '//']
     datasets = [('triviaqa', 'TriviaQA'), ('nqopen', 'NQ-Open'), ('svamp', 'SVAMP')]
     models = ['mistralai_Mistral-7B-Instruct-v0.3',
