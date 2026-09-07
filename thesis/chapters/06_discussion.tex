@@ -75,7 +75,7 @@ works or never works. Its measured value depends on the model used to decide
 whether answers mean the same thing. That model must be named when
 semantic-entropy results are reported.
 
-\subsection{Answer length alone does not explain the pattern}
+\subsection{What answer length explains, and what it does not}
 \label{sec:length-discussion}
 
 Farquhar et al.~\cite[Supplementary Note~7 and Supplementary Fig.~7]{semantic_entropy_nature_2024}
@@ -94,24 +94,26 @@ The long-form biography evaluation provides the complementary recorded result. I
 that setting, semantic entropy has higher recorded AUROC than the near-chance
 string baselines with the larger entailment models:
 0.670 with the large DeBERTa entailment model and 0.708 with the Qwen model,
-against 0.497 for surface and naive sample entropy. This supports the practical
-claim that meaning-based grouping becomes valuable when generated paragraphs
-vary in wording. Because this is a separate paragraph-level evaluation setup,
-it should be read as evidence for a long-form setting rather than as an
-isolated length effect.
+against 0.497 for surface and naive sample entropy. Meaning-based grouping
+becomes valuable when generated paragraphs vary in wording. This is the largest
+gap measured anywhere in the study. In the short-answer grid semantic entropy
+pulls away from surface entropy only with the Qwen entailment model, whereas
+here both larger entailment models show the gap, although the biography runs
+carry no confidence intervals. The biography runs also change the dataset, the grading
+scheme and the number of judges, so they extend the length pattern rather than
+isolating length by itself.
 
-Longer answers allow more ways to express the same meaning, but length alone
-does not explain the results. Changing the entailment model reverses which
-generator gains most from semantic grouping, even though its answers stay
-fixed. The generator with the longest answers gains least with the default
+Longer answers allow more ways to express the same meaning, but length is not
+the only factor. Changing the entailment model reverses which generator gains
+most from semantic grouping, even though its answers stay fixed. The generator
+with the longest answers gains least with the default
 entailment model and most with the Qwen entailment model.
 
 The prompting-factorial analysis offers a limited additional check. It varies
 instruction wording and the number of worked examples, but it was run only
 with the default entailment model. Its four semantic-versus-surface intervals all
-include zero. It is therefore a secondary analysis, not evidence
-that answer length causes the observed differences. The full results are in
-Appendix~\ref{sec:factorial-results}.
+include zero, so on its own it adds little to the comparison against surface
+entropy. The full results are in Appendix~\ref{sec:factorial-results}.
 
 \section{Why the evaluation setup matters}
 \label{sec:apparatus}

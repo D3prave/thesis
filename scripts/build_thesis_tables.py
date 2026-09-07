@@ -532,9 +532,8 @@ def t_longform():
         'Separate long-form evaluation: nine model--seed runs, 500 '
         'biographies each, and claim-level grading by the '
         'Qwen judge. Strict bidirectional entailment is used throughout. '
-        'Each score covers a whole paragraph, so this evaluation runs '
-        'alongside the short-answer grid rather than isolating answer length '
-        'within it.',
+        'Each score covers a whole paragraph. The setting also differs in '
+        'dataset and grading, so it runs alongside the short-answer grid.',
         'tab:longform', '@{}lccc@{}',
         'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows, note=note)
 

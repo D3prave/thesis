@@ -166,11 +166,15 @@ consistently.
 \label{fig:longform-comparison}
 \end{figure*}
 
-In this recorded evaluation, semantic grouping adds substantial detection value for
-varied paragraphs, where exact strings are usually different even when their
-factual content overlaps. It extends the performance comparison to paragraphs.
-Because the paragraph-level setup differs from the short-answer evaluation, it does
-not establish that length alone caused the improvement.
+Semantic grouping adds substantial detection value for varied paragraphs, where
+exact strings are usually different even when their factual content overlaps.
+This continues the pattern of Section~\ref{sec:answer-length-results}: the
+advantage grows with answer length, and it is largest here. The margin over
+surface entropy is also the widest in the study, although the biography runs
+carry no confidence intervals. The biography runs differ from the
+short-answer grid in other ways too, using different prompts, claim-level
+grading and a single judge, so they form a second setting rather than a longer
+condition inside that grid.
 
 \section{Separating the steps of the method}
 \label{sec:se-vs-surface}
