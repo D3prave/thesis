@@ -367,21 +367,36 @@ Appendix~\ref{app:complete-temperature-results} reports all five entropy
 methods for both prompting conditions, both entailment models, and both LLM
 graders.
 
-\section{How answers are graded}
+\section{Changing the grader changes the ranking}
 \label{sec:grading-results}
 
-The three grading rules in Section~\ref{sec:correctness} decide whether an
-answer counts as correct or incorrect. This comparison changes only that
-decision: the answers and their uncertainty scores stay fixed.
+The method ranking reverses without generating a single new answer. For
+sentence-length answers with the default entailment model, surface entropy
+leads discrete semantic entropy by 0.0506 AUROC under token-F1. With Qwen or
+Llama grading, semantic entropy instead leads by 0.0204 or 0.0223. The answers
+and uncertainty scores are identical; only the decisions about which answers
+count as correct change. Both LLM judges give the same mean ordering, although
+their confidence intervals include zero (Table~\ref{tab:all-slices}).
 
-The choice of grader changes the result for sentence-length answers. On the
-same answers and uncertainty scores, surface entropy leads discrete semantic
-entropy by 0.0506 AUROC under token-F1. Under the Qwen and Llama judges,
-semantic entropy instead leads by 0.0204 and 0.0223. The method ranking therefore
-depends on how answers are judged correct or incorrect. Both language-model
-judges give the same ordering in this comparison.
-Appendix~\ref{sec:correctness-comparison} gives the full tables and examines the
-cases in which token-F1 grades very few answers correct.
+The graders also give very different estimates of answer accuracy. Token-F1
+accepts 34.4\,\% of the sentence-length answers, compared with 62.3\,\% under
+Qwen and 67.7\,\% under Llama. For short phrases, the estimates are much closer:
+61.0\,\%, 62.1\,\%, and 66.2\,\%, respectively. The grading choice therefore
+matters most in the condition where answers contain more than a brief phrase.
+Section~\ref{sec:correctness} defines the three grading rules.
+
+An extreme case occurs on TriviaQA with Llama-3.1-8B. Across the three
+sentence-length runs, token-F1 accepts only three or four of 378 answers per
+run. AUROC then has very few correct answers against which to compare the
+incorrect ones. Yet these extreme cases do not fully explain the ranking:
+excluding all six runs with token-F1 accuracy below 5\,\% leaves surface
+entropy's advantage at 0.0485 AUROC with the default entailment model, compared
+with 0.0506 before exclusion.
+
+The result is a change in how the detectors are evaluated, even though neither
+detector's scores change. Reporting a method ranking without naming the grader
+would hide this dependence. Appendix~\ref{sec:correctness-comparison} gives the
+accuracy comparisons and exclusion checks in full.
 
 \Needspace{8\baselineskip}
 \section{Summary of comparisons}
