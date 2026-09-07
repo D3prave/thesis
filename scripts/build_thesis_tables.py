@@ -524,13 +524,10 @@ def t_longform():
         AUDIT.append(('5.7 long-form', b, 'dse',
                       round(float(v['discrete_semantic_entropy']), 4)))
     acc = lf.accuracy.mean()
-    note = (f'Mean claim accuracy {acc:.3f} over the nine model--seed runs. '
-            'Surface and naive sample entropy do not use an entailment model, so their '
-            'results are unchanged across those models. Their AUROCs are near chance. '
-            'When all ten sampled biographies differ, every sample forms its own string '
-            'group and the string-based entropy is constant. The released-code default '
+    note = (f'\\raggedright Mean claim accuracy: {acc:.3f} over the nine model--seed runs. '
+            'The released-code default '
             '\\texttt{deberta-v2-xlarge-mnli} was not '
-            'applied in this evaluation.')
+            'applied in this evaluation.\\par')
     return table(
         'Separate long-form evaluation: nine model--seed runs, 500 '
         'biographies each, and claim-level grading by the '

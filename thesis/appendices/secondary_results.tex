@@ -26,6 +26,43 @@ answer length causes the observed AUROC differences.
 
 \input{includes/t_factorial.tex}
 
+\section{How answers are graded}
+\label{sec:correctness-comparison}
+
+An answer's correctness label is the decision that it is correct or incorrect.
+The grading rule determines that decision: token-F1 uses word overlap with a
+reference answer, while an LLM judge evaluates the answer against the reference.
+This check asks whether choosing a different grading rule changes which
+uncertainty method performs better.
+
+Table~\ref{tab:correctness} grades identical answers three ways. In
+\texttt{chat\_0shot} the token-overlap rule scores the generators at 0.344 mean
+accuracy against 0.623 under the Qwen judge and 0.677 under the Llama judge.
+The semantic-minus-surface AUROC difference in that condition is $-0.0506$ under
+token-F1, $+0.0204$ under the Qwen judge and $+0.0223$ under the Llama judge:
+the same answers, the same scores, and a change of sign.
+
+\input{includes/t_correctness.tex}
+
+The gap narrows as answers shorten. In \texttt{default\_5shot}, at 11.2 mean
+characters, token-F1 accuracy is 0.610 against 0.621 and 0.662 under the two
+judges.
+
+\paragraph{Cells where token-F1 labels almost nothing correct.}
+Table~\ref{tab:degenerate-cells} lists the six cells of \texttt{chat\_0shot}
+whose token-F1 accuracy falls below 0.05. Three are TriviaQA with
+Llama-3.1-8B, at 0.0106, 0.0079 and 0.0079. That is three or four correct
+answers out of 378. An AUROC based on only three or four correct examples is not a stable
+measurement, and these cells carry much of the token-F1 AUROC difference in this
+condition. Excluding the six cells outside the accuracy range $[0.05, 0.95]$,
+which is two of the nine units, moves the Qwen-entailment-model token-F1 difference from
+$-0.0658$ to $-0.0277$, while the default-entailment-model difference moves only from
+$-0.0506$ to $-0.0485$. Dropping the TriviaQA and Llama-3.1-8B unit alone gives
+$-0.0330$ and $-0.0440$. No LLM-graded short-answer cell falls below 0.36
+accuracy; the lowest is 0.3625.
+
+\input{includes/t_degenerate_cells.tex}
+
 \clearpage
 \section{Complete method summaries at the main temperature}
 \label{app:complete-method-results}

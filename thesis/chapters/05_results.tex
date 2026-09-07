@@ -13,7 +13,10 @@ compare all eight methods within each dataset and model; the sections that
 follow show how the ranking changes with the evaluation choices.
 
 The results below compare uncertainty estimators under the settings named in
-each table. Unless stated otherwise, each mean first averages the three
+each table. In the short-answer evaluation, each grading rule decides whether
+an answer is correct or incorrect. AUROC measures how well the uncertainty
+scores distinguish answers graded incorrect from those graded correct.
+Unless stated otherwise, each mean first averages the three
 generation seeds within each of the nine dataset--generator pairs (one dataset
 and one generating model) and then averages those nine values. A \emph{cell} is
 one dataset--generator--seed combination. A positive AUROC difference favors
@@ -73,6 +76,12 @@ zero.
 Naive predictive entropy moves the same way: second-best under token-F1 at
 0.789, and last of the three under either judge.
 
+Answers average 11.2 characters. Under the LLM judges, discrete semantic and
+surface entropy differ by less than 0.003 AUROC. Even including naive predictive
+entropy, the highest and lowest AUROCs differ by only 0.011 under the Qwen judge
+and 0.006 under the Llama judge, compared with the seed-variation reference of
+0.0245.
+
 \input{includes/t_short_phrase.tex}
 
 \begin{figure*}[htb]
@@ -90,11 +99,6 @@ Naive predictive entropy moves the same way: second-best under token-F1 at
 Appendix~\ref{app:complete-method-results} gives the absolute AUROC of all
 eight recorded methods for both original prompting conditions, under all three
 correctness rules, along with the added conditions and entailment models.
-
-Mean answer length here is 11.2 characters. The semantic-versus-surface
-differences under the LLM judges are below 0.003 AUROC, against the
-seed-variation reference of 0.0245. Including naive predictive entropy, the three-method spread is
-0.011 under the Qwen judge and 0.006 under the Llama judge.
 
 \section{Answer length}
 \label{sec:answer-length-results}
@@ -138,7 +142,10 @@ Table~\ref{tab:longform} shows higher recorded AUROC for meaning-based grouping
 with the larger entailment models in this setting. Discrete semantic entropy
 reaches 0.670 with the large DeBERTa entailment model and 0.708 with the Qwen
 entailment model. Surface entropy and naive sample entropy remain near chance
-at 0.497. For both larger entailment models, the same point-estimate advantage
+at 0.497. These string-based methods do not use an entailment model, so their
+results are unchanged across entailment settings. When all ten samples form
+distinct string groups, each group has the same frequency and the string-based
+entropy is constant. For both larger entailment models, the same point-estimate advantage
 appears across the three generators in Table~\ref{tab:longform-by-generator}
 and Figure~\ref{fig:longform-comparison}. The two smaller entailment settings
 behave differently. Exact matching places every differing paragraph in its own
@@ -337,8 +344,9 @@ $+0.071$. The generations are identical across the entailment-model columns.
 \label{sec:temperature-sensitivity}
 
 The sweep under LLM grading appears in Table~\ref{tab:temperature} and
-Figure~\ref{fig:temperature}. The labels for the original graded answers are
-joined by \texttt{prompt\_id} and remain identical at all five temperatures.
+Figure~\ref{fig:temperature}. The answers being graded and the decisions about
+whether they are correct remain the same at all five temperatures. Only the
+samples used to estimate uncertainty change.
 
 \input{includes/t_temperature.tex}
 
@@ -346,8 +354,8 @@ joined by \texttt{prompt\_id} and remain identical at all five temperatures.
 \centering
 \includegraphics[width=0.86\linewidth]{temperature.pdf}
 \caption{AUROC against sampling temperature, sentence-length answers, default
-  entailment model, Qwen judge. The correctness labels are held fixed across the five
-  temperatures, while the uncertainty samples change.}
+  entailment model, Qwen judge. The graded answers and their correct/incorrect
+  decisions stay fixed while the samples used to estimate uncertainty change.}
 \label{fig:temperature}
 \end{figure}
 
@@ -362,57 +370,42 @@ Appendix~\ref{app:complete-temperature-results} reports all five entropy
 methods for both prompting conditions, both entailment models, and both LLM
 graders.
 
-\section{The correctness rule}
-\label{sec:correctness-comparison}
+\section{How answers are graded}
+\label{sec:grading-results}
 
-Table~\ref{tab:correctness} grades identical answers three ways. In
-\texttt{chat\_0shot} the token-overlap rule scores the generators at 0.344 mean
-accuracy against 0.623 under the Qwen judge and 0.677 under the Llama judge.
-The semantic-minus-surface AUROC difference in that condition is $-0.0506$ under
-token-F1, $+0.0204$ under the Qwen judge and $+0.0223$ under the Llama judge:
-the same answers, the same scores, and a change of sign.
+To test whether uncertainty helps detect mistakes, the evaluation first needs
+a decision about each answer: is it correct or incorrect? This decision is
+called a \emph{correctness label}. The uncertainty methods do not make that
+decision. They assign uncertainty scores, and AUROC measures whether answers
+graded incorrect tend to receive higher scores than answers graded correct.
 
-\input{includes/t_correctness.tex}
+This study uses three ways to grade an answer. Token-F1 measures word overlap
+with a reference answer and applies a threshold to decide whether the answer
+counts as correct. The other two graders, Qwen and Llama, are language models
+asked to judge correctness against the reference. Word overlap can penalize a
+correct answer that uses extra words. For example, ``Paris'' and ``The capital
+of France is Paris'' answer the same question, but receive different
+word-overlap scores against the reference ``Paris''.
 
-The gap narrows as answers shorten. In \texttt{default\_5shot}, at 11.2 mean
-characters, token-F1 accuracy is 0.610 against 0.621 and 0.662 under the two
-judges.
+The choice of grader changes the result for sentence-length answers. On the
+same answers and uncertainty scores, surface entropy leads discrete semantic
+entropy by 0.0506 AUROC under token-F1. Under the Qwen and Llama judges,
+semantic entropy instead leads by 0.0204 and 0.0223. The method ranking therefore
+depends on how answers are judged correct or incorrect. Both language-model
+judges give the same ordering in this comparison.
+Appendix~\ref{sec:correctness-comparison} gives the full tables and examines the
+cases in which token-F1 grades very few answers correct.
 
-\paragraph{Cells where token-F1 labels almost nothing correct.}
-Table~\ref{tab:degenerate-cells} lists the six cells of \texttt{chat\_0shot}
-whose token-F1 accuracy falls below 0.05. Three are TriviaQA with
-Llama-3.1-8B, at 0.0106, 0.0079 and 0.0079. That is three or four correct
-answers out of 378. An AUROC based on only three or four correct examples is not a stable
-measurement, and these cells carry much of the token-F1 AUROC difference in this
-condition. Excluding the six cells outside the accuracy range $[0.05, 0.95]$,
-which is two of the nine units, moves the Qwen-entailment-model token-F1 difference from
-$-0.0658$ to $-0.0277$, while the default-entailment-model difference moves only from
-$-0.0506$ to $-0.0485$. Dropping the TriviaQA and Llama-3.1-8B unit alone gives
-$-0.0330$ and $-0.0440$. No LLM-graded short-answer cell falls below 0.36
-accuracy; the lowest is 0.3625.
-
-\input{includes/t_degenerate_cells.tex}
-
-\Needspace{0.48\textheight}
+\Needspace{8\baselineskip}
 \section{Summary of comparisons}
 \label{sec:secondary-results-overview}
 
-Figure~\ref{fig:factor-effects} summarizes the measured changes from the method
-decomposition and the evaluation checks. The entailment and correctness
-comparisons reuse stored answers. The temperature comparison changes the
-uncertainty samples while keeping the graded answers and LLM labels fixed.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{factor_effects.pdf}
-\caption{Measured AUROC changes from method steps and evaluation choices.
-  Hatched bars show method steps, each averaged over the same 24 comparisons as
-  Table~\ref{tab:ladder}. Solid bars show evaluation choices, each the range
-  within the reference slice (\texttt{chat\_0shot}, released-code entailment
-  model, Qwen judge). The two groups are therefore measured differently and the
-  figure combines the comparisons described in this chapter rather than one
-  fully crossed experiment.}
-\label{fig:factor-effects}
-\end{figure}
+Under LLM grading, semantic entropy leads the measured baselines for
+sentence-length answers, while its advantage over surface entropy is small for
+short phrases. The separate biography evaluation shows a larger advantage with
+the two larger entailment models. The method comparisons also show that
+normalizing answer strings contributes more on average than semantic grouping.
+The size of semantic entropy's advantage depends
+on the entailment model and sampling temperature.
 \clearpage
 \flushbottom
