@@ -14,14 +14,14 @@ Section~\ref{sec:longform-results}. Each row identifies one prompting
 condition, dataset, generator, seed, temperature, entailment model,
 correctness rule, and uncertainty method. The seed-variation and grader-agreement
 exports provide the corresponding checks. Individual run values remain in
-these files; the appendix tables summarize them.
+these files. The appendix tables summarize them.
 
 \section{Long-form biography records}
 \label{app:longform-details}
 
 The long-form biography evaluation contains three generators, three seeds, and 500 biography
-records per generator--seed run. The prompt requests a biography paragraph;
-the Qwen judge scores factual claims, and the uncertainty score is computed
+records per generator--seed run. The prompt requests a biography paragraph.
+The Qwen judge scores factual claims, and the uncertainty score is computed
 over the complete paragraph. The recorded comparison uses exact matching,
 DeBERTa-v3-base, DeBERTa-v3-large, and Qwen-72B entailment models. The
 strict bidirectional entailment rule is used throughout. Figure~\ref{fig:longform-comparison}
@@ -29,7 +29,7 @@ and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the
 result.
 
 The retained export supports regeneration of the reported tables and coverage
-checks; reproducing collection from source inputs would require the original
+checks. Reproducing collection from source inputs would require the original
 subject list and prepared input files.
 
 The hierarchical intervals are imported from
@@ -43,13 +43,13 @@ table.
 Collection jobs require a pinned code commit and a clean tracked working tree.
 Their \texttt{job\_meta.json} records the commit, model, dataset, decoding
 settings, seed, input path, and Slurm job identifier. Later processing steps
-can record their own revision while retaining the generation revision; the
+can record their own revision while retaining the generation revision. The
 metadata do not imply that all steps ran at one commit. Reclustering jobs
 check the recorded clustering rule, closure rule, input format, and use of
 the question against the requested settings. These checks detect configuration
 mismatches, not incorrect entailment judgments.
 
-Generation and LLM judging ran on the NHR@FAU Alex GPU cluster; later
+Generation and LLM judging ran on the NHR@FAU Alex GPU cluster, and later
 cross-encoder clustering used Fritz CPUs. Raw generations, model caches, and
 hidden states are stored separately from the code and result summaries.
 Given stored answers, cross-encoder clustering and exact matching are
@@ -109,7 +109,7 @@ Ten separate sampled responses supply the discrete semantic entropy target.
 The high/low threshold minimizes the sum of squared deviations within the
 two entropy groups, following Equation~(5) of
 Kossen et al.~\cite{kossen_semantic_entropy_probes_2024}. A logistic-regression
-classifier predicts that label from the hidden state; the accuracy probe
+classifier predicts that label from the hidden state. The accuracy probe
 instead learns correctness labels. At evaluation time, each probe needs one
 answer and its hidden state.
 
@@ -117,7 +117,7 @@ Training is separate for each dataset, generator, and seed, using questions
 disjoint from evaluation. Feature choices are fixed rather than tuned on the
 evaluation set. The hidden state comes from position
 $n_{\mathrm{generated}}-1$, where the stop sequence determines
-$n_{\mathrm{generated}}$; an end-of-sequence token need not be present.
+$n_{\mathrm{generated}}$. An end-of-sequence token need not be present.
 
 A later audit found one missing training hidden state in the NQ-Open
 Llama-3.1-70B short-phrase run with seed 42. The reported fits predate the

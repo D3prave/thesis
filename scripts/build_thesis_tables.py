@@ -172,7 +172,7 @@ def t_sentence_length():
         'against answer incorrectness, averaged over nine dataset--model combinations. '
         'These combinations are the statistical units resampled for the intervals. '
         'Methods that need entailment clusters use the released-code default '
-        '\\texttt{deberta-v2-xlarge-mnli}; both probes use '
+        '\\texttt{deberta-v2-xlarge-mnli}. Both probes use '
         '\\texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.',
         'tab:sentence-length', '@{}lccr@{}',
         'Method & AUROC & 95\\,\\% CI & Statistical units \\\\', rows)
@@ -281,9 +281,9 @@ def t_all_slices():
         'All 24 comparisons: discrete semantic entropy minus surface entropy, with '
         'hierarchical intervals resampling both the nine units and the records '
         'within them. The final column names the direction where the interval '
-        'excludes zero; ``neither'' means the interval includes zero, not missing data '
+        'excludes zero. ``neither'' means the interval includes zero, not missing data '
         'or evidence of equivalence. Every comparison favoring semantic entropy uses the Qwen '
-        'entailment model; every comparison favoring surface entropy uses token-F1 '
+        'entailment model, and every comparison favoring surface entropy uses token-F1 '
         'grading.',
         'tab:all-slices', '@{}lllccl@{}',
         r'Condition & \makecell{Entailment\\model} & Grader & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & \makecell{Supported\\direction} \\',
@@ -325,7 +325,7 @@ def t_ladder():
         'Four comparisons between consecutive methods. The semantic-versus-surface '
         'comparison also changes whether answers are normalized before grouping. '
         'The counts cover all 24 prompting-condition, entailment-model, and grading-rule '
-        'comparisons at $T=1.0$; intervals resample the nine statistical units. Only '
+        'comparisons at $T=1.0$. Intervals resample the nine statistical units. Only '
         'answer normalization improves the mean AUROC in every comparison, and it is the '
         'only change whose mean difference exceeds the mean range across generation seeds.',
         'tab:ladder', '@{}p{4.8cm}cccc@{}',
@@ -419,7 +419,7 @@ def t_backend_grader_check():
                       [round(float(c), 4) for c in cells_]))
     return table(
         'The independent-grader check. The Qwen configuration uses one model as both '
-        'entailment model and correctness judge; re-grading the identical answers with '
+        'entailment model and correctness judge. Re-grading the identical answers with '
         'Llama-3.1-70B gives the same ranking and very similar differences. The effect of '
         'changing the entailment model is therefore not caused only by one model filling '
         'both roles.',
@@ -452,7 +452,7 @@ def t_backend_by_model():
         'The discrete-semantic-entropy minus surface-entropy AUROC difference for each '
         'generator in \\texttt{chat\\_0shot} under the Llama judge, using the '
         'three entailment models. On the default cross-encoder the longest-answer generator gains '
-        'least; on the 72B model the same generator gains most. The ordering '
+        'least. On the 72B model the same generator gains most. The ordering '
         'inverts with the entailment model on identical generations.',
         'tab:backend-by-model', '@{}lrccc@{}',
         r'Generator & Mean chars & \texttt{xlarge} & \texttt{v3-large} & \texttt{Qwen-72B} \\', rows)
@@ -466,7 +466,7 @@ def t_cluster_counts():
         rows.append(f'{COND[r.condition]} & {BACKEND[r.entailment_backend]} & '
                     f'{r.mean_clusters_per_record:.2f} \\\\')
     note = ('Agreement on cluster count over the records both processed: ' +
-            '; '.join(f'{BACKEND[r.backend_a]} vs {BACKEND[r.backend_b]} '
+            '. '.join(f'{BACKEND[r.backend_a]} vs {BACKEND[r.backend_b]} '
                       f'{100*r.identical_cluster_count:.1f}\\,\\%'
                       for _, r in ba.iterrows()) + '.')
     return table(
@@ -648,7 +648,7 @@ def t_aurac():
     return table(
         'Secondary metric analysis of the same 24 comparisons. The table reports how '
         'many favor discrete semantic entropy over surface entropy and the mean score '
-        'difference. With AUROC, most comparisons favor semantic entropy; with either '
+        'difference. With AUROC, most comparisons favor semantic entropy. With either '
         'rejection-accuracy summary, most favor surface entropy.',
         'tab:aurac', '@{}lcc@{}',
         'Metric & Comparisons favoring SE & Mean score difference \\\\', rows, note=note)
@@ -669,7 +669,7 @@ def t_probes():
                           [round(float(a), 4), round(float(p_), 4)]))
     id_table = table(
         "The semantic entropy probe's training targets come from "
-        "\\texttt{nli-deberta-v3-large}; the accuracy probe uses correctness labels. "
+        "\\texttt{nli-deberta-v3-large}. The accuracy probe uses correctness labels. "
         'In distribution, the probe is trained and scored on disjoint question '
         'sets from the same task. Values are mean AUROC over the nine '
         'dataset--generator units, each averaged over three seeds.',
@@ -716,7 +716,7 @@ def t_complete_t1():
             f'All recorded methods for {COND[cond]} at $T=1.0$. Mean AUROC '
             'over nine dataset--generator units, each averaged over three seeds. '
             'Groups use the entailment-model labels in the export. String-based '
-            'methods and P(True) do not require an entailment model; repeated '
+            'methods and P(True) do not require an entailment model. Repeated '
             'entries preserve the recorded grouping.',
             'tab:complete-' + cond.replace('_', '-'), '@{}lccc@{}',
             'Method & Qwen judge & Llama judge & token-F1 \\\\', rows))
@@ -763,7 +763,7 @@ def t_longform_by_generator():
         rows.append(r'\addlinespace[4pt]')
     return table('Long-form biography AUROC by generator, averaged over three '
                  'seeds. This expands the nine-run averages in '
-                 r'Table~\ref{tab:longform}; the same paragraph-level scoring, '
+                 r'Table~\ref{tab:longform}. The same paragraph-level scoring, '
                  'provenance and grading limits apply.',
                  'tab:longform-by-generator', '@{}lccc@{}',
                  'Entailment model & Discrete SE & Surface & Naive sample \\\\', rows)
@@ -783,7 +783,7 @@ def t_answer_length():
     return table(
         'Mean graded-answer length and AUROC gains of discrete semantic entropy (SE) '
         'over naive predictive entropy and surface entropy. Qwen judge, default '
-        'entailment model, $T=1.0$; nine dataset--generator pairs and three seeds. '
+        'entailment model, $T=1.0$, with nine dataset--generator pairs and three seeds. '
         'Prompting conditions also differ in instruction and example count.',
         'tab:answer-length', '@{}lrrr@{}',
         r'Condition & Mean characters & SE $-$ naive & SE $-$ surface \\', rows)

@@ -7,7 +7,7 @@
 Table~\ref{tab:all-slices} gives all 24 paired differences and their saved
 hierarchical intervals. Each difference is discrete semantic entropy minus
 surface entropy, so a positive value favors semantic entropy. The point
-estimates agree to four decimal places with the measurement table; the
+estimates agree to four decimal places with the measurement table. The
 intervals require the record-level analysis described in
 Section~\ref{sec:bootstrap-assumptions}.
 
@@ -57,7 +57,7 @@ which is two of the nine units, moves the Qwen-entailment-model token-F1 differe
 $-0.0658$ to $-0.0277$, while the default-entailment-model difference moves only from
 $-0.0506$ to $-0.0485$. Dropping the TriviaQA and Llama-3.1-8B unit alone gives
 $-0.0330$ and $-0.0440$. No LLM-graded short-answer cell falls below 0.36
-accuracy; the lowest is 0.3625.
+accuracy. The lowest is 0.3625.
 
 \input{includes/t_degenerate_cells.tex}
 
@@ -73,7 +73,7 @@ configuration has all 27 dataset--generator--seed combinations.
 Both original prompting conditions include all eight methods. The two added
 conditions include the five entropy methods on the default entailment model.
 P(True) is stored under the default model's label but does not use entailment
-clustering; the probes are stored under \texttt{nli-deberta-v3-large}.
+clustering. The probes are stored under \texttt{nli-deberta-v3-large}.
 These are absolute AUROC summaries, not tests of differences.
 
 \input{includes/t_complete_t1.tex}

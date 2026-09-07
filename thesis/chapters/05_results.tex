@@ -6,11 +6,10 @@
 The main comparison asks how well semantic entropy detects incorrect answers,
 how it ranks against other methods, and when it performs better. The two
 semantic-entropy estimators are essentially tied at the top of the
-sentence-length comparison; on short-phrase answers the leading methods are
+sentence-length comparison. On short-phrase answers the leading methods are
 nearly tied, and surface entropy leads under token-F1.
 Figures~\ref{fig:method-comparison} and~\ref{fig:method-comparison-short}
-compare all eight methods within each dataset and model; the sections that
-follow show how the ranking changes with the evaluation choices.
+compare all eight methods within each dataset and model.
 
 The results below compare uncertainty estimators under the settings named in
 each table. Unless stated otherwise, each mean first averages the three
@@ -18,13 +17,13 @@ generation seeds within each of the nine dataset--generator pairs (one dataset
 and one generating model) and then averages those nine values. A \emph{cell} is
 one dataset--generator--seed combination. A positive AUROC difference favors
 the first method in the comparison. Intervals labeled \emph{units} resample
-the nine pairs; intervals labeled \emph{hierarchical} resample those pairs
+the nine pairs. Intervals labeled \emph{hierarchical} resample those pairs
 and then resample question records within each selected cell. Section~\ref{sec:statistics}
 defines these schemes and their assumptions.
 
 Generation seeds also cause variation. Table~\ref{tab:seed-noise} gives the
 AUROC range across the three seeds for the five entropy estimators and P(True). For
-discrete semantic entropy, the mean range is 0.0245; this is the seed-variation
+discrete semantic entropy, the mean range is 0.0245. This is the seed-variation
 reference used in the figures, not a significance threshold. P(True) has a
 larger mean range of 0.0473.
 
@@ -36,8 +35,10 @@ larger mean range of 0.0473.
 The sentence-length condition (\texttt{chat\_0shot}) asks for a brief, complete
 sentence without worked examples (Section~\ref{sec:conditions}). Under the Qwen judge at
 $T=1.0$, likelihood-weighted semantic entropy reaches 0.758 and the discrete
-variant 0.757 on the default entailment model, against 0.736 for the
-clustering-free comparator, surface entropy (Table~\ref{tab:sentence-length}).
+variant 0.757 on the default entailment model
+(\texttt{deberta-v2-xlarge-mnli}), against 0.736 for surface entropy, which
+counts distinct answers after normalizing them and never consults an
+entailment model (Table~\ref{tab:sentence-length}).
 Both semantic estimators outperform the measured baselines from
 Farquhar et al.~\cite{semantic_entropy_nature_2024}.
 
@@ -52,10 +53,10 @@ averages $+0.0015$, the smallest average change in the four-step decomposition.
 \includegraphics[width=\linewidth]{method_comparison.pdf}
 \caption{Method comparison by dataset and generator for sentence-length
   answers (\texttt{chat\_0shot}), using the Qwen correctness judge at $T=1.0$.
-  Bars show mean AUROC across three seeds; error bars show one sample standard
+  Bars show mean AUROC across three seeds. Error bars show one sample standard
   deviation, not a confidence interval. The probes use the saved
-  \texttt{nli-deberta-v3-large} results; other methods use the released-code
-  default. Higher is better; the dotted line marks chance level.}
+  \texttt{nli-deberta-v3-large} results, while other methods use the released-code
+  default. Higher is better, and the dotted line marks chance level.}
 \label{fig:method-comparison}
 \end{figure*}
 
@@ -68,7 +69,7 @@ model, the ordering depends on the correctness rule
 (Table~\ref{tab:short-phrase}). Under token-F1, surface entropy leads
 discrete semantic entropy by 0.0133. Under the Qwen judge the AUROC difference
 is $+0.0005$ and under the Llama judge it is $+0.0027$, in both cases measured
-as discrete semantic entropy minus surface entropy; both intervals include
+as discrete semantic entropy minus surface entropy. Both intervals include
 zero.
 Naive predictive entropy moves the same way: second-best under token-F1 at
 0.789, and last of the three under either judge.
@@ -87,7 +88,7 @@ and 0.006 under the Llama judge, compared with the seed-variation reference of
 \caption{The same eight-method comparison for short-phrase answers
   (\texttt{default\_5shot}), with the same Qwen judge, temperature, method
   settings, and AUROC scale as Figure~\ref{fig:method-comparison}.
-  Bars average three seeds; error bars show one sample standard deviation.
+  Bars average three seeds. Error bars show one sample standard deviation.
   These panels show variation across datasets and generators that the overall
   means in the tables average out.}
 \label{fig:method-comparison-short}
@@ -115,7 +116,7 @@ and no examples (\texttt{default\_0shot}), answers average 69.8 characters and
 the discrete-semantic-minus-naive difference is $+0.0326$. With the sentence
 instruction and five examples (\texttt{chat\_5shot}), answers average only
 11.4 characters and the difference is $+0.0094$. The condition names describe
-the prompts; they do not guarantee the length of the generated answers.
+the prompts. They do not guarantee the length of the generated answers.
 
 Against surface entropy, the corresponding differences are smaller, from
 $-0.0020$ to $+0.0204$. None of the four hierarchical intervals for this
@@ -132,7 +133,7 @@ than a short answer. Each of the three generators is run with three seeds on
 Each AUROC entry is one score per generated paragraph: the correctness label
 comes from claim-level automated grading, while semantic entropy is computed
 over the complete paragraph. This is the direct long-answer test in the
-recorded data; it uses one correctness judge and a paragraph-level scoring
+recorded data. It uses one correctness judge and a paragraph-level scoring
 setup.
 
 Table~\ref{tab:longform} shows higher recorded AUROC for meaning-based grouping
@@ -159,7 +160,7 @@ consistently.
 \centering
 \includegraphics[width=\linewidth]{longform_comparison.pdf}
 \caption{Long-form biography AUROC by generator and entailment model. The
-  blue line is discrete semantic entropy; dashed orange and dotted purple lines
+  blue line is discrete semantic entropy. Dashed orange and dotted purple lines
   are surface entropy and naive sample entropy. Each point averages three
   generation seeds. The horizontal gray line marks chance.}
 \label{fig:longform-comparison}
@@ -167,8 +168,8 @@ consistently.
 
 In this recorded evaluation, semantic grouping adds substantial detection value for
 varied paragraphs, where exact strings are usually different even when their
-factual content overlaps. It extends the performance comparison to paragraphs;
-because the paragraph-level setup differs from the short-answer evaluation, it does
+factual content overlaps. It extends the performance comparison to paragraphs.
+Because the paragraph-level setup differs from the short-answer evaluation, it does
 not establish that length alone caused the improvement.
 
 \section{Separating the steps of the method}
@@ -217,12 +218,12 @@ The other three steps are less consistent. Counting raw strings instead of
 reading sequence log-likelihoods gives a positive AUROC difference in only 4 of
 24 comparisons, while sequence-likelihood entropy performs better with an interval
 that excludes zero in 8. The four positive differences are large enough to
-outweigh the other twenty, giving the positive overall mean of $0.0067$;
-that mean does not imply an improvement in most comparisons.
+outweigh the other twenty, giving the positive overall mean of $0.0067$.
+That mean does not imply an improvement in most comparisons.
 The claim that counting answer strings beats reading
 log-likelihoods therefore holds only after the strings are normalized.
 Grouping samples by meaning adds $0.0016$ AUROC over \mbox{normalized-string} counting
-on average and is positive in 14 of 24 comparisons; seven intervals favor
+on average and is positive in 14 of 24 comparisons, while seven intervals favor
 normalized-string counting instead. Weighting the meaning groups by likelihood
 adds $0.0015$ AUROC on average.
 
@@ -298,7 +299,7 @@ answers fixed. Discrete semantic entropy has an AUROC of 0.751 with the large
 DeBERTa-v3 model, 0.757 with the released-code default, and 0.823 with Qwen-72B.
 Surface entropy is 0.7364 under all three because it does not use an entailment
 model. The AUROC differences are $+0.0147$, $+0.0204$, and
-$+0.0867$; only the last has an interval that excludes zero.
+$+0.0867$. Only the last has an interval that excludes zero.
 Figure~\ref{fig:backend-ladder} plots the three values against that reference.
 
 \input{includes/t_backend.tex}
@@ -359,7 +360,7 @@ samples used to estimate uncertainty change.
 Discrete semantic entropy falls from 0.757 at $T=1.0$ to 0.568 at $T=0.1$, and
 surface entropy from 0.736 to 0.589. Naive predictive entropy, which reads
 sequence likelihoods rather than spread across samples, moves from 0.694 to
-0.644. At $T=0.1$ it leads both diversity-based estimators; at $T=1.0$ it
+0.644. At $T=0.1$ it leads both diversity-based estimators, and at $T=1.0$ it
 trails both. The crossing lies between $T=0.1$ and $T=0.3$ for surface entropy
 and between $T=0.3$ and $T=0.5$ for discrete semantic entropy.
 
@@ -374,7 +375,7 @@ The method ranking reverses without generating a single new answer. For
 sentence-length answers with the default entailment model, surface entropy
 leads discrete semantic entropy by 0.0506 AUROC under token-F1. With Qwen or
 Llama grading, semantic entropy instead leads by 0.0204 or 0.0223. The answers
-and uncertainty scores are identical; only the decisions about which answers
+and uncertainty scores are identical. Only the decisions about which answers
 count as correct change. Both LLM judges give the same mean ordering, although
 their confidence intervals include zero (Table~\ref{tab:all-slices}).
 
@@ -413,15 +414,15 @@ differ by less than 0.003 AUROC under either LLM judge
 
 Changing the entailment model widens the sentence-length comparison: discrete
 semantic entropy's advantage over surface entropy rises from 0.0204 with the
-default model to 0.0867 with Qwen. The first confidence interval includes zero;
+default model to 0.0867 with Qwen. The first confidence interval includes zero, and
 the second excludes it (Table~\ref{tab:backend}). In the separate biography
 evaluation, the large DeBERTa and Qwen entailment models yield AUROCs of 0.670
 and 0.708, respectively, while the string baselines remain near 0.497
 (Table~\ref{tab:longform}).
 
 The comparisons between consecutive method steps also differ in consistency.
-Normalization increases mean AUROC in all 24 comparisons; semantic grouping
-does so in 14, and likelihood weighting in 12 (Table~\ref{tab:ladder}). The
+Normalization increases mean AUROC in all 24 comparisons, semantic grouping
+in 14, and likelihood weighting in 12 (Table~\ref{tab:ladder}). The
 temperature sweep under the Qwen judge reverses the ordering of naive
 predictive entropy relative to discrete semantic and surface entropy between
 $T=0.1$ and $T=1.0$ (Section~\ref{sec:temperature-sensitivity}). Changing the

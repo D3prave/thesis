@@ -62,7 +62,7 @@ $n_k$ & number of sampled answers assigned to cluster $c_k$ \\
 $\hat{p}_k$ & empirical cluster probability $n_k / M$ \\
 $\widehat{H}_{\mathrm{sem}}(x)$ & discrete semantic entropy score \\
 $\widehat{H}_{\mathrm{lex}}(x)$ & surface entropy score over normalized
-                                  strings (the clustering-free comparator;
+                                  strings (the clustering-free comparator,
                                   called \emph{surface entropy} in
                                   Chapter~\ref{ch:results}) \\
 AUROC & area under the receiver operating characteristic curve \\
@@ -74,7 +74,7 @@ AUROC & area under the receiver operating characteristic curve \\
 \label{sec:method-steps}
 
 The method has three computational steps. All three run on a fixed, trained
-model and only read what it produces; none of them changes its weights.
+model and only read what it produces. None of them changes its weights.
 
 \begin{enumerate}
   \item \textbf{Sampling.} For a prompt $x$, draw $M$ answers
@@ -111,7 +111,7 @@ before the softmax turns them into a distribution:
 \]
 Setting $T = 1$ leaves the model's own distribution unchanged. Small $T$ spreads
 the logits apart, so the highest-scoring token takes almost all the mass and
-repeated samples come out nearly identical; as $T \to 0$ this approaches always
+repeated samples come out nearly identical. As $T \to 0$ this approaches always
 picking the single most likely token. Large $T$ pulls the logits together toward
 a uniform choice, so samples vary more.
 
@@ -232,7 +232,7 @@ different factor and does not bound sensitivity to sample order.
   reproducing \texttt{get\_semantic\_ids} in the released
   code~\cite{kossen_semantic_uncertainty_code_2024}.}
 \label{alg:clustering}
-\KwIn{answers $y_1,\ldots,y_M$ in generation order; entailment model
+\KwIn{answers $y_1,\ldots,y_M$ in generation order. Entailment model
   $\mathcal{M}(\cdot,\cdot)$ returning entailment, neutral, or
   contradiction (queries are prefixed with the question in the
   question-conditioned configuration)}
@@ -265,9 +265,9 @@ is
   \widehat{H}_{\mathrm{sem}}(x)
   \;=\; -\sum_{k=1}^{K} \hat{p}_k \log \hat{p}_k .
 \]
-A low score means the samples mostly agree on one meaning; a high score means
+A low score means the samples mostly agree on one meaning. A high score means
 they spread across several. The maximum is $\log K \le \log M$. The experiments
-use $M=10$, so at most $\ln 10 \approx 2.30$; the worked example below uses
+use $M=10$, so at most $\ln 10 \approx 2.30$. The worked example below uses
 $M=5$, so at most $\ln 5 \approx 1.61$.
 
 Shannon entropy is used because it is the quantity defined by Farquhar et
@@ -322,13 +322,13 @@ produces the comparator.
 \caption{Semantic-entropy scoring from sampled answers, with the
   clustering-free comparator computed from the same samples.}
 \label{alg:scoring}
-\KwIn{raw sampled answers $y_1,\ldots,y_M$ for prompt $x$; optional
-  length-normalized sequence log-likelihoods $\ell_1,\ldots,\ell_M$;
-  entailment model $\mathcal{M}$}
+\KwIn{raw sampled answers $y_1,\ldots,y_M$ for prompt $x$. Optional
+  length-normalized sequence log-likelihoods $\ell_1,\ldots,\ell_M$.
+  Entailment model $\mathcal{M}$}
 \KwOut{discrete semantic entropy $\widehat{H}_{\mathrm{sem}}$, surface
   entropy $\widehat{H}_{\mathrm{lex}}$, and, when log-likelihoods are
   available, full semantic entropy $\widehat{H}^{\mathrm{p}}_{\mathrm{sem}}$}
-$(c_1,\ldots,c_M) \gets \textsc{cluster}(y_1,\ldots,y_M;\mathcal{M})$\tcp*{Algorithm~\ref{alg:clustering}, on raw answers}
+$(c_1,\ldots,c_M) \gets \textsc{cluster}(\{y_1,\ldots,y_M\}, \mathcal{M})$\tcp*{Algorithm~\ref{alg:clustering}, on raw answers}
 let $K$ be the number of distinct clusters\;
 relabel the distinct cluster identifiers as $1,\ldots,K$\;
 \For{$k \gets 1$ \KwTo $K$}{
@@ -406,11 +406,11 @@ $y_1 \sim y_5$ and $y_2 \sim y_5$, while $y_3$ and $y_4$ each stand alone.
 
 It is worth tracing the anchor scan of Algorithm~\ref{alg:clustering} rather
 than assuming the answer, since the scan and a connected-components grouping
-do not agree in general. Answer $y_1$ is unassigned, so it anchors cluster~0;
-the inner loop finds $y_2$ and $y_5$ mutually entailed with it and assigns
+do not agree in general. Answer $y_1$ is unassigned, so it anchors cluster~0.
+The inner loop finds $y_2$ and $y_5$ mutually entailed with it and assigns
 both to cluster~0, and rejects $y_3$ and $y_4$. The scan moves on: $y_2$ is
-already assigned, $y_3$ is not and anchors cluster~1, matching nothing;
-$y_4$ anchors cluster~2, matching nothing; $y_5$ is already assigned. The
+already assigned, $y_3$ is not and anchors cluster~1, matching nothing.
+$y_4$ anchors cluster~2, matching nothing, and $y_5$ is already assigned. The
 entailment relation here happens to be transitive on
 $\{y_1,y_2,y_5\}$, so no reassignment occurs and the scan returns the same
 partition a connected-components grouping would. This yields $K=3$ clusters:
@@ -460,8 +460,8 @@ clustering the correct answer class accounts for 60\,\% of the samples, and
 the entropy is correspondingly lower. This is the mechanism the method is
 named for, and the example is constructed to display it. Whether it produces a
 measurable advantage on real data, once both scores are computed over tens of
-thousands of records, is the question Chapter~\ref{ch:results} examines;
-the example establishes what is being claimed, not that the claim holds.
+thousands of records, is the question Chapter~\ref{ch:results} examines.
+The example establishes what is being claimed, not that the claim holds.
 
 \section{Method contract}
 \label{sec:method-contract}

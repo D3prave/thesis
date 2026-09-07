@@ -87,7 +87,7 @@ sentence instruction without examples. Its advantage over surface entropy
 is smaller and uncertain with the default entailment model. The result
 therefore supports the reported contrast with naive entropy, while leaving
 open how much semantic grouping adds beyond string normalization.
-This comparison concerns question answering; it does not reproduce Farquhar
+This comparison concerns question answering. It does not reproduce Farquhar
 et al.'s separate claim-level analysis of paragraph-length passages.
 
 The long-form biography evaluation provides the complementary recorded result. In
@@ -174,7 +174,7 @@ with P(True) and the probes. The missing saved training feature limits exact
 reproduction of the probe fits.
 
 Kossen et al.~\cite{kossen_semantic_entropy_probes_2024} evaluate probes both
-within their training tasks and on held-out tasks; their reported advantage
+within their training tasks and on held-out tasks. Their reported advantage
 over accuracy probes concerns transfer to unseen tasks. The six probe
 comparisons in Section~\ref{sec:paper-baselines} use in-distribution probes,
 trained and evaluated on separate questions from the same task. They do not
@@ -239,7 +239,7 @@ The entailment-model comparison does not measure or bound this ordering effect.
 \paragraph{Scope of the comparisons.}
 The study covers three short-answer datasets and three generators.
 Table~\ref{tab:grid-at-a-glance} and the individual result tables specify
-which methods and settings are compared; the findings apply to those settings.
+which methods and settings are compared. The findings apply to those settings.
 
 Taken together, the results support semantic entropy as a detector whose
 comparative performance depends on the setting. Its advantage over naive

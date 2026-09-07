@@ -18,7 +18,7 @@ statistical resampling \emph{unit}.
 
 The thesis also reports a separate long-form biography evaluation. Its setup is
 documented in Appendix~\ref{app:longform-details}, and its results are
-reported in Section~\ref{sec:longform-results}; it is analyzed as a paragraph
+reported in Section~\ref{sec:longform-results}. It is analyzed as a paragraph
 setting rather than as a length-only intervention within the short-answer
 grid.
 
@@ -40,8 +40,8 @@ Chapter~\ref{ch:results} states which settings it covers.
 \caption{The factors varied in the short-answer study. For each generation
   condition, clustering is applied to stored answers. Comparisons between
   entailment models therefore change only the model used for grouping. At the
-  main temperature, all three correctness rules score the same answers; the
-  temperature sweep is reported only under LLM grading. Not every combination was tested.}
+  main temperature, all three correctness rules score the same answers, while
+  the temperature sweep is reported only under LLM grading. Not every combination was tested.}
 \label{tab:grid-at-a-glance}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -75,7 +75,7 @@ The short-answer study uses nine dataset--generator pairs as resampling
 units. The three random seeds are repeated runs within each pair,
 not separate independent observations. The main paired bootstrap accounts for
 both these pairs and the records within them. The limited grid and its shared
-datasets and models restrict generalization; Section~\ref{sec:statistics}
+datasets and models restrict generalization. Section~\ref{sec:statistics}
 states the resampling assumptions.
 
 \section{Datasets and question selection}
@@ -126,11 +126,11 @@ SVAMP & \texttt{ChilleD/SVAMP} & 700 / 300 \\
 \small
 \caption{Constructed examples showing the prompt format and the shape of the
   reference answers for each task. These are not records sampled from the
-  evaluation sets; they illustrate the format only. TriviaQA and NQ-Open
+  evaluation sets. They illustrate the format only. TriviaQA and NQ-Open
   prompts are the raw question string, and NQ-Open questions are real search
   queries that keep their original lowercase form. SVAMP prompts concatenate
   the \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open
-  reference answers include accepted aliases, separated here by semicolons.
+  reference answers include accepted aliases, separated here by slashes.
   SVAMP reference answers are a single number.}
 \label{tab:dataset-samples}
 \begingroup
@@ -139,12 +139,12 @@ SVAMP & \texttt{ChilleD/SVAMP} & 700 / 300 \\
 \toprule
 Dataset & Prompt & \makecell[l]{Reference\\answer(s)} \\
 \midrule
-TriviaQA & What is the capital city of France?                        & Paris; Paris, France \\[4pt]
-TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare; Shakespeare \\[4pt]
-TriviaQA & What chemical element has atomic number 79?                & Gold; Au \\
+TriviaQA & What is the capital city of France?                        & Paris / Paris, France \\[4pt]
+TriviaQA & Who wrote the play Romeo and Juliet?                       & William Shakespeare / Shakespeare \\[4pt]
+TriviaQA & What chemical element has atomic number 79?                & Gold / Au \\
 \midrule
-NQ-Open  & when was the last time anyone was on the moon?             & 14 December 1972 UTC; December 1972 \\[4pt]
-NQ-Open  & how many seasons of the bastard executioner are there?     & one; one season \\[4pt]
+NQ-Open  & when was the last time anyone was on the moon?             & 14 December 1972 UTC / December 1972 \\[4pt]
+NQ-Open  & how many seasons of the bastard executioner are there?     & one / one season \\[4pt]
 NQ-Open  & when did the eagles win last super bowl?                   & 2017 \\
 \midrule
 SVAMP    & Mia has 3 apples. She buys 4 more. How many apples does she have now?                              & 7  \\[4pt]
@@ -184,7 +184,7 @@ combinations as a secondary analysis, on the same questions, models and seeds
 
 The configuration names combine the instruction and the number of worked
 examples: \texttt{chat} requests a brief, complete sentence, whereas
-\texttt{default} requests the briefest possible answer; \texttt{0shot} supplies
+\texttt{default} requests the briefest possible answer. \texttt{0shot} supplies
 no examples and \texttt{5shot} supplies five question--answer examples before
 the evaluated question. Thus \texttt{chat\_0shot} denotes the sentence
 instruction without examples, and \texttt{default\_5shot} denotes the brevity
@@ -196,7 +196,7 @@ code and does not mean that a chat template is used.
 \centering
 \small
 \caption{The four prompting conditions. The first and last are the original
-  study's two; the middle two complete the $2\times2$ design.}
+  study's two, and the middle two complete the $2\times2$ design.}
 \label{tab:conditions}
 \begingroup
 \setlength{\tabcolsep}{4pt}
@@ -302,7 +302,7 @@ entailment input includes the question.
 \centering
 \small
 \caption{Equivalence rules used. \texttt{exact-match} is applied at collection
-  time and supplies the clustering-free baseline; the other three are applied
+  time and supplies the clustering-free baseline, while the other three are applied
   post hoc to identical generations.}
 \label{tab:backends}
 \begingroup
@@ -312,13 +312,13 @@ entailment input includes the question.
 Model or rule & Role \\
 \midrule
 \texttt{microsoft/deberta-v2-} \texttt{xlarge-mnli} & the model the released
-  code loads; \textbf{default short-answer entailment model} \\
+  code loads. \textbf{Default short-answer entailment model} \\
 \addlinespace[2pt]
 \texttt{cross-encoder/nli-} \texttt{deberta-v3-large} & current-generation
   cross-encoder \\
 \addlinespace[2pt]
 \texttt{Qwen/Qwen2.5-72B-} \texttt{Instruct} & open stand-in for the
-  proprietary judge used in the original's sentence-length condition; applied
+  proprietary judge used in the original's sentence-length condition. Applied
   to both short-answer conditions, prompted with the
   \texttt{EntailmentGPT4} instruction taken verbatim from the released
   \texttt{semantic\_entropy.py} \\
@@ -342,7 +342,7 @@ Grading is a separate step applied to the finished most-likely answer, so the
 grading rule can change while the answer and its uncertainty scores stay fixed.
 This study uses three rules: token-F1 measures word overlap with a reference
 answer, while the Qwen and Llama language models judge correctness against the
-reference. Table~\ref{tab:graders} specifies the rules; they do not always agree.
+reference. Table~\ref{tab:graders} specifies the rules. They do not always agree.
 
 \begin{table}[htb]
 \thisfloatsetup{capposition=above}
@@ -362,8 +362,8 @@ reference. Table~\ref{tab:graders} specifies the rules; they do not always agree
   scale, inclusive. This is the rule the released code applies by default \\
 \addlinespace[2pt]
 \texttt{llm\_qwen2.5-72b} & \texttt{Qwen2.5-72B-Instruct}~\cite{yang_qwen25_2024}
-  as judge, using the prompt in the released \texttt{utils.model\_based\_metric};
-  the released code supports this path \\
+  as judge, using the prompt in the released \texttt{utils.model\_based\_metric}.
+  The released code supports this path \\
 \addlinespace[2pt]
 \texttt{llm\_llama-3.1-70b} & \texttt{Llama-3.1-70B-Instruct}~\cite{grattafiori_llama3_2024}
   as judge, same prompt, run independently \\
@@ -397,7 +397,7 @@ five entropy estimators. The two added conditions, the
 in the sweep.
 
 The reported comparison uses the same answers and LLM correctness labels at
-every temperature; only the samples used to calculate uncertainty change.
+every temperature. Only the samples used to calculate uncertainty change.
 Token-F1 results and answer lengths from the sweep are excluded because they
 refer to a different selected answer. Appendix~\ref{app:collection-checks}
 explains the selection issue and gives the numerical checks.
