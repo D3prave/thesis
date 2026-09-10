@@ -1,83 +1,118 @@
+% Definition order follows the workflow: errors, sampling, grouping, scoring,
+% and evaluation. The glossary is printed with sort=def in main.tex.
 \newglossaryentry{llm}{
   name={LLM},
-  description={large language model: a neural network trained on a large
-    collection of text to understand and generate free-form language}
-}
-
-\newglossaryentry{semanticentropy}{
-  name={semantic entropy},
-  description={an uncertainty score for free-form answers. The model answers
-    the same prompt several times, answers that mean the same thing are grouped
-    using entailment tests, and Shannon entropy measures how widely the samples
-    are spread across the groups. A low value means that the samples mostly
-    express one meaning. A high value means that they express conflicting
-    meanings. The score is computed after training and does not change the
-    model's weights}
-}
-
-\newglossaryentry{surfaceentropy}{
-  name={surface entropy},
-  description={an uncertainty score that groups sampled answers only when their
-    normalized text matches exactly. It measures variation in wording rather
-    than variation in meaning. The same calculation without normalization is
-    called \emph{naive sample entropy}}
-}
-
-\newglossaryentry{ptrue}{
-  name={P(True)},
-  description={a self-evaluation method that asks the model whether its answer
-    is correct, using sampled alternative answers as context. The uncertainty
-    score is one minus the probability of the ``true'' option, without
-    renormalizing over the two options, following the released code}
-}
-
-\newglossaryentry{confabulation}{
-  name={confabulation},
-  description={a wrong answer that changes in meaning when the same prompt is
-    sampled repeatedly. This differs from a systematic error, where the model
-    gives the same wrong answer each time}
+  description={large language model: a neural network trained on large text
+    collections to predict tokens and generate language}
 }
 
 \newglossaryentry{hallucination}{
   name={hallucination},
-  description={a broad term for an output that is fluent but unsupported,
-    factually wrong, or unfaithful to a source. This thesis focuses on
-    confabulations that can be detected by comparing repeated samples}
+  description={a broad term for an output that is unsupported, factually wrong,
+    or unfaithful to a source. The evaluation here labels correctness without
+    separately identifying the cause of an error}
+}
+
+\newglossaryentry{confabulation}{
+  name={confabulation},
+  description={a wrong answer whose meaning changes across repeated samples
+    of the same prompt. Such arbitrary errors are the target of semantic entropy}
+}
+
+\newglossaryentry{temperature}{
+  name={temperature},
+  description={a sampling parameter that rescales token logits before they
+    become probabilities. Lower values concentrate probability on likely
+    tokens; higher values flatten the distribution}
 }
 
 \newglossaryentry{nli}{
   name={NLI},
-  description={Natural Language Inference: a task in which a model compares a
-    premise with a hypothesis and labels the hypothesis as implied,
-    contradicted, or neither. This thesis uses NLI to judge whether two sampled
-    answers mean the same thing}
+  description={Natural Language Inference: classifying whether a premise
+    entails a hypothesis, contradicts it, or supports neither decision (neutral)}
 }
 
 \newglossaryentry{entailment}{
   name={entailment},
-  description={an NLI label meaning that one sentence logically implies
-    another. This thesis treats two answers as equivalent when each entails the
-    other}
-}
-
-
-\newglossaryentry{auroc}{
-  name={AUROC},
-  description={area under the receiver operating characteristic curve: a
-    measure of how well a score ranks wrong answers above correct ones across
-    all possible decision thresholds. A higher value means better ranking}
+  description={a relation in which one statement implies another. The
+    short-answer clustering rule requires entailment in both directions,
+    with the question included as context}
 }
 
 \newglossaryentry{deberta}{
   name={DeBERTa},
   description={Decoding-enhanced BERT with disentangled attention: a
-    Transformer model designed to understand relationships between texts. This
-    thesis uses DeBERTa models to group answers through entailment}
+    Transformer architecture. The NLI-trained checkpoints used here compare
+    answer pairs for entailment}
+}
+
+\newglossaryentry{semanticcluster}{
+  name={semantic cluster},
+  description={a group of sampled answers treated as sharing a meaning.
+    The implemented anchor scan uses mutual entailment; its assignments
+    depend on answer order and do not enforce transitivity}
+}
+
+\newglossaryentry{semanticentropy}{
+  name={semantic entropy},
+  description={Shannon entropy over semantic clusters of repeated answers.
+    The discrete version uses sample counts; the full version uses normalized
+    cluster likelihood weights. A high value indicates varied meanings,
+    not necessarily incorrectness}
+}
+
+\newglossaryentry{surfaceentropy}{
+  name={surface entropy},
+  description={entropy over counts of identical normalized answer strings.
+    It groups by text rather than meaning. Counting raw strings without
+    normalization gives \emph{naive sample entropy}}
+}
+
+\newglossaryentry{naiveentropy}{
+  name={naive entropy},
+  description={the mean negative length-normalized log-likelihood of sampled
+    answers. Unlike naive sample entropy, it uses sequence likelihoods
+    rather than string counts}
+}
+
+\newglossaryentry{ptrue}{
+  name={P(True)},
+  description={model self-evaluation of an answer using sampled alternatives
+    as context. The uncertainty score is one minus the probability of the
+    ``true'' option, without renormalizing over the two options}
 }
 
 \newglossaryentry{sep}{
   name={SEP},
-  description={Semantic Entropy Probe: a small linear classifier that reads a
-    language model's fixed internal states and predicts high semantic entropy.
-    It avoids generating several answers each time the score is needed}
+  description={Semantic Entropy Probe: a linear classifier on fixed model
+    hidden states, trained to predict high semantic entropy. After training,
+    it scores one answer without generating alternatives}
+}
+
+\newglossaryentry{accuracyprobe}{
+  name={accuracy probe},
+  description={a linear classifier on fixed model hidden states, trained on
+    judged correctness rather than semantic entropy; also called
+    \emph{embedding regression}}
+}
+
+\newglossaryentry{correctnessrule}{
+  name={correctness rule},
+  description={the procedure assigning correct or incorrect labels to answers,
+    such as reference-answer token overlap or an LLM judge. It is separate
+    from the uncertainty estimator}
+}
+
+\newglossaryentry{auroc}{
+  name={AUROC},
+  description={area under the receiver operating characteristic curve:
+    the probability that an incorrect answer has higher uncertainty than a
+    correct one, counting ties as one half. A value of 0.5 is chance ranking}
+}
+
+\newglossaryentry{hierarchicalbootstrap}{
+  name={hierarchical bootstrap},
+  description={resampling at multiple levels. The main paired comparison
+    resamples dataset--generator units, then questions within their seed
+    cells, preserving the pairing between estimators}
 }

@@ -135,7 +135,10 @@ Date of birth: [removed]
 \input{frontmatter/hilfsmittel.tex}
 \tableofcontents
 \glsaddall
-\printnoidxglossary[title=Glossary, nonumberlist]
+\begingroup
+\setlist[description]{itemsep=0.35\baselineskip}
+\printnoidxglossary[title=Glossary, nonumberlist, sort=def, nogroupskip]
+\endgroup
 
 \mainmatter
 
