@@ -1,6 +1,9 @@
 \chapter*{List of aids used}
 \addcontentsline{toc}{chapter}{List of aids used}
 
+\begingroup
+\RedeclareSectionCommand[beforeskip=1.2\baselineskip,afterskip=0.4\baselineskip]{section}
+
 \section*{Literature access and reference verification}
 
 arXiv, ACL Anthology, OpenReview and publisher websites were used to access
@@ -29,19 +32,16 @@ consult model cards.
 \section*{Models}
 
 \begin{itemize}
+  \raggedright
   \item \emph{Answer generation}, at the pinned revisions given in
-    Table~\ref{tab:generators}:\\
-    \texttt{Mistral-7B-Instruct-v0.3}\\
-    \texttt{Llama-3.1-8B-Instruct}\\
-    \texttt{Llama-3.1-70B-Instruct}
-  \item \emph{Entailment}:\\
-    \texttt{microsoft/deberta-v2-xlarge-mnli}\\
-    \texttt{cross-encoder/nli-deberta-v3-large}\\
-    \texttt{cross-encoder/nli-deberta-v3-base}\\
-    \texttt{Qwen/Qwen2.5-72B-Instruct}
-  \item \emph{Correctness judging}:\\
-    \texttt{Qwen/Qwen2.5-72B-Instruct}\\
-    \texttt{Llama-3.1-70B-Instruct}
+    Table~\ref{tab:generators}: \texttt{Mistral-7B-Instruct-v0.3},
+    \texttt{Llama-3.1-8B-Instruct} and \texttt{Llama-3.1-70B-Instruct}.
+  \item \emph{Entailment}: \texttt{microsoft/deberta-v2-xlarge-mnli},
+    \texttt{cross-encoder/nli-deberta-v3-large},
+    \texttt{cross-encoder/nli-deberta-v3-base} and
+    \texttt{Qwen/Qwen2.5-72B-Instruct}.
+  \item \emph{Correctness judging}: \texttt{Qwen/Qwen2.5-72B-Instruct} and
+    \texttt{Llama-3.1-70B-Instruct}.
 \end{itemize}
 
 \section*{Software}
@@ -68,3 +68,5 @@ thesis from the recorded measurements. As stated in the declaration, these
 tools were not used
 as a source of claims, results or citations. Every reported number was checked
 against the recorded measurements.
+\par
+\endgroup
