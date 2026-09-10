@@ -1,6 +1,12 @@
 \chapter*{List of aids used}
 \addcontentsline{toc}{chapter}{List of aids used}
 
+\section*{Literature access and reference verification}
+
+arXiv, ACL Anthology, OpenReview and publisher websites were used to access
+research papers and check publication details. Individual papers are cited
+where their content is used and listed in the bibliography.
+
 \section*{Published method and code}
 
 The method reimplemented here is that of Farquhar et
@@ -9,12 +15,16 @@ authors' released code~\cite{kossen_semantic_uncertainty_code_2024}, which was
 used as the specification for clustering, prompting, P(True) scoring and
 question selection. Deviations from it are recorded in
 Section~\ref{sec:deviation-register}.
+The reference implementation was accessed through GitHub; its archived
+release on Zenodo is identified by the accompanying code citation.
 
 \section*{Datasets}
 
 TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019} and
 SVAMP~\cite{patel_svamp_2021}, each loaded through the released code's own
 loader. The long-form biography prompts follow the FactScore subject format.
+Hugging Face Hub was used to obtain model checkpoints and datasets and to
+consult model cards.
 
 \section*{Models}
 
@@ -41,7 +51,8 @@ Python with \texttt{PyTorch}, \texttt{Transformers}, \texttt{vLLM},
 \texttt{datasets} and \texttt{pytest}. Environments were managed with
 \texttt{uv}, revision control with \texttt{Git}. The thesis was typeset in
 \LaTeX\ using the \texttt{kaobook} class, with \texttt{Biber} and
-\texttt{biblatex} for the bibliography.
+\texttt{biblatex} for the bibliography. Builds were managed with
+\texttt{latexmk}.
 
 \section*{Computing resources}
 
@@ -56,4 +67,4 @@ in the accompanying repository and to generate the figures and tables in this
 thesis from the recorded measurements. As stated in the declaration, these
 tools were not used
 as a source of claims, results or citations. Every reported number was checked
-against the recorded measurements by the author.
+against the recorded measurements.
