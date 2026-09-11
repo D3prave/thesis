@@ -25,10 +25,12 @@ that way, and since the elements are ints -- for which `hash(i) == i` -- the
 resulting order is deterministic. Reproducing the same construction reproduces
 the same order, and therefore the same sample.
 
-Dataset revisions are pinned and recorded, because `train_test_split` is only
-reproducible against a fixed dataset build and library version.
+A dataset revision can be supplied and is recorded. The retained collection
+manifests have no Hub revision ID; they preserve source fingerprints and the
+datasets version. Reuse the prepared inputs for exact question selection.
 
-Deliberately UNTRACKED.
+This script was initially untracked during collection; it is now retained
+with the source for inspection.
 
 Usage:
     python scripts/prepare_replication_data.py --dataset trivia_qa

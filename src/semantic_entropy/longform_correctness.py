@@ -1,18 +1,12 @@
 """LLM-judge correctness scoring for long-form biography responses.
 
-This module provides :func:`llm_judge_correctness_fn`, which returns a
-:data:`CorrectnessFn` that grades the *majority* sampled answer for a bio
-record against its Wikipedia reference paragraph using a vLLM-backed judge
-(Qwen2.5-72B-Instruct by default).
-
-Why grade the majority answer rather than all M samples: the
-``correctness_label`` is per-record (a single operational target bit for
-AUROC), and the selective-prediction table needs one label per uncertainty
-score. Grading the modal cluster representative is the cheapest fixed policy
-for deriving that label, but the label can change when a different clustering
-backend changes the modal representative. Backend-specific bio comparisons
-therefore need backend-specific regrading rather than silently reusing labels
-from a previous clustering pass.
+The active grading path selects a clustering-independent response: a saved
+most-likely answer when present, otherwise the most frequent exact normalized
+surface form, breaking ties by first occurrence. It assigns one binary
+reference-consistency verdict to that response, not a score to each claim.
+The resulting labels can be reused across entailment backends on the same
+samples. The lower-level grading callable retains a legacy majority-cluster
+fallback only when no explicit representative is supplied.
 
 The module also provides :func:`grade_records_inplace`, which loads a scored
 JSONL, fills the ``correctness_label`` and optional ``scores.correctness_score``
@@ -326,8 +320,8 @@ def grade_records_inplace(
 ) -> list[dict[str, Any]]:
     """Grade all records with the LLM judge and update correctness fields.
 
-    For each record, extracts the majority representative answer (using
-    ``semantic_clusters`` if present), calls the judge, and writes
+    For each record, selects a clustering-independent representative with
+    :func:`_fixed_representative`, calls the judge, and writes
     ``correctness_label`` and optionally ``scores.correctness_score``.
 
     Args:

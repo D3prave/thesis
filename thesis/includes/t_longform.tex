@@ -4,7 +4,7 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Separate long-form evaluation: nine model--seed runs, 500 biographies each, and claim-level grading by the Qwen judge. Strict bidirectional entailment is used throughout. Each score covers a whole paragraph. The final columns give discrete SE minus each string baseline and records-only 95\,\% intervals from 2,000 paired resamples within runs. Generators and seeds stay fixed. These intervals exclude variation between dataset--generator units.}
+\caption{Separate long-form evaluation: nine model--seed runs, 500 biographies each, and one binary reference-consistency verdict from the Qwen judge. The grouping protocol is specified in Appendix~\ref{app:longform-details}. Each uncertainty score uses ten whole paragraphs. The final columns give discrete SE minus each string baseline and records-only 95\,\% intervals from 2,000 paired resamples within runs. Generators and seeds stay fixed. These intervals exclude variation between dataset--generator units.}
 \label{tab:longform}
 \begingroup
 \setlength{\tabcolsep}{3pt}
@@ -19,5 +19,5 @@ Exact match & 0.4965 & 0.4965 & 0.4973 & \makecell{+0.000\\{[+0.000, +0.000]}} &
 \bottomrule
 \end{tabular}
 \endgroup
-\par\vspace{2pt}\footnotesize \raggedright Mean claim accuracy: 0.375 over the nine model--seed runs. The released-code default \texttt{deberta-v2-xlarge-mnli} was not applied in this evaluation.\par
+\par\vspace{2pt}\footnotesize \raggedright Mean paragraph acceptance rate: 0.375 over the nine model--seed runs. The released-code default \texttt{deberta-v2-xlarge-mnli} was not applied in this evaluation.\par
 \end{table}

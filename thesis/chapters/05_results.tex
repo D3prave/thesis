@@ -129,12 +129,13 @@ Section~\ref{sec:length-discussion}.
 
 The long-form biography evaluation asks each generator to write a biography paragraph rather
 than a short answer. Each of the three generators is run with three seeds on
-500 biography prompts, and the Qwen judge scores the claims in each paragraph.
+500 biography prompts. The Qwen judge assigns a single reference-consistency
+verdict to one selected paragraph for each prompt.
 
-Each AUROC entry is one score per generated paragraph: the correctness label
-comes from claim-level automated grading, while semantic entropy is computed
-over the complete paragraph. It uses one correctness judge and a paragraph-level scoring
-setup.
+For AUROC, each prompt contributes one uncertainty score and one correctness
+label. The label is a whole-paragraph verdict against a Wikipedia introduction,
+while semantic entropy is computed over ten sampled paragraphs. The evaluation
+uses one correctness judge.
 
 Table~\ref{tab:longform} shows higher recorded AUROC for meaning-based grouping
 with the larger entailment models in this setting. Discrete semantic entropy
@@ -148,19 +149,23 @@ appears across the three generators in Table~\ref{tab:longform-by-generator}
 and Figure~\ref{fig:longform-comparison}. Every records-only interval for these
 generator-level comparisons excludes zero. The two smaller entailment settings
 behave differently. Exact matching places every differing paragraph in its own
-group, so it scores exactly what the string baselines score. The base model
+group after normalization, so it equals surface entropy here. Raw-string
+naive sample entropy differs slightly; both string baselines are nearly saturated. The base model
 exceeds the string baselines for Mistral-7B, at 0.628 against 0.500, but falls
 below them for both Llama generators, so it does not show the advantage
 consistently.
 
 \input{includes/t_longform.tex}
 
-Semantic grouping adds substantial detection value for varied paragraphs, where
-exact strings are usually different even when their factual content overlaps.
+With the two larger entailment models, semantic grouping improves detection
+of paragraphs rejected by the reference-based judge. Specific facts absent
+from the reference are rejected even if they may be true elsewhere; vague
+responses without a contradiction can pass. The verdict measures support
+from that reference, not independently verified factual truth.
 
-This continues the pattern of Section~\ref{sec:answer-length-results}: the
-advantage grows with answer length, and it is largest here. The margin over
-surface entropy is also the widest in the study. The pooled gap is $+0.174$
+The largest recorded margin over surface entropy occurs in this biography
+setting. Answer length is one possible explanation, but the task, prompts, and
+grading target also differ from Section~\ref{sec:answer-length-results}. The pooled gap is $+0.174$
 with large DeBERTa, with a records-only 95\,\% interval of $[+0.157,+0.190]$,
 and $+0.212$ with Qwen, with an interval of $[+0.196,+0.228]$. These intervals
 hold generators and seeds fixed and are narrower in scope than the
@@ -201,7 +206,7 @@ perfectly, and this study does not measure the direction of that effect on
 AUROC.
 
 Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give the change at each
-step over all 24 comparisons.
+step over all 24 configuration entries.
 
 \input{includes/t_ladder.tex}
 
@@ -209,7 +214,7 @@ step over all 24 comparisons.
 \centering
 \includegraphics[width=\linewidth]{ladder.pdf}
 \caption{What each step adds, measured against the step below it over all 24
-  comparisons. The dashed line is the seed-variation reference, which is the AUROC range
+  configuration entries. The dashed line is the seed-variation reference, which is the AUROC range
   produced by rerunning the same configuration under a different sampling seed. Only the
   normalization step clears it.}
 \label{fig:ladder}
@@ -217,7 +222,11 @@ step over all 24 comparisons.
 
 One step is clear. Normalizing the answer strings before counting them adds
 $0.0398$ AUROC on average. The difference is positive and its interval excludes
-zero in all 24 comparisons. It is also the only step whose AUROC difference
+zero in all 24 configuration entries. Because the two string scores do not
+use entailment, these entries repeat 12 distinct condition--grader contrasts;
+all 12 are positive. The mean weights the two original prompting conditions
+three times each and the added conditions once each. Giving the 12 distinct
+contrasts equal weight yields $+0.0372$ AUROC. Normalization is also the only step whose AUROC difference
 exceeds the seed-variation reference of 0.0245.
 
 The other three steps are less consistent. Counting raw strings instead of
@@ -239,7 +248,7 @@ Crossing the four prompting conditions with the two LLM correctness judges on
 \texttt{deberta-v2-xlarge-mnli} gives eight comparisons, reported in
 Table~\ref{tab:canonical-eight} with AUROC differences and intervals from the
 hierarchical paired bootstrap. The differences run
-from $-0.0020$ to $+0.0223$, with two-sided $p$ from 0.36 to 0.94. Not one of
+from $-0.0020$ to $+0.0223$. Not one of
 the eight intervals excludes zero.
 
 \input{includes/t_canonical_eight.tex}
@@ -423,7 +432,8 @@ and 0.708, respectively, while the string baselines remain near 0.497
 (Table~\ref{tab:longform}).
 
 The comparisons between consecutive method steps also differ in consistency.
-Normalization increases mean AUROC in all 24 comparisons, semantic grouping
+Normalization increases mean AUROC in all 24 configuration entries
+(12 distinct string contrasts), semantic grouping
 in 14, and likelihood weighting in 12 (Table~\ref{tab:ladder}). The
 temperature sweep under the Qwen judge reverses the ordering of naive
 predictive entropy relative to discrete semantic and surface entropy between

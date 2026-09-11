@@ -200,7 +200,7 @@ def t_short_phrase():
         'the paired AUROC difference (discrete semantic entropy minus surface entropy) '
         'and its interval, which resamples the nine statistical units.',
         'tab:short-phrase', '@{}lccccc@{}',
-        r'Correctness rule & Discrete SE & Surface & Naive pred. & \makecell{AUROC\\difference} & 95\,\% CI \\',
+        r'Correctness rule & Discrete SE & Surface & Naive pred. & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(units)} \\',
         rows)
 
 
@@ -216,7 +216,7 @@ def t_canonical_eight():
             r = r.iloc[0]
             rows.append(f'{COND[cond]} & {GRADER[g]} & {fmtpm(r.delta,4)} & '
                         f'[{fmtpm(r.hier_lo,3)}, {fmtpm(r.hier_hi,3)}] & '
-                        f'{r.hier_p:.2f} & includes zero \\\\')
+                        f'includes zero \\\\')
             AUDIT.append(('5.3 canonical8', f'{cond}|{g}', 'delta/hier',
                           [round(float(r.delta), 4), round(float(r.hier_lo), 4),
                            round(float(r.hier_hi), 4)]))
@@ -227,8 +227,8 @@ def t_canonical_eight():
         'hierarchical '
         'paired bootstrap, which resamples both the nine (dataset, model) units and the '
         'records within them. Not one of the eight intervals excludes zero.',
-        'tab:canonical-eight', '@{}llcccl@{}',
-        r'Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & $p$ & CI result \\',
+        'tab:canonical-eight', '@{}llccl@{}',
+        r'Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & CI result \\',
         rows)
 
 
@@ -282,7 +282,7 @@ def t_all_slices():
         'All 24 comparisons: discrete semantic entropy minus surface entropy, with '
         'hierarchical intervals resampling both the nine units and the records '
         'within them. The final column names the direction where the interval '
-        'excludes zero. ``neither'' means the interval includes zero, not missing data '
+        "excludes zero. ``neither'' means the interval includes zero, not missing data "
         'or evidence of equivalence. Every comparison favoring semantic entropy uses the Qwen '
         'entailment model, and every comparison favoring surface entropy uses token-F1 '
         'grading.',
@@ -325,8 +325,10 @@ def t_ladder():
     return table(
         'Four comparisons between consecutive methods. The semantic-versus-surface '
         'comparison also changes whether answers are normalized before grouping. '
-        'The counts cover all 24 prompting-condition, entailment-model, and grading-rule '
-        'comparisons at $T=1.0$. Intervals resample the nine statistical units. Only '
+        'The counts cover 24 configuration entries at $T=1.0$. String-only contrasts '
+        'repeat 12 distinct condition--grader comparisons: the original conditions '
+        'occur three times each, and the added conditions once each. Intervals '
+        'resample the nine statistical units. Only '
         'answer normalization improves the mean AUROC in every comparison, and it is the '
         'only change whose mean difference exceeds the mean range across generation seeds.',
         'tab:ladder', '@{}p{4.8cm}cccc@{}',
@@ -403,7 +405,7 @@ def t_backend():
         'four decimal places across all three, as it must be: it never consults an '
         'entailment model.',
         'tab:backend', '@{}lcccc@{}',
-        r'Entailment model & Discrete SE & Surface & \makecell{AUROC\\difference} & 95\,\% CI \\', rows)
+        r'Entailment model & Discrete SE & Surface & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(units)} \\', rows)
 
 
 def t_backend_grader_check():
@@ -554,15 +556,15 @@ def t_longform():
         AUDIT.append(('5.7 long-form', b, 'dse',
                       round(float(v['discrete_semantic_entropy']), 4)))
     acc = lf.accuracy.mean()
-    note = (f'\\raggedright Mean claim accuracy: {acc:.3f} over the nine model--seed runs. '
+    note = (f'\\raggedright Mean paragraph acceptance rate: {acc:.3f} over the nine model--seed runs. '
             'The released-code default '
             '\\texttt{deberta-v2-xlarge-mnli} was not '
             'applied in this evaluation.\\par')
     return table(
         'Separate long-form evaluation: nine model--seed runs, 500 '
-        'biographies each, and claim-level grading by the '
-        'Qwen judge. Strict bidirectional entailment is used throughout. '
-        'Each score covers a whole paragraph. The final columns give discrete SE '
+        'biographies each, and one binary reference-consistency verdict from the '
+        'Qwen judge. The grouping protocol is specified in Appendix~\\ref{app:longform-details}. '
+        'Each uncertainty score uses ten whole paragraphs. The final columns give discrete SE '
         'minus each string baseline and records-only 95\\,\\% intervals from '
         '2,000 paired resamples within runs. Generators and seeds stay fixed. '
         'These intervals exclude variation between dataset--generator units.',
@@ -957,8 +959,8 @@ def figures(outdir='figures'):
         columns={'condition': 'cond'}).copy()
     R['grp'] = np.where(R.g == F1, 'token-F1 grading',
                         np.where(R.b == QW, 'Qwen entailment model, LLM grading',
-                                 'released entailment models, LLM grading'))
-    order = ['released entailment models, LLM grading',
+                                 'DeBERTa cross-encoders, LLM grading'))
+    order = ['DeBERTa cross-encoders, LLM grading',
              'Qwen entailment model, LLM grading',
              'token-F1 grading']
     R['k'] = R.grp.map({g: i for i, g in enumerate(order)})
@@ -997,7 +999,7 @@ def figures(outdir='figures'):
         'accuracy_probe_uncertainty', 'probe_uncertainty',
     ]
     method_labels = [
-        'Semantic entropy, weighted', 'Semantic entropy, discrete',
+        'Weighted semantic entropy', 'Discrete semantic entropy',
         'Surface entropy', 'Naive predictive entropy', 'Naive sample entropy',
         'P(True)', 'Accuracy probe', 'Semantic entropy probe',
     ]
@@ -1038,7 +1040,7 @@ def figures(outdir='figures'):
             ax.tick_params(length=2, labelsize=7)
         axes[0].set_ylabel('AUROC', fontsize=8)
         fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0),
-                   ncol=4, fontsize=6.6, frameon=False, columnspacing=1.1,
+                   ncol=4, fontsize=7.1, frameon=False, columnspacing=0.8,
                    handlelength=1.6, handletextpad=0.5)
         fig.tight_layout(rect=(0, 0, 1, 0.80), w_pad=1.0)
         fig.savefig(f'{outdir}/{filename}.pdf')
@@ -1120,7 +1122,7 @@ def figures(outdir='figures'):
     ax.set_yticks(y); ax.set_yticklabels(R.lab, fontsize=9)
     ax.set_xlim(-0.004, 0.048)
     ax.set_xticks([0,0.01,0.02,0.03,0.04])
-    ax.set_xlabel('mean AUROC change, across 24 comparisons', fontsize=9)
+    ax.set_xlabel('mean AUROC change, 24 configuration entries', fontsize=9)
     ax.tick_params(length=2, labelsize=9); ax.spines['left'].set_visible(False)
     fig.savefig(f'{outdir}/ladder.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/ladder.pdf')

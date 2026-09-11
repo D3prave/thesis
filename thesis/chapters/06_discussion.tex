@@ -37,11 +37,11 @@ receives the raw answers. The comparison changes both the grouping rule and
 the text supplied to it. That difference limits how precisely the observed
 change can be attributed to semantic grouping alone.
 
-\subsection{The released entailment models show no clear additional benefit}
+\subsection{The tested DeBERTa cross-encoders show no clear additional benefit}
 
 With the default entailment model, \texttt{deberta-v2-xlarge-mnli}, none of
 the confidence intervals for the difference between semantic and surface
-entropy excludes zero under either LLM correctness judge. The other released
+entropy excludes zero under either LLM correctness judge. The additional
 cross-encoder, \texttt{nli-deberta-v3-large}, gives the same overall pattern
 under LLM grading.
 
@@ -235,6 +235,14 @@ The sentence-length condition produces longer answers than the original study.
 The samples used for uncertainty and the answer judged for correctness also
 have different token limits. This limits direct comparison with the published
 result.
+
+\paragraph{Benchmark and computational scope.}
+Holding out questions from probe training does not establish that they were
+absent from the language model's pretraining data. Historical benchmark
+references may also omit later changes. Computational cost was not benchmarked:
+string counting needs no entailment calls, whereas semantic grouping adds
+pair comparisons to repeated generation. The results establish detection
+performance in this grid, not a measured accuracy--runtime tradeoff.
 
 \paragraph{Order-dependent clustering.}
 The released algorithm processes answers in generation order, and changing

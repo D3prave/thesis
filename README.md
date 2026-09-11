@@ -30,15 +30,16 @@ recorded models and tasks, not a general ranking of all detectors.
 
 The thesis reports the full recorded comparisons in its Results chapter and
 supporting appendix. It does not use human correctness labels. The long-form
-experiment has incomplete provenance and a different clustering rule from the
-original paragraph experiment, so it is not a central replication result.
+experiment measures paragraph acceptance against a saved reference, using a
+different grouping protocol from the original paragraph experiment. It is
+exploratory rather than a central replication result.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
 | `thesis/` | LaTeX source: 7 chapters, appendix, bibliography, figures |
-| `thesis/includes/` | 23 active generated table files; some contain several tables |
+| `thesis/includes/` | 21 active generated table files; some contain several tables |
 | `src/semantic_entropy/` | Python package: sampling, clustering, entropy scoring, metrics, probes, plotting |
 | `scripts/` | Data preparation, aggregation, table and figure builders, verification gates |
 | `slurm/` | Batch scripts for the NHR@FAU runs |
@@ -97,7 +98,9 @@ use, with the NLI backend left at its default.
 ## Reproducibility
 
 The active result tables are generated from the committed measurement package,
-auxiliary summaries, paired comparisons, and cross-dataset probe results.
+auxiliary summaries, and paired comparisons. The shared builder also reads
+archived cross-dataset probe exports for inactive tables; those transfer
+results are outside the thesis scope.
 The following checks validate the expected coverage and registered producers;
 they do not certify complete raw-data provenance:
 
@@ -120,6 +123,11 @@ See `docs/independent_analysis/data/README.md` for coverage and field meanings,
 and `docs/cluster_coverage_audit_2026-09-05.md` for the raw-artifact audit.
 Older builders and results remain in the repository but do not supply the
 active thesis tables.
+
+For source packaging, artifact hashes, recovered protocol metadata, and the
+limits of reproducing historical runs, see `docs/reproduction.md` and
+`docs/reproducibility_manifest.json`. The September 11 correction register is
+`docs/audit_resolution_2026-09-11.md`.
 
 For the editable thesis handoff, see `docs/submission_checklist.md`. The final
 result audit is in `docs/final_consistency_audit_2026-09-05.md`; the literature
@@ -166,7 +174,9 @@ Correctness is assessed by token-F1 and two LLM graders for short answers, and
 by Qwen2.5-72B-Instruct for biographies. There is no human validation of these
 labels. The main temperature tables use only LLM labels of the fixed answer;
 token-F1 sweep labels instead grade the modal sample and are not comparable.
-Prompting, AURAC, and long-form analyses are secondary or exploratory.
+Prompting and long-form analyses are secondary or exploratory. AURAC and
+cross-dataset probe transfer remain in the research archive, outside the active
+thesis results.
 
 ## Citation
 

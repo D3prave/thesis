@@ -17,7 +17,7 @@ evaluation. The main goal is to
 evaluate how well semantic entropy detects incorrect answers, how it compares
 with other uncertainty estimators, and under which conditions it performs
 better. The comparison includes Farquhar et al.'s baselines, semantic entropy
-probes that predict correctness from hidden states, and entropy over normalized
+probes that predict high semantic entropy from hidden states, and entropy over normalized
 answer strings.
 
 Semantic entropy ranks incorrect answers above correct ones better than
@@ -36,7 +36,7 @@ entailment model shows one for only one of the three generators.
 The conditions matter. With the tested Qwen entailment model, semantic entropy
 also improves on normalized\nobreakdash-string counting under both large-language-model
 correctness judges.
-No such additional benefit is detected with the released entailment models.
+No such additional benefit is detected with the tested DeBERTa cross-encoders.
 In the sentence-length temperature comparison, naive predictive entropy
 overtakes the sample-diversity estimators at low temperature. Changing the correctness rule can also reverse
 the semantic-versus-surface ranking.

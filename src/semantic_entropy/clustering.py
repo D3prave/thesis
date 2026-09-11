@@ -1,8 +1,11 @@
 """Semantic clustering for the Phase 1 pipeline.
 
-This module provides two clustering functions that sit between answer
-normalization and entropy scoring, each taking a list of normalized answer
-strings and returning a ``(cluster_ids, representatives)`` pair.
+The thesis's short-answer experiments use :func:`nli_anchor_scan_cluster` on
+raw answers with question-conditioned entailment. The helpers below also
+support the earlier whole-paragraph pipeline: exact matching and union-find
+on normalized answers. Those algorithms and input conventions are distinct;
+choose the entry point recorded by the experiment rather than inferring it
+from the module name.
 
 **:func:`exact_match_cluster`** (baseline stub)
     Groups answers by exact string equality. Requires no external model and

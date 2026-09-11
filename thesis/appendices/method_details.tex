@@ -16,17 +16,47 @@ correctness rule, and uncertainty method. The seed-variation and grader-agreemen
 exports provide the corresponding checks. Individual run values remain in
 these files. The appendix tables summarize them.
 
+{\raggedright
+The source repository is \url{https://github.com/D3prave/thesis}.
+The accompanying \texttt{thesis-source-supplement.zip} includes
+\texttt{SOURCE\_VERSION.txt}, identifying its source commit, and
+\path{docs/reproduction.md} with build instructions.
+\path{docs/reproducibility_manifest.json} records the input hashes, recovered
+protocol metadata, and locations of separately stored research artifacts.
+The source supplement regenerates tables from exports; the larger raw
+artifacts are stored separately.\par}
+
 \section{Long-form biography records}
 \label{app:longform-details}
 
-The long-form biography evaluation contains three generators, three seeds, and 500 biography
-records per generator--seed run. The prompt requests a biography paragraph.
-The Qwen judge scores factual claims, and the uncertainty score is computed
-over the complete paragraph. The recorded comparison uses exact matching,
-DeBERTa-v3-base, DeBERTa-v3-large, and Qwen-72B entailment models. The
-strict bidirectional entailment rule is used throughout. Figure~\ref{fig:longform-comparison}
-and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the
-result.
+The biography evaluation contains three generators, three seeds, and
+500 subjects per generator--seed run. Prompts follow the FActScore subject
+format~\cite{min_factscore_2023}. The system instruction requests a factual
+biography of about 120--150 words, and the query is ``Tell me a bio of
+\{entity\}.'' Ten responses are sampled using vLLM at $T=1.0$, top-$p=0.9$,
+top-$k=50$, with at most 256 new tokens each. The saved Wikipedia introduction
+provides the reference. A copy of the prepared inputs matches the SHA-256
+recorded at collection time.
+
+One paragraph per prompt is graded: the most frequent exact normalized
+surface form, with ties resolved by first occurrence. Qwen2.5-72B-Instruct
+returns one \texttt{CORRECT}/\texttt{INCORRECT} verdict for that paragraph.
+Specific facts must be supported by the reference; vague text without a
+contradiction is permitted. The reported acceptance rate is the fraction of
+selected paragraphs receiving \texttt{CORRECT}.
+
+The recorded comparisons cluster normalized paragraphs into connected
+components. DeBERTa uses answer-only input and requires entailment in both
+directions. Qwen receives the question and asks whether both paragraphs convey
+the same factual claims, requiring agreement in both response orders. This is
+the biography pipeline's grouping rule;
+the short-answer pipeline uses the raw-answer anchor scan in
+Section~\ref{sec:clustering}. The four settings are exact matching,
+DeBERTa-v3-base~\cite{sentence_transformers_nli_deberta_v3_base_2022},
+DeBERTa-v3-large, and Qwen-72B. Sequence log-probabilities were not retained
+because the vLLM path exposed tempered, truncated probabilities, so this
+comparison uses count-based entropy only. Figure~\ref{fig:longform-comparison}
+and Tables~\ref{tab:longform}--\ref{tab:longform-by-generator} report the results.
 
 The records-only intervals are read from
 \path{results/paired_bootstrap_longform.csv}, an unchanged copy of the verified
@@ -57,8 +87,9 @@ new datasets and generators. The evaluation also uses one correctness judge,
 Qwen, which is one of the entailment models.
 
 The retained export supports regeneration of the reported tables and coverage
-checks. Reproducing collection from source inputs would require the original
-subject list and prepared input files.
+checks. The prepared biography inputs, original generated paragraphs, and
+execution-source snapshot have also been preserved locally. Their hashes and
+access locations are listed in the reproduction manifest.
 
 The short-answer hierarchical intervals are imported from
 \path{results/paired_bootstrap_se_vs_surface.csv}, produced by a separate
@@ -147,8 +178,24 @@ evaluation set. The hidden state comes from position
 $n_{\mathrm{generated}}-1$, where the stop sequence determines
 $n_{\mathrm{generated}}$. An end-of-sequence token need not be present.
 
-A later audit found one missing training hidden state in the NQ-Open
-Llama-3.1-70B short-phrase run with seed 42. The reported fits predate the
-finding, and the audit does not establish how that record was handled during
-fitting. All retained evaluation records have saved features, but the
-training-input gap limits exact reproduction of the existing fits.
+The saved metadata for all 108 probe models specifies final-layer features,
+last-token pooling, $L_2$ regularization with $C=1$, a training seed of zero,
+and a maximum of 2{,}000 optimizer iterations. The retained training source
+uses the \texttt{lbfgs} solver without feature standardization. All saved fits
+report convergence. Feature dimensions are 4{,}096 for the two smaller
+models and 8{,}192 for Llama-3.1-70B. The legacy feature field calls the answer
+``greedy''; the collection metadata records sampling at $T=0.1$, as described
+in Section~\ref{sec:sampling-settings}.
+
+The accuracy probe learns the stored training correctness labels. Re-evaluating
+its saved scores with another judge does not retrain it. Those input records
+lack an explicit per-label judge provenance field, so the training judge is
+not inferred from the evaluation-grader name. The manifest distinguishes
+current prepared-input hashes from the metadata's upstream entropy-source
+hashes; the latter do not identify the exact serialized fit inputs.
+
+For the NQ-Open Llama-3.1-70B short-phrase run with seed 42, both saved models
+report 399 training examples and one excluded prompt. This is consistent
+with the one missing feature found in that input cell. All retained evaluation
+records have saved features. The exclusion count is established by the saved
+fits; reproducing the exact fit additionally requires its original input bytes.

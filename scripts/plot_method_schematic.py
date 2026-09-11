@@ -64,15 +64,15 @@ box(3, 22, 46, 28, "2a. Count distinct wordings",
     "4 wording groups:\n"
     "{Canberra ×2}   {Canberra is the capital …}\n"
     "{Sydney}   {Melbourne}\n"
-    "surface entropy $\\approx$ 1.33 nats: looks very unsure,\n"
+    "surface entropy $\\approx$ 1.33 nats: higher uncertainty,\n"
     "because paraphrases count as different answers",
     FILL_ORANGE, ORANGE)
 box(51, 22, 46, 28, "2b. Group by meaning (NLI entailment)",
     "3 meaning groups:\n"
     "{Canberra;  Canberra is the capital …;  Canberra}\n"
     "{Sydney}   {Melbourne}\n"
-    "semantic entropy $\\approx$ 0.95 nats: the model has\n"
-    "mostly settled on one answer",
+    "semantic entropy $\\approx$ 0.95 nats: lower uncertainty,\n"
+    "with three of five samples sharing one meaning",
     FILL_GREEN, GREEN)
 
 # ---- Bottom row: decision ---------------------------------------------------

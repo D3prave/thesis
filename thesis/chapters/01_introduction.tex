@@ -36,11 +36,11 @@ answers, and turn their disagreement into a risk score.
 \includegraphics[width=\linewidth]{method_schematic.png}
 \caption{The semantic entropy process on a small example. The model is
   sampled several times for one question. Counting distinct \emph{wordings}
-  (left) makes it look very unsure, because ``Canberra'' and ``Canberra is the
+  (left) gives higher entropy, because ``Canberra'' and ``Canberra is the
   capital\ldots'' count as different answers. The right path groups the samples
   by \emph{meaning} instead, using a Natural Language Inference (NLI) model
   that is asked whether each pair of answers implies the other. Grouped that
-  way, the model has mostly settled on one answer.}
+  way, three of the five samples support one meaning and the entropy is lower.}
 \label{fig:intro-schematic}
 \end{figure*}
 
@@ -90,7 +90,7 @@ This thesis therefore compares the estimators one step at a time. It starts
 with entropy over sequence log-likelihoods, then counts repeated answer strings,
 normalizes the strings before counting them, groups answers by meaning, and
 weights the meaning groups by likelihood. Each comparison changes one main
-step. The effect of grouping is tested by comparing discrete semantic entropy
+step, although the grouping comparison also changes whether the input is normalized. The effect of grouping is tested by comparing discrete semantic entropy
 with \emph{surface entropy}, which counts distinct normalized strings but does not
 judge whether differently worded answers mean the same thing. Surface entropy
 requires no extra model call.
@@ -111,8 +111,8 @@ the Qwen entailment model.
 
 The ranking depends on the entailment model, sampling temperature, and
 correctness rule. With the tested Qwen entailment model, semantic entropy also
-improves on normalized-string counting under both LLM judges. With the released
-entailment models, no additional benefit over that comparator is detected
+improves on normalized-string counting under both LLM judges. With the tested DeBERTa
+cross-encoders, no additional benefit over that comparator is detected
 under LLM grading. The decomposition helps explain this distinction:
 normalization gives the most consistent improvement across its four steps.
 An undetected benefit is not evidence of equivalence.

@@ -27,11 +27,9 @@ surface and naive sample entropy are near 0.497. The pooled gaps over surface
 entropy have records-only 95\,\% intervals of $[+0.157,+0.190]$ and
 $[+0.196,+0.228]$, respectively. These intervals hold generators and seeds
 fixed and do not capture variation across datasets and generators. This is the largest gap
-measured in the study, and it continues the pattern seen across the
-short-answer prompting conditions, where the advantage grows with answer
-length. The biography runs use one dataset and one judge, Qwen, which is also
-an entailment model. They also change the grading scheme, so length is not
-isolated on its own.
+measured in the study. The biography runs use one dataset and one judge, Qwen,
+which is also an entailment model. The task and grading scheme differ from the
+short-answer evaluation, so this comparison does not isolate an effect of length.
 
 Changing the entailment model changes the conclusion. With the tested Qwen
 entailment model, semantic entropy improves on surface entropy under both LLM
@@ -42,7 +40,7 @@ entailment model, sampling settings, and grading rule.
 
 The decomposition provides a supporting explanation. Normalizing answer
 strings gives the most consistent improvement across the four method steps.
-With the released entailment models, semantic grouping adds no detectable
+With the tested DeBERTa cross-encoders, semantic grouping adds no detectable
 benefit over surface entropy under LLM grading. This does not establish
 equivalence or rule out a small benefit.
 
