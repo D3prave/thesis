@@ -128,5 +128,7 @@ def anchor_clusters(entails, indices=None):
 
 def entropy(labels):
     _, counts = np.unique(labels, return_counts=True)
+    # Canonical order prevents cluster-ID permutations from perturbing AUROC ties.
+    counts = np.sort(counts)
     p = counts / counts.sum()
     return float(-np.sum(p * np.log(p)))
