@@ -151,14 +151,17 @@ separate factors.
 
 A record resample with only one correctness class has undefined AUROC and is
 omitted from that draw's average. This can matter when few answers are labeled
-correct. Omission rates were not exported. The intervals and bootstrap tail
+correct. Omission rates were not retained in the original export; the additional
+analyses in Appendix~\ref{app:robustness} report them explicitly. The original
+intervals and bootstrap tail
 proportions are conditional on these choices and are not adjusted for
 multiple comparisons.
 
 The measurement table can verify paired point estimates, but the original
 scored answers are needed to reconstruct record-level intervals. Tests of the
 bootstrap code and checks of the exported values are not an independent rerun
-of those intervals.
+of those intervals. Appendix~\ref{app:robustness} separately reports new
+record-level analyses using recovered inputs and a recorded sensitivity protocol.
 
 \section{Probe training and saved features}
 \label{app:probe-training}

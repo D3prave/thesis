@@ -33,7 +33,9 @@ short-answer evaluation, so this comparison does not isolate an effect of length
 
 Changing the entailment model changes the conclusion. With the tested Qwen
 entailment model, semantic entropy improves on surface entropy under both LLM
-judges. Sampling temperature also changes which detector leads, and the
+judges. Additional shared-question and crossed-factor resampling retains the
+sentence-answer advantage, while the smaller short-phrase ranges include zero.
+Sampling temperature also changes which detector leads, and the
 correctness rule can reverse the semantic-versus-surface comparison. The
 method's reported performance therefore needs to be read together with its
 entailment model, sampling settings, and grading rule.

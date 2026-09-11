@@ -127,6 +127,7 @@ def main():
             pair_cache_sha256=hashlib.sha256(args.cache.read_bytes()).hexdigest(),
             seed=20260911, records=len(inputs), permutations=50, subsets_per_m=50,
             subset_order='original relative order',
+            entropy_tie_rule='sum contributions in sorted count order',
             ranges='observed min/max; not confidence intervals'
         ), indent=2) + '\n')
     print('COMPLETE: 540 records; cached pair inference only', flush=True)

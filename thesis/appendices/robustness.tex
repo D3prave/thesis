@@ -1,0 +1,117 @@
+\chapter{Additional Robustness Checks}
+\label{app:robustness}
+
+These supplementary checks reuse the recorded answers and correctness labels.
+The analysis choices were recorded before inspecting the sensitivities, and
+results were preserved in commits \texttt{643f047} and \texttt{edc22f0}. No answers were regenerated
+and no probes were retrained. Full outputs, input hashes, and reproduction
+instructions are in \path{results/robustness_20260911/} and
+\path{docs/robustness_results_2026-09-12.md}. All 3,564 corresponding saved AUROCs
+were reproduced to their six-decimal export precision.
+
+\section{Shared questions and statistical units}
+
+Each of the 24 semantic-versus-surface comparisons was evaluated with 2,000
+bootstrap draws, seed 20260911. Independent record and hierarchical resampling
+serve as references. The additional fixed-grid scheme shares each dataset's
+question draw across generators and seeds. The crossed scheme also resamples
+the three datasets and three generators independently, weighting each pair
+by the product of its two multiplicities. Seeds are averaged within pairs.
+Only three levels of each factor are observed; the crossed ranges are a
+sensitivity check, not precise guarantees of population-level coverage.
+
+\input{includes/t_robustness_bootstrap.tex}
+
+With crossed resampling, Qwen entailment retains a positive sentence-answer
+range under both judges: $[+0.0452,+0.1394]$ for Qwen grading and
+$[+0.0391,+0.1498]$ for Llama grading. Its short-phrase ranges include zero,
+as do both DeBERTa sentence comparisons. All six separate dataset or generator
+omissions retain the Qwen sentence advantage under both judges; smaller
+DeBERTa advantages can change sign. The Qwen short-phrase point difference
+also stays positive under each omission, which is a different perturbation
+from joint factor and question resampling.
+
+No LLM-graded cell AUROC and no aggregate draw was undefined. Across schemes
+and comparisons, token-F1's maximum invalid-cell fraction was 0.4741\,\%;
+at most 11.85\,\% of draws contained an invalid cell. These maxima occur in
+different comparisons. Undefined cells are omitted before seed averaging;
+a pair with no valid seeds is omitted from that draw. All omission rates
+are exported, and no chance AUROC is substituted.
+
+\clearpage
+\section{Length, termination, and probe targets}
+
+Longer character count was fixed as the uncertainty direction for two
+length-only baselines. With the default entailment model and Qwen grading,
+mean graded-answer-length AUROC is 0.5803 for sentences and 0.5432 for short
+phrases; mean sampled-answer-length AUROC is 0.5975 and 0.5976. Both are below
+DSE's corresponding 0.7568 and 0.8059. Splitting each cell at its median graded
+answer length gives shorter/longer DSE-minus-surface differences of
+$+0.0100/+0.0313$ for sentences and $+0.0024/-0.0076$ for short phrases.
+All 27 cells have both classes in these length strata. These associations do
+not isolate a causal effect of length.
+
+The recorded sample-cap field counts sequences without EOS/EOT termination.
+Stored text can subsequently be shortened at a stop string, so the field does
+not measure the fraction of visibly incomplete answers. Flagged-sample rates
+average 47.4--83.0\,\% across the four prompting conditions. The strata with
+no flagged samples are often sparse or single-class: only 18 of 27 sentence
+cells and 6 of 27 original short-phrase cells have defined AUROC under Qwen
+grading. Their changing eligible sets prevent a clean estimate of truncation's
+effect. Counts and all grader-specific diagnostics remain in the exports.
+
+The 54 saved SEP evaluation cells were also checked against their intended
+high/low entropy target. Each target uses DSE greater than or equal to its
+saved training threshold. Fit hashes, training-only threshold provenance,
+dataset, generator, seed, and evaluation entropy-source hashes all match.
+No threshold was selected on evaluation questions. Mean target AUROC is
+0.7103 for sentences and 0.8389 for short phrases; balanced accuracy at
+probability 0.5 is 0.6457 and 0.7324. Corresponding Qwen-graded incorrectness
+AUROCs are 0.6723 and 0.7651. Predicting entropy is therefore distinct from
+predicting correctness. This check does not validate factual labels or resolve
+the accuracy probe's historical training-label provenance.
+
+\section{Normalization and answer order}
+
+A bounded check selected 30 questions per dataset by a fixed hash rule,
+shared across three generators and the two original conditions, at seed 42:
+540 records in total. DeBERTa-v3-large at the recorded revision labeled raw
+and normalized answer pairs. All 540 raw-answer partitions were reproduced
+exactly. Normalization changed the original-order partition for 138 of 270
+sentence records and 33 of 270 short-phrase records. Thus small aggregate
+AUROC differences can conceal substantial changes to individual groups.
+
+\clearpage
+Fifty per-record order permutations reused these fixed entailment judgments.
+Raw-answer entropy changed under at least one tested order for 96 of 270
+sentence records and 22 of 270 short-phrase records. Mean per-record entropy
+ranges were 0.2081 and 0.0401 nats. Across the 50 replicates, mean Qwen-graded
+raw DSE AUROC ranged from 0.7761 to 0.8177 for sentences and 0.7528 to 0.7803
+for short phrases. These are observed permutation ranges, not confidence
+intervals or exhaustive bounds over all possible orders.
+
+\section{Number of sampled answers}
+
+For $M=2,4,6,8$, 50 subsets per record were drawn without replacement from
+the original ten answers, preserving their relative order. Raw DSE, normalized
+DSE, and surface entropy use identical subsets. Clustering was recomputed
+within each subset; simply selecting the original cluster IDs would not
+reproduce the algorithm. Entropy contributions are summed in sorted count
+order to preserve ties across cluster-ID permutations. At $M=10$, the original answers were used once.
+
+\input{includes/t_robustness_samples.tex}
+
+On this subset, using ten answers improves discrimination over using two
+for all three estimators. Surface entropy benefits as well, so the improvement
+cannot be attributed solely to semantic grouping. The check neither establishes
+that ten is optimal nor measures performance above ten. The fixed subset,
+single seed, and single entailment model also limit extrapolation to the
+complete experiment. Both LLM graders retain all nine cells; token-F1 omits
+one single-class sentence cell. All three graders, per-cell eligibility,
+replicates, and ranges are retained in the result package.
+
+The bounded entailment job evaluated 31,498 unique directed pairs after
+exact-duplicate elimination and completed in 5 minutes 19 seconds on one
+A100 GPU. Cached labels make the normalization, order, and sample-count
+analyses reproducible without further inference. This runtime covers one
+validation job and is not an end-to-end cost comparison of the methods.

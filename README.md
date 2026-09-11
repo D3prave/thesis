@@ -39,7 +39,7 @@ exploratory rather than a central replication result.
 | Path | Contents |
 |---|---|
 | `thesis/` | LaTeX source: 7 chapters, appendix, bibliography, figures |
-| `thesis/includes/` | 21 active generated table files; some contain several tables |
+| `thesis/includes/` | 23 active generated table files; some contain several tables |
 | `src/semantic_entropy/` | Python package: sampling, clustering, entropy scoring, metrics, probes, plotting |
 | `scripts/` | Data preparation, aggregation, table and figure builders, verification gates |
 | `slurm/` | Batch scripts for the NHR@FAU runs |

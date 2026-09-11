@@ -35,7 +35,10 @@ This decomposition is not a perfect controlled comparison. Surface entropy
 counts normalized answers, whereas the released semantic-clustering procedure
 receives the raw answers. The comparison changes both the grouping rule and
 the text supplied to it. That difference limits how precisely the observed
-change can be attributed to semantic grouping alone.
+change can be attributed to semantic grouping alone. The bounded normalization
+check in Appendix~\ref{app:robustness} measures this sensitivity directly:
+normalization changes many sentence-answer partitions even when the average
+AUROC changes little.
 
 \subsection{The tested DeBERTa cross-encoders show no clear additional benefit}
 
@@ -68,7 +71,10 @@ Semantic entropy then improves on surface entropy under both LLM correctness
 judges, for both sentence-length and short-phrase answers. The stored answers
 are identical across this comparison, and surface entropy does not change.
 The improvement therefore comes from changing the entailment model within the
-tested procedure.
+tested procedure. The additional crossed dataset/generator and shared-question
+resampling in Appendix~\ref{app:robustness} retains the sentence-answer
+advantage under both judges, while the smaller short-phrase ranges include
+zero. Evidence for the two conditions is therefore not equally strong.
 
 This supports a narrower conclusion than saying that semantic grouping always
 works or never works. Its measured value depends on the model used to decide
@@ -226,8 +232,9 @@ validate the labels against people.
 Seeds are repeated runs within dataset--model units, not independent tests of
 generalization. The hierarchical analysis accounts for variation between the
 units under the stated resampling scheme, but it does not separately model
-dependence from shared datasets, generators, or questions. The limited grid
-therefore restricts the conclusions. A confidence interval that includes zero does not rule out a
+dependence from shared datasets, generators, or questions. The additional
+checks in Appendix~\ref{app:robustness} address these dependencies, but three
+datasets and three generators still restrict generalization. A confidence interval that includes zero does not rule out a
 small benefit.
 
 \paragraph{Different answer lengths and generation limits.}
@@ -239,7 +246,7 @@ result.
 \paragraph{Benchmark and computational scope.}
 Holding out questions from probe training does not establish that they were
 absent from the language model's pretraining data. Historical benchmark
-references may also omit later changes. Computational cost was not benchmarked:
+references may also omit later changes. End-to-end computational cost was not benchmarked:
 string counting needs no entailment calls, whereas semantic grouping adds
 pair comparisons to repeated generation. The results establish detection
 performance in this grid, not a measured accuracy--runtime tradeoff.
@@ -248,7 +255,9 @@ performance in this grid, not a measured accuracy--runtime tradeoff.
 The released algorithm processes answers in generation order, and changing
 that order can change the final groups without changing the entailment
 judgments.
-The entailment-model comparison does not measure or bound this ordering effect.
+Appendix~\ref{app:robustness} measures this effect on a fixed subset with
+DeBERTa-v3-large. Its observed permutation ranges do not bound every possible
+order or establish the effect for other entailment models.
 
 \paragraph{Scope of the comparisons.}
 The study covers three short-answer datasets and three generators.
