@@ -33,14 +33,12 @@ answers, and turn their disagreement into a risk score.
 
 \begin{figure*}[!ht]
 \centering
-\includegraphics[width=\linewidth]{method_schematic.png}
-\caption{The semantic entropy process on a small example. The model is
-  sampled several times for one question. Counting distinct \emph{wordings}
-  (left) gives higher entropy, because ``Canberra'' and ``Canberra is the
-  capital\ldots'' count as different answers. The right path groups the samples
-  by \emph{meaning} instead, using a Natural Language Inference (NLI) model
-  that is asked whether each pair of answers implies the other. Grouped that
-  way, three of the five samples support one meaning and the entropy is lower.}
+\includegraphics[width=\linewidth]{method_schematic.pdf}
+\caption{Five illustrative answers to the same question. Normalized-string
+  counting (left) keeps the two Canberra wordings separate. Grouping by meaning
+  using bidirectional entailment (right) combines them, producing lower entropy.
+  Filled marks show each group's share of the five samples. Agreement alone
+  does not establish correctness.}
 \label{fig:intro-schematic}
 \end{figure*}
 

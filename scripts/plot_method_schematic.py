@@ -1,93 +1,109 @@
 #!/usr/bin/env python3
-"""Original schematic of the semantic-entropy pipeline, built from this thesis's
-own worked example (capital of Australia). Conveys the same idea as the method
-figure in Farquhar et al. (2024) without reproducing its layout: counting
-distinct wordings overstates uncertainty; grouping by meaning corrects it.
+"""Draw the thesis's constructed five-answer example as a vector schematic.
 
-Layout: symmetric tree. Question + sampling on top, the two alternative
-scorings side by side in the middle, the decision box at the bottom.
+Normalized wording counts are (2, 1, 1, 1); meaning counts are (3, 1, 1).
+The diagram illustrates count-based entropy, not a correctness guarantee.
 """
 from __future__ import annotations
+
+import math
 from pathlib import Path
+
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
-FIGS = ROOT / "results/figures"
-TFIGS = ROOT / "thesis/figures"
+INK, MUTED, LINE = "#233345", "#586575", "#CFD7DF"
+BLUE, TEAL = "#315F86", "#23776F"
 
-BLUE, ORANGE, GREEN, GREY = "#2563eb", "#d97706", "#16a34a", "#4b5563"
-FILL_BLUE, FILL_ORANGE, FILL_GREEN, FILL_GREY = "#eef2ff", "#fff7ed", "#f0fdf4", "#f9fafb"
-
-fig, ax = plt.subplots(figsize=(12.5, 6.4))
-ax.set_xlim(0, 100)
-ax.set_ylim(0, 100)
+plt.rcParams.update({"font.family": "DejaVu Sans", "pdf.fonttype": 42})
+fig, ax = plt.subplots(figsize=(7.2, 3.55))
+fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+ax.set(xlim=(0, 100), ylim=(0, 100))
 ax.axis("off")
 
 
-def box(x, y, w, h, title, body, fc, ec, title_fs=12.5, body_fs=11.5):
-    """Rounded box with a bold colored title line and regular body text."""
-    ax.add_patch(FancyBboxPatch((x, y), w, h,
-                                boxstyle="round,pad=0.7,rounding_size=1.6",
-                                fc=fc, ec=ec, lw=1.6))
-    if title:
-        ax.text(x + w / 2, y + h - 2.6, title, ha="center", va="top",
-                fontsize=title_fs, weight="bold", color=ec)
-        ax.text(x + w / 2, y + (h - 9) / 2, body, ha="center", va="center",
-                fontsize=body_fs, color="black", linespacing=1.5)
-    else:
-        ax.text(x + w / 2, y + h / 2, body, ha="center", va="center",
-                fontsize=body_fs, color="black", linespacing=1.5)
+def box(x, y, width, height, fill, edge=LINE, radius=1.2):
+    ax.add_patch(FancyBboxPatch(
+        (x, y), width, height, boxstyle=f"round,pad=0,rounding_size={radius}",
+        linewidth=.7, facecolor=fill, edgecolor=edge))
 
 
-def arrow(x1, y1, x2, y2, color=GREY):
-    ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
-                                 mutation_scale=18, lw=1.8, color=color,
-                                 shrinkA=2, shrinkB=2))
+def text(x, y, label, size=8.3, color=INK, weight="normal", ha="left"):
+    ax.text(x, y, label, fontsize=size, color=color, weight=weight,
+            ha=ha, va="center", linespacing=1.2)
 
 
-# ---- Top row: question -> sample -------------------------------------------
-box(4, 66, 21, 24, None,
-    "Question\n\n“What is the capital\nof Australia?”",
-    FILL_BLUE, BLUE)
-arrow(26, 78, 33, 78, BLUE)
-box(34, 60, 32, 33, "1. Sample the model $M=5$ times",
-    "Canberra   ·   Canberra is the capital …\nSydney   ·   Melbourne   ·   Canberra",
-    "white", BLUE)
+def arrow(x1, y1, x2, y2, color):
+    ax.add_patch(FancyArrowPatch(
+        (x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=10,
+        linewidth=.9, color=color, shrinkA=0, shrinkB=0))
 
-# ---- Middle row: the two alternative scorings ------------------------------
-arrow(45, 58, 27, 51, ORANGE)   # sample -> surface
-arrow(55, 58, 73, 51, GREEN)    # sample -> semantic
-box(3, 22, 46, 28, "2a. Count distinct wordings",
-    "4 wording groups:\n"
-    "{Canberra ×2}   {Canberra is the capital …}\n"
-    "{Sydney}   {Melbourne}\n"
-    "surface entropy $\\approx$ 1.33 nats: higher uncertainty,\n"
-    "because paraphrases count as different answers",
-    FILL_ORANGE, ORANGE)
-box(51, 22, 46, 28, "2b. Group by meaning (NLI entailment)",
-    "3 meaning groups:\n"
-    "{Canberra;  Canberra is the capital …;  Canberra}\n"
-    "{Sydney}   {Melbourne}\n"
-    "semantic entropy $\\approx$ 0.95 nats: lower uncertainty,\n"
-    "with three of five samples sharing one meaning",
-    FILL_GREEN, GREEN)
 
-# ---- Bottom row: decision ---------------------------------------------------
-arrow(26, 20, 40, 13.5, ORANGE)
-arrow(74, 20, 60, 13.5, GREEN)
-box(27, 1, 46, 12, None,
-    "3. Score:  high entropy $\\Rightarrow$ flag the answer as risky\n"
-    "low entropy does not guarantee a correct answer",
-    FILL_GREY, GREY, body_fs=12)
+def frequency(x, y, count, color):
+    # Filled marks encode counts; outlines keep the five-sample denominator visible.
+    for i in range(5):
+        ax.plot(x + i * 1.6, y, marker="o", markersize=3.4,
+                markerfacecolor=color if i < count else "white",
+                markeredgecolor=color if i < count else LINE, markeredgewidth=.6)
+    text(x + 8.3, y, f"{count}/5", size=7.6, color=MUTED)
 
-fig.suptitle("Semantic entropy: measure uncertainty over meanings, not over wordings",
-             fontsize=14.5, y=0.985)
-fig.tight_layout(rect=(0, 0, 1, 0.95))
-for d in (FIGS, TFIGS):
-    d.mkdir(parents=True, exist_ok=True)
-    for ext in ("png", "pdf"):
-        fig.savefig(d / f"method_schematic.{ext}", dpi=200, bbox_inches="tight")
-print("wrote method_schematic.png to", FIGS, "and", TFIGS)
+
+text(1, 96, "1  Sample five answers", size=9.5, weight="bold")
+text(99, 96, "What is the capital of Australia?", size=9.5, ha="right")
+answers = [(1, 16, "Canberra"), (19, 28, "Canberra is the\ncapital of Australia."),
+           (49, 15, "Sydney"), (66, 15, "Melbourne"), (83, 16, "Canberra")]
+for x, width, label in answers:
+    box(x, 79, width, 12, "#F3F6F8")
+    text(x + width / 2, 85, label, size=8.0, ha="center")
+# Both branches use the same five sampled answers.
+ax.plot([50, 50], [78, 75], color=LINE, lw=.9)
+ax.plot([25, 75], [75, 75], color=LINE, lw=.9)
+arrow(25, 75, 25, 71.5, BLUE)
+arrow(75, 75, 75, 71.5, TEAL)
+
+for x, color, fill, title, subtitle in [
+    (1, BLUE, "#F1F5FA", "2a  Count normalized wordings", "4 groups · paraphrases stay separate"),
+    (52, TEAL, "#EFF7F5", "2b  Group by meaning", "3 groups · bidirectional entailment"),
+]:
+    box(x, 15, 47, 56, "white")
+    box(x, 57, 47, 14, fill, edge=fill)
+    text(x + 2.4, 66, title, size=9.0, color=color, weight="bold")
+    text(x + 2.4, 60.6, subtitle, size=7.5, color=MUTED)
+
+wordings = [(51, "Canberra", 2), (42, "Canberra is the\ncapital of Australia.", 1),
+            (33, "Sydney", 1), (24, "Melbourne", 1)]
+for y, label, count in wordings:
+    text(3.4, y, label, size=8.0)
+    frequency(35, y, count, BLUE)
+meanings = [(48, "Canberra / Canberra is the\ncapital of Australia.", 3),
+            (36, "Sydney", 1), (24, "Melbourne", 1)]
+for y, label, count in meanings:
+    text(54.4, y, label, size=8.0)
+    frequency(86, y, count, TEAL)
+
+
+def entropy(counts):
+    return -sum((n / 5) * math.log(n / 5) for n in counts)
+
+
+# Values are calculated from the displayed frequencies, not entered by hand.
+for x, color, name, counts in [(1, BLUE, "Surface entropy", [2, 1, 1, 1]),
+                                (52, TEAL, "Discrete semantic entropy", [3, 1, 1])]:
+    ax.plot([x, x + 47], [13, 13], color=color, lw=1.2)
+    text(x + 1, 9.2, name, size=8.5, color=color, weight="bold")
+    text(x + 46, 9.2, f"{entropy(counts):.2f} nats", size=10.0,
+         color=color, weight="bold", ha="right")
+text(50, 2.3, "Lower entropy means more agreement, not necessarily a correct answer.",
+     size=8.0, color=MUTED, ha="center")
+
+for directory in (ROOT / "results/figures", ROOT / "thesis/figures"):
+    directory.mkdir(parents=True, exist_ok=True)
+    for extension in ("pdf", "png"):
+        fig.savefig(directory / f"method_schematic.{extension}", dpi=240,
+                    facecolor="white", metadata={"Creator": "Matplotlib"})
+plt.close(fig)
+print("Wrote method_schematic.pdf and method_schematic.png")
