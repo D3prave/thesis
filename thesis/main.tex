@@ -38,6 +38,7 @@
 \DontPrintSemicolon
 
 \usepackage{needspace}
+\usepackage{placeins}
 % Note: the kaobook class (styles/kao.sty) already loads algorithm2e, so the
 % algorithm environment is available without an extra package here.
 
@@ -141,6 +142,12 @@ Date of birth: [removed]
 \endgroup
 
 \mainmatter
+% Keep paragraph and heading spacing natural on partially filled pages.
+\raggedbottom
+\setlength{\parskip}{4.5pt plus 1pt minus 1pt}
+% Let substantial tables share a page with text and figures.
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\bottomfraction}{0.5}
 
 \input{chapters/01_introduction.tex}
 \input{chapters/02_background.tex}
@@ -151,6 +158,12 @@ Date of birth: [removed]
 \input{chapters/07_conclusion.tex}
 
 \appendix
+% Keep table-only appendix pages top-aligned with fixed gaps.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
 \input{appendices/method_details.tex}
 \input{appendices/secondary_results.tex}
 \input{appendices/robustness.tex}
