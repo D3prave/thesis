@@ -97,25 +97,20 @@ requires no extra model call.
 \label{sec:what-the-study-finds}
 
 Semantic entropy detects incorrect answers better than chance in the main
-comparisons graded by large language models (LLMs) and leads the measured
-Farquhar baselines on
+comparisons graded by large language models (LLMs) and leads the measured Farquhar baselines on
 sentence-length answers. The discrete and likelihood-weighted estimators
-perform similarly. On short phrases, several leading methods are nearly tied.
-The advantage over naive predictive entropy is larger for sentence-length
-answers than for short phrases.
-In the separate long-form biography evaluation, semantic entropy also has a
-higher recorded AUROC than the measured string baselines, reaching 0.708 with
-the Qwen entailment model.
+perform similarly. On short phrases, the leading methods are nearly tied.
+The separate long-form biography evaluation records the largest gap over the
+string baselines, reaching 0.708 with the Qwen entailment model.
 
-In the short-answer comparisons, the ranking depends on the entailment model, sampling temperature, and
-correctness rule. With the tested Qwen entailment model, semantic entropy also
-improves on normalized-string counting under both LLM judges. With the tested DeBERTa
-cross-encoders, no additional benefit over that comparator is detected
-under LLM grading. The decomposition helps explain this distinction:
-normalization gives the most consistent improvement across its four steps.
-The practical message is that normalized-string entropy is a strong cheap
-baseline, while the added value of semantic grouping depends on the entailment
-model.
+In the short-answer comparisons under LLM grading, the added benefit over
+normalized-string counting depends on the entailment model. It is detected
+with the tested Qwen model, with stronger robustness evidence for sentence
+answers, but not with the tested DeBERTa cross-encoders. Temperature and
+correctness grading also change the ranking.
+Normalization gives the most consistent improvement across the four method
+steps, so normalized-string entropy is a strong cheap baseline and any added
+value from semantic grouping must be reported with its entailment model.
 
 \section{Contributions}
 \label{sec:contributions}

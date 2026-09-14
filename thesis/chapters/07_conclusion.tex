@@ -4,82 +4,46 @@
 \section{Summary}
 \label{sec:conclusion-summary}
 
-This thesis reimplemented semantic entropy using the method of Farquhar et
-al.~\cite{semantic_entropy_nature_2024} and its released
-code~\cite{kossen_semantic_uncertainty_code_2024}. It compared the method with
-Farquhar et al.'s baselines and with surface entropy, a simpler method that counts
-normalized answer strings. The evaluation covers short-answer benchmarks and a
-long-form biography evaluation using open generating models.
+This thesis reimplemented semantic entropy following Farquhar et
+al.~\cite{semantic_entropy_nature_2024} and the released
+code~\cite{kossen_semantic_uncertainty_code_2024}. Its main contribution is a
+comparison that distinguishes the performance of the complete estimator from
+the added value of grouping answers by meaning.
 
-The main question was how well semantic entropy detects incorrect answers,
-whether it performs better than other estimators, and when it has an
-advantage. In the main comparisons graded by large language models (LLMs), it ranks incorrect answers above
-correct ones better than chance. On sentence-length answers, its discrete and
-likelihood-weighted forms perform similarly and lead the measured Farquhar
-baselines. Their advantage over naive predictive entropy is larger for
-sentence-length answers than for short phrases, where several leading
-methods are nearly tied.
+Semantic entropy provides useful detection in the main LLM-graded comparisons
+and leads the measured original baselines on sentence answers. Its discrete
+and likelihood-weighted forms perform similarly.
 
-The recorded long-form biography evaluation has higher AUROC for semantic
-entropy than for the string baselines with the larger entailment models:
-semantic entropy reaches 0.670 with large DeBERTa and 0.708 with Qwen, while
-surface and naive sample entropy are near 0.497. The pooled gaps over surface
-entropy have records-only 95\,\% intervals of $[+0.157,+0.190]$ and
-$[+0.196,+0.228]$, respectively. These intervals hold generators and seeds
-fixed and do not capture variation across datasets and generators. This is the largest gap
-measured in the study. The biography runs use one dataset and one judge, Qwen,
-which is also an entailment model. The task and grading scheme differ from the
-short-answer evaluation, so this comparison does not isolate an effect of length.
+The results make normalized-string entropy an essential comparator: it captures
+the most consistent improvement in the decomposition without entailment calls.
+On the short-answer tasks under LLM grading, no additional benefit is detected
+with the tested DeBERTa cross-encoders. The Qwen entailment model yields gains
+under both judges, with stronger robustness evidence for sentence answers.
+The smaller short-phrase ranges include zero under crossed resampling.
 
-Changing the entailment model changes the conclusion. In the short-answer
-comparisons, the tested Qwen entailment model improves semantic entropy over
-surface entropy under both LLM judges. Additional shared-question and
-crossed-factor resampling retains the
-sentence-answer advantage, while the smaller short-phrase ranges include zero.
-Sampling temperature also changes which detector leads, and the
-correctness rule can reverse the semantic-versus-surface comparison. The
-method's reported performance therefore needs to be read together with its
-entailment model, sampling settings, and grading rule.
+The separate biography evaluation shows where string counting loses its
+usefulness: nearly every sampled paragraph is distinct. The two larger
+entailment models produce informative scores in this setting and the largest
+recorded gaps over the string baselines. This supports testing semantic
+grouping on varied paragraph answers, although the changed task and grading
+target prevent attributing the gap to length alone.
 
-The decomposition provides a supporting explanation. Normalizing answer
-strings gives the most consistent improvement across the four method steps.
-In those short-answer comparisons, the tested DeBERTa cross-encoders add no
-detectable benefit over surface entropy under LLM grading.
-
-The practical interpretation is that normalized-string entropy is a strong,
-cheap baseline. Semantic entropy is most useful when answers are long and the
-entailment model groups meanings reliably; it is not consistently better than
-every comparator.
-
-The study contributes a comparison with Farquhar et al.'s baselines, the
-normalized-string comparator, tests of evaluation choices, and a documented
-implementation. The grouping comparison remains subject to the raw-versus-normalized
-input difference described in Chapter~\ref{ch:discussion}.
+The practical lesson is to compare semantic entropy with normalized-string
+counting on the intended task and report the entailment model, sampling
+temperature, and correctness rule. These choices change the observed ranking.
+The documented implementation and evaluation make those comparisons traceable.
 
 \section{Limitations and next steps}
 \label{sec:conclusion-limitations}
 
-The most important limitation is the absence of human correctness labels.
-Token overlap and LLM judgments are the only grading rules used here. The
-LLM judges agree closely, but they may share mistakes. Using a different model
-for grading reduces concern about one model serving in both roles. It does not
-show that the grades are correct, and it does not remove possible shared
-biases between grading and semantic clustering.
+Human validation is the first priority. The LLM judges may share errors with
+each other and with semantic clustering. Human correctness labels for a sample
+of the existing answers would allow the estimator comparison to be repeated
+against an independent assessment.
 
-The dataset--model grid is also limited and shares datasets and generators across
-its resampling units. Repeated
-seeds and more question records do not provide the same evidence as testing
-more datasets and generating models. The study can therefore report that it
-did not detect a benefit in some conditions, but cannot rule out small
-improvements or generalize to all language-model tasks. An interval that
-includes zero does not establish equivalence.
-
-Further limits include different answer lengths from the original study,
-different token limits for uncertainty samples and graded answers,
-and order-dependent clustering. The full discussion is in
-Section~\ref{sec:threats}.
-
-The clearest next step is to obtain human correctness labels for a sample of
-the existing answers and repeat the comparison of uncertainty estimators
-against those labels. Broader dataset--model coverage would then help determine
-whether the conditional benefit found here holds beyond this evaluation.
+Broader dataset--model coverage is the next priority. Repeated seeds and more
+records cannot replace new datasets and generators when testing
+generalization. The biography result is particularly restricted: it uses one
+dataset and one Qwen judge, and its intervals hold generators and seeds fixed.
+The full account of statistical, protocol, normalization, and clustering-order
+limits is in Section~\ref{sec:threats}.

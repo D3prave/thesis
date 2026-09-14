@@ -42,12 +42,9 @@ In the sentence-length temperature comparison, naive predictive entropy
 overtakes the sample-diversity estimators at low temperature. Changing the correctness rule can also reverse
 the semantic-versus-surface ranking.
 
-A supporting decomposition examines which steps explain these comparisons.
+A supporting decomposition examines which steps explain the comparison.
 Normalizing answer strings before counting them gives the most consistent
-improvement. The added value of grouping by meaning depends on the entailment
-model. The results remain conditional on the correctness rules, the limited
-dataset--model grid, and possible shared biases between semantic grouping and
-grading.
-
-Semantic entropy is therefore a useful detector in the tested settings, but
-it is not consistently the best method. Its advantage is dependent on the comparator, the entailment model, the correctness rule, and the answer length.
+improvement. Normalized-string entropy is therefore a strong baseline that
+requires no entailment calls. The findings are limited by the dataset--model
+grid and correctness labels without human validation, including possible
+shared errors between semantic grouping and grading.

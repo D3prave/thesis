@@ -1,14 +1,12 @@
 \chapter{Discussion}
 \label{ch:discussion}
 
-The headline result from prior work survives, but in a qualified form.
-Semantic entropy leads the measured original baselines on sentence-length
-answers, yet much of that advantage disappears against surface entropy, which
-simply normalizes and counts answer strings. The remaining difference depends
-on the entailment model: the tested Qwen model produces a clear sentence-answer
-advantage, while the tested DeBERTa models do not. Temperature and correctness
-grading can change the ranking as well. The entailment model is therefore part
-of the method, not a minor implementation detail.
+Beating the original baselines is weaker evidence for semantic grouping than
+beating normalized-string counting. In the sentence-answer comparisons under
+LLM grading, the tested Qwen entailment model clears that stronger comparison,
+whereas no additional benefit is detected with the tested DeBERTa models.
+The entailment model is therefore central to interpreting the method's
+performance.
 
 \section{What grouping by meaning adds}
 \label{sec:what-clustering-is-worth}
@@ -29,29 +27,15 @@ similarly to the likelihood-weighted version in this study.
 
 The comparison with surface entropy is important because the original
 baselines do not isolate grouping by meaning. Surface entropy also outperforms
-those baselines in every comparison where each was measured. Their results
-therefore do not show that semantic grouping causes the improvement.
-
-The comparison is not perfectly controlled: surface entropy counts normalized
-answers, whereas semantic clustering receives raw answers. The fixed-subset
-check in Appendix~\ref{app:robustness} shows that normalization changes many
-individual partitions even when the average AUROC changes little. The strong
-normalization result is therefore clearer than the smaller incremental effect
-of meaning-based grouping.
+those baselines in every comparison where it was measured. The decomposition
+therefore identifies normalization, rather than grouping alone, as the
+consistent source of improvement.
 
 \subsection{The tested DeBERTa cross-encoders show no clear short-answer benefit}
 
-In the short-answer comparisons, the default entailment model,
-\texttt{deberta-v2-xlarge-mnli}, has no confidence interval for the
-semantic-versus-surface difference that excludes zero under either LLM
-correctness judge. The additional cross-encoder,
-\texttt{nli-deberta-v3-large}, gives the same overall pattern under LLM
-grading.
-
-The study therefore finds no additional short-answer benefit over normalized-string
-counting with these cross-encoders and labels. The intervals are wide enough
-that a small benefit could remain undetected; the statistical implications are
-returned to in the threats to validity.
+In the short-answer comparisons, no additional benefit over normalized-string
+counting is detected with the tested DeBERTa cross-encoders under LLM grading.
+None of the corresponding hierarchical intervals excludes zero.
 
 \subsection{Changing the entailment model changes the result}
 
@@ -72,16 +56,14 @@ for short phrases. The comparison in Section~\ref{sec:answer-length-results}
 shows the same direction: the discrete-semantic advantage rises from 0.0110
 for short phrases to 0.0628 for the sentence instruction without examples.
 Its advantage over surface entropy is smaller and uncertain with the default
-entailment model. This comparison concerns question answering and does not
-reproduce the paper's separate claim-level passage analysis.
+entailment model.
 
 The long-form biography evaluation shows the largest recorded gap in the study:
 0.670 with large DeBERTa and 0.708 with Qwen, against 0.497 for surface and
-naive sample entropy. This is consistent with meaning-based grouping helping
-when paragraphs vary in wording, but it is not a pure length experiment: the
-task, prompts, grading target, dataset, and judge also change. The intervals
-hold generators and seeds fixed. Changing the entailment model also reverses
-which generator gains most, even though its answers stay fixed.
+naive sample entropy. Here the string baselines are nearly saturated because
+the sampled paragraphs are distinct. Meaning-based grouping restores variation
+in the uncertainty score (Section~\ref{sec:longform-results}). The task and
+grading target also change, so this comparison does not isolate answer length.
 
 \section{Why the evaluation setup matters}
 \label{sec:apparatus}
@@ -95,10 +77,9 @@ should not be described as changes made to one fixed generation set.
 
 \subsection{The entailment model is part of the method}
 
-The tested entailment models produce different AUROC values. Describing all of them as
-bidirectional entailment clustering is not enough to make the measurement
-reproducible. The model, prompt, and clustering rule are part of the method,
-not minor implementation details.
+To reproduce these comparisons, a report must specify the entailment model,
+prompt, and clustering rule. The label ``bidirectional entailment'' alone
+leaves these consequential choices unspecified.
 
 \subsection{Sampling temperature changes which detector leads}
 \label{sec:diversity-vs-likelihood}
@@ -106,11 +87,8 @@ not minor implementation details.
 At lower temperatures, the sampled answers become less varied. The detectors
 that measure variation across samples lose more accuracy than the detector
 based on sequence likelihoods, and the ordering changes across the tested
-range. An advantage measured at one temperature should not be assumed to hold
-at another.
-
-The highest temperature tested here is the most favorable tested setting for
-the sample-based detectors. It does not follow that this is a general optimum.
+range. The highest temperature tested here is the most favorable setting for
+the sample-based detectors in this sweep, not a general optimum.
 
 \subsection{The correctness rule can reverse the comparison}
 
@@ -121,21 +99,18 @@ under the LLM judges. The LLM-graded intervals include zero with the default
 entailment model.
 
 Token-F1 can penalize a correct but long answer because it compares that answer
-with a short reference. In some tested groups it labels very few answers
-correct, making AUROC estimates unstable. The LLM judges avoid simple
-token-overlap matching, but their labels are not ground truth
-either. There are no human annotations in this study to determine which rule
-better reflects actual correctness.
+with a short reference. Its low acceptance rate in some groups makes AUROC
+estimates unstable, yet excluding those groups leaves surface entropy's
+token-F1 advantage largely unchanged (Section~\ref{sec:grading-results}). The
+choice of grading rule affects more than a few extreme cases.
 
 \section{Comparison with Farquhar et al.\ and Kossen et al.}
 \label{sec:comparison-farquhar}
 \label{sec:reproduction}
 
-Semantic entropy performs better than the measured original baselines, and its
-discrete and likelihood-weighted forms perform similarly. The result supports
-the original paper's broad comparison, but the normalized-string baseline
-shows that the original comparison does not isolate the value of semantic
-grouping~\cite{semantic_entropy_nature_2024}.
+The sentence-answer results agree with Farquhar et
+al.~\cite{semantic_entropy_nature_2024} on the measured original baseline
+comparisons and the similar performance of the two semantic estimators.
 
 The comparison is limited to the configurations tested here. Farquhar
 et al.~\cite{semantic_entropy_nature_2024} report that P(True) tends to improve
@@ -161,73 +136,46 @@ graded to be longer than the samples used to estimate uncertainty. Following
 the released code makes those choices traceable, but does not remove their
 effect on the results.
 
-The main addition is the normalized-string comparator. It shows that the
-original baseline comparisons alone do not identify the value of semantic
-grouping. The added entailment-model comparison then shows when an additional
-benefit can be detected in this study.
-
 \section{Threats to validity}
 \label{sec:threats}
 
-The following limits remain part of the main argument because they affect how
-the results can be interpreted.
+\paragraph{Correctness labels and shared errors.}
+Every accuracy and AUROC estimate depends on token overlap or LLM judgments
+without human validation. Agreement between judges establishes consistency
+only. Both entailment and LLM grading compare meanings, so shared preferences
+or errors could favor semantic entropy. Re-grading preserves the main
+entailment-model ranking, reducing concern about one model serving both roles,
+but shared errors across models remain possible.
 
-\paragraph{No human correctness labels.}
-All correctness labels come from token overlap or an LLM judge. Agreement
-between the LLM judges measures their consistency with each other, not their
-accuracy against human judgment. They could agree and still make the same
-mistakes. Every reported accuracy and detector-performance estimate depends on these
-unvalidated labels.
+\paragraph{Statistical units and generalization.}
+Seeds repeat runs within dataset--generator pairs. The hierarchical analysis
+resamples these pairs and their records; the additional checks in
+Appendix~\ref{app:robustness} address shared datasets, generators, and questions.
+Three datasets and three generators still limit generalization. An interval
+that includes zero does not establish equivalence or rule out a small benefit.
+The biography intervals resample records while holding generators and seeds
+fixed.
 
-\paragraph{Dependence between semantic grouping and grading.}
-The entailment model compares meanings, and the LLM correctness judges also
-compare an answer with a reference by meaning. Shared preferences or errors
-could favor semantic entropy without reflecting better detection of incorrect
-answers. Re-grading with a different model leaves the main entailment-model
-ranking largely unchanged, which reduces concern about using one particular
-model in both roles. It does not rule out shared errors across models or
-validate the labels against people.
-
-\paragraph{Limited and shared statistical units.}
-Seeds are repeated runs within dataset--model units, not independent tests of
-generalization. The hierarchical analysis accounts for variation between the
-units under the stated resampling scheme, but it does not separately model
-dependence from shared datasets, generators, or questions. The additional
-checks in Appendix~\ref{app:robustness} address these dependencies, but three
-datasets and three generators still restrict generalization. A confidence interval that includes zero does not rule out a
-small benefit.
-
-\paragraph{Different answer lengths and generation limits.}
-The sentence-length condition produces longer answers than the original study.
-The samples used for uncertainty and the answer judged for correctness also
-have different token limits. This limits direct comparison with the published
-result.
+\paragraph{Input and protocol differences.}
+Surface entropy counts normalized answers, whereas semantic clustering receives
+raw answers. The fixed-subset check in Appendix~\ref{app:robustness} finds many
+partition changes after normalization despite small mean AUROC changes.
+The sentence condition produces longer answers than the original study, and
+graded answers and uncertainty samples use different token limits. The
+biography protocol uses one dataset and one Qwen judge, also used for entailment
+in one setting. Its different task, prompts, and reference-consistency target
+prevent a pure length comparison. Neither answer-length comparison reproduces
+the paper's separate claim-level passage analysis.
 
 \paragraph{Benchmark and computational scope.}
-Holding out questions from probe training does not establish that they were
-absent from the language model's pretraining data. Historical benchmark
-references may also omit later changes. End-to-end computational cost was not benchmarked:
-string counting needs no entailment calls, whereas semantic grouping adds
-pair comparisons to repeated generation. The results establish detection
-performance in this grid, not a measured accuracy--runtime tradeoff.
+Probe-training holdouts may overlap with pretraining data, and historical
+references may omit later changes. End-to-end computational cost was not
+benchmarked. String counting needs no entailment calls; semantic grouping
+adds pair comparisons to repeated generation, so the results do not quantify
+an accuracy--runtime tradeoff.
 
 \paragraph{Order-dependent clustering.}
-The released algorithm processes answers in generation order, and changing
-that order can change the final groups without changing the entailment
-judgments.
-Appendix~\ref{app:robustness} measures this effect on a fixed subset with
-DeBERTa-v3-large. Its observed permutation ranges do not bound every possible
-order or establish the effect for other entailment models.
-
-\paragraph{Scope of the comparisons.}
-The study covers three short-answer datasets and three generators.
-Table~\ref{tab:grid-at-a-glance} and the individual result tables specify
-which methods and settings are compared. The findings apply to those settings.
-
-Taken together, the results support semantic entropy as a detector whose
-comparative performance depends on the setting. Its advantage over naive
-entropy is larger for sentence-length answers, and it improves on
-normalized-string counting with the tested Qwen entailment model under LLM
-grading. It is not consistently the best estimator across the tested
-conditions. Broader dataset--model coverage and validated correctness labels
-would help establish how far these findings generalize.
+Changing answer order can change the groups with entailment judgments fixed.
+The permutation check in Appendix~\ref{app:robustness} covers a fixed subset
+with DeBERTa-v3-large. Its observed ranges do not bound all orders or establish
+the effect for other entailment models.

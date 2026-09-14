@@ -418,11 +418,10 @@ accuracy comparisons and exclusion checks in full.
 \section{Summary of comparisons}
 \label{sec:secondary-results-overview}
 
-The results support a conditional conclusion. Semantic entropy leads the
-measured original baselines on sentence-length answers, but normalized-string
-entropy is a strong simpler comparator. In the short-answer comparisons,
-meaning-based grouping adds a clear benefit only with the tested Qwen entailment
-model. In the separate long-form setting, it shows clear gains with both the
-large DeBERTa and Qwen entailment models. Temperature and correctness grading
-can change which method appears best.
+The comparisons answer two different questions. The original baseline tests
+rank complete estimators, while the decomposition examines which steps add
+value. The entailment-model and grading checks change that ranking on identical
+answers; the temperature sweep changes the samples used to estimate uncertainty.
+Chapter~\ref{ch:discussion} explains what these distinctions imply for the
+value of semantic grouping.
 \clearpage
