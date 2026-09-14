@@ -931,9 +931,12 @@ def longform_comparison_figure(outdir):
         ax.grid(axis='y', color='#dddddd', lw=0.45, zorder=0)
         ax.tick_params(length=2, labelsize=6.8)
     axes[0].set_ylabel('AUROC', fontsize=8)
-    axes[0].legend(frameon=True, fontsize=6.3, loc='upper left',
-                   bbox_to_anchor=(0, 1.02), handlelength=1.6)
-    fig.tight_layout(w_pad=0.8)
+    # Figure-level legend above the panels: the Mistral curve reaches the top of
+    # the data area, so any in-axes placement overlaps it.
+    fig.legend(*axes[0].get_legend_handles_labels(), loc='upper center',
+               bbox_to_anchor=(0.5, 1.0), ncol=3, fontsize=6.6, frameon=False,
+               columnspacing=0.8, handlelength=1.6, handletextpad=0.5)
+    fig.tight_layout(rect=(0, 0, 1, 0.88), w_pad=0.8)
     fig.savefig(os.path.join(outdir, 'longform_comparison.pdf'))
     plt.close(fig)
 
