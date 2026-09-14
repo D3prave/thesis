@@ -931,7 +931,7 @@ def longform_comparison_figure(outdir):
         ax.grid(axis='y', color='#dddddd', lw=0.45, zorder=0)
         ax.tick_params(length=2, labelsize=6.8)
     axes[0].set_ylabel('AUROC', fontsize=8)
-    axes[0].legend(frameon=False, fontsize=6.3, loc='upper left',
+    axes[0].legend(frameon=True, fontsize=6.3, loc='upper left',
                    bbox_to_anchor=(0, 1.02), handlelength=1.6)
     fig.tight_layout(w_pad=0.8)
     fig.savefig(os.path.join(outdir, 'longform_comparison.pdf'))
