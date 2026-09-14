@@ -31,9 +31,10 @@ measured in the study. The biography runs use one dataset and one judge, Qwen,
 which is also an entailment model. The task and grading scheme differ from the
 short-answer evaluation, so this comparison does not isolate an effect of length.
 
-Changing the entailment model changes the conclusion. With the tested Qwen
-entailment model, semantic entropy improves on surface entropy under both LLM
-judges. Additional shared-question and crossed-factor resampling retains the
+Changing the entailment model changes the conclusion. In the short-answer
+comparisons, the tested Qwen entailment model improves semantic entropy over
+surface entropy under both LLM judges. Additional shared-question and
+crossed-factor resampling retains the
 sentence-answer advantage, while the smaller short-phrase ranges include zero.
 Sampling temperature also changes which detector leads, and the
 correctness rule can reverse the semantic-versus-surface comparison. The
@@ -42,8 +43,8 @@ entailment model, sampling settings, and grading rule.
 
 The decomposition provides a supporting explanation. Normalizing answer
 strings gives the most consistent improvement across the four method steps.
-With the tested DeBERTa cross-encoders, semantic grouping adds no detectable
-benefit over surface entropy under LLM grading.
+In those short-answer comparisons, the tested DeBERTa cross-encoders add no
+detectable benefit over surface entropy under LLM grading.
 
 The practical interpretation is that normalized-string entropy is a strong,
 cheap baseline. Semantic entropy is most useful when answers are long and the

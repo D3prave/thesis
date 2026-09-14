@@ -132,8 +132,10 @@ Normalization is each dataset's standard answer-cleaning step. For the
 question-answering datasets it lowercases, strips punctuation and the articles
 \emph{a\,/\,an\,/\,the}, and collapses whitespace, following the TriviaQA
 evaluation protocol, so ``The Eiffel Tower!'' and ``eiffel tower'' become the
-same string. For the arithmetic dataset it extracts the final number, so ``The
-answer is 7 apples'' becomes ``7''. This is a surface grouping: it collapses
+same string. For the arithmetic dataset it extracts the first numeric value;
+when an answer contains an equals sign, it searches the text after the final
+equals sign if that tail contains a number. Thus ``The answer is 7 apples''
+and ``3 + 4 = 7'' both become ``7''. This is a surface grouping: it collapses
 spelling and formatting and nothing else. The entropy over these groups is
 called \emph{surface entropy}. It is the direct baseline for testing whether
 semantic grouping adds value, because it changes the grouping rule while

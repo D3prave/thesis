@@ -39,15 +39,16 @@ individual partitions even when the average AUROC changes little. The strong
 normalization result is therefore clearer than the smaller incremental effect
 of meaning-based grouping.
 
-\subsection{The tested DeBERTa cross-encoders show no clear additional benefit}
+\subsection{The tested DeBERTa cross-encoders show no clear short-answer benefit}
 
-With the default entailment model, \texttt{deberta-v2-xlarge-mnli}, none of
-the confidence intervals for the difference between semantic and surface
-entropy excludes zero under either LLM correctness judge. The additional
-cross-encoder, \texttt{nli-deberta-v3-large}, gives the same overall pattern
-under LLM grading.
+In the short-answer comparisons, the default entailment model,
+\texttt{deberta-v2-xlarge-mnli}, has no confidence interval for the
+semantic-versus-surface difference that excludes zero under either LLM
+correctness judge. The additional cross-encoder,
+\texttt{nli-deberta-v3-large}, gives the same overall pattern under LLM
+grading.
 
-The study therefore finds no additional benefit over normalized-string
+The study therefore finds no additional short-answer benefit over normalized-string
 counting with these cross-encoders and labels. The intervals are wide enough
 that a small benefit could remain undetected; the statistical implications are
 returned to in the threats to validity.
