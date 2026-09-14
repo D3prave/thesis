@@ -9,6 +9,12 @@ nearly tied, and surface entropy leads under token-F1.
 Figures~\ref{fig:method-comparison} and~\ref{fig:method-comparison-short}
 compare all eight methods within each dataset and model.
 
+The chapter first reports the headline comparisons, then separates answer
+length from prompting and task effects. It next examines the estimator steps,
+and finally tests the entailment model, temperature, and correctness rule.
+This order distinguishes what the method achieves from the choices that change
+the measurement.
+
 The results below compare uncertainty estimators under the settings named in
 each table. Unless stated otherwise, each mean first averages the three
 generation seeds within each of the nine dataset--generator pairs (one dataset
@@ -142,7 +148,7 @@ entailment model. Surface entropy and naive sample entropy remain near chance
 at 0.497. These string-based methods do not use an entailment model, so their
 results are unchanged across entailment settings. When all ten samples form
 distinct string groups, each group has the same frequency and the string-based
-entropy is constant. For both larger entailment models, the same advantage
+entropy is constant. For both larger entailment models, the same higher score
 appears across the three generators in Table~\ref{tab:longform-by-generator}
 and Figure~\ref{fig:longform-comparison}. Every records-only interval for these
 generator-level comparisons excludes zero. The two smaller entailment settings
@@ -155,7 +161,7 @@ consistently.
 
 \input{includes/t_longform.tex}
 
-With the two larger entailment models, semantic grouping improves detection
+With the two larger entailment models, the semantic-grouping score is higher
 of paragraphs rejected by the reference-based judge. Specific facts absent
 from the reference are rejected even if they may be true elsewhere; vague
 responses without a contradiction can pass. The verdict measures support
@@ -193,15 +199,15 @@ sample entropy counts raw strings. Surface entropy counts them after
 normalization. Discrete semantic entropy groups the samples by meaning, and the
 likelihood-weighted estimator weights those groups by likelihood.
 
-The third step needs one qualification. Following the released code, the
+Following the released code, the
 clustering is run on the raw answers, while surface entropy counts the
 normalized ones, so that step changes two things at once: how two answers are
 judged to mean the same thing, and whether the text was cleaned up first.
 Normalizing merges variants such as different capitalization and punctuation,
 and the entailment model may group those variants differently when it sees the
-raw text. The comparison therefore does not isolate semantic grouping
-perfectly, and this study does not measure the direction of that effect on
-AUROC.
+raw text. The comparison does not isolate semantic grouping perfectly. The
+fixed-subset check in Appendix~\ref{app:robustness} measures how often the
+partition changes after normalization and how much the score varies.
 
 Table~\ref{tab:ladder} and Figure~\ref{fig:ladder} give the change at each
 step over all 24 configuration entries.
@@ -412,30 +418,10 @@ accuracy comparisons and exclusion checks in full.
 \section{Summary of comparisons}
 \label{sec:secondary-results-overview}
 
-The comparisons show different degrees of separation between the methods.
-For sentence-length answers under the Qwen judge at $T=1.0$, the two semantic
-estimators have the highest mean AUROCs among the eight methods
-(Table~\ref{tab:sentence-length}). With the default entailment model, their
-advantage over surface entropy is smaller than their advantage over naive
-predictive entropy. For short phrases, discrete semantic and surface entropy
-differ by less than 0.003 AUROC under either LLM judge
-(Table~\ref{tab:short-phrase}).
-
-Changing the entailment model widens the sentence-length comparison: discrete
-semantic entropy's advantage over surface entropy rises from 0.0204 with the
-default model to 0.0867 with Qwen. The first confidence interval includes zero, and
-the second excludes it (Table~\ref{tab:backend}). In the separate biography
-evaluation, the large DeBERTa and Qwen entailment models yield AUROCs of 0.670
-and 0.708, respectively, while the string baselines remain near 0.497
-(Table~\ref{tab:longform}).
-
-The comparisons between consecutive method steps also differ in consistency.
-Normalization increases mean AUROC in all 24 configuration entries
-(12 distinct string contrasts), semantic grouping
-in 14, and likelihood weighting in 12 (Table~\ref{tab:ladder}). The
-temperature sweep under the Qwen judge reverses the ordering of naive
-predictive entropy relative to discrete semantic and surface entropy between
-$T=0.1$ and $T=1.0$ (Section~\ref{sec:temperature-sensitivity}). Changing the
-grader reverses the mean ordering of discrete semantic and surface entropy on
-fixed answers (Section~\ref{sec:grading-results}).
+The results support a conditional conclusion. Semantic entropy leads the
+measured original baselines on sentence-length answers, but normalized-string
+entropy is a strong simpler comparator. Meaning-based grouping adds a clear
+benefit only with the tested Qwen entailment model, especially in the separate
+long-form setting. Temperature and correctness grading can change which method
+appears best.
 \clearpage

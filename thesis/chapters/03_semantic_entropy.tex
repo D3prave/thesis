@@ -92,6 +92,11 @@ model and only read what it produces. None of them changes its weights.
         $\widehat{H}_{\mathrm{sem}}(x)=-\sum_k \hat{p}_k\log\hat{p}_k$.
 \end{enumerate}
 
+These are the three stages of the pipeline. Chapter~\ref{ch:results} uses a
+separate four-step ladder to compare this estimator with progressively different
+baselines; that ladder is an analysis of the method, not a fourth computational
+stage.
+
 Correctness labeling and decisions based on the uncertainty score belong to the
 \emph{evaluation}, not to the method. Chapter~\ref{ch:experimental_design}
 handles them separately. Clustering reuses stored samples, so the entailment
@@ -103,35 +108,13 @@ estimator.
 \label{sec:sampling-setup}
 
 For each prompt the model is sampled $M$ times under one decoding
-configuration, giving $Y(x) = \{y_1,\ldots,y_M\}$. Three parameters control the
-randomness, and all three act on one step at a time: the choice of the next
-token, given everything generated so far.
-
-At that step the model produces one real number, a \emph{logit} $z_v$, for every
-token $v$ in its vocabulary $V$. \emph{Temperature} $T > 0$ divides those logits
-before the softmax turns them into a distribution:
-\[
-  P_T(v) \;=\; \frac{\exp(z_v / T)}{\sum_{w \in V} \exp(z_w / T)} .
-\]
-Setting $T = 1$ leaves the model's own distribution unchanged. Small $T$ spreads
-the logits apart, so the highest-scoring token takes almost all the mass and
-repeated samples come out nearly identical. As $T \to 0$ this approaches always
-picking the single most likely token. Large $T$ pulls the logits together toward
-a uniform choice, so samples vary more.
-
-The other two parameters restrict which tokens can be drawn.
-\emph{Nucleus sampling} (top-$p$) sorts the vocabulary by $P_T$ from highest to
-lowest probability. It keeps the shortest prefix whose total probability
-reaches $p$,
-\[
-  V_p \;=\; \text{the smallest } S \subseteq V \text{ in that order with}
-  \sum_{v \in S} P_T(v) \;\ge\; p ,
-\]
-while \emph{top-$k$} keeps only the $k$ most probable tokens. When both are
-used, a token must pass both filters. The remaining probabilities are scaled to
-sum to one, and every excluded token has probability zero. These filters remove
-very unlikely tokens while allowing the number of available tokens to change at
-each generation step.
+configuration, giving $Y(x) = \{y_1,\ldots,y_M\}$. At each generation step,
+temperature rescales the model's token probabilities: lower values make
+samples more similar, while higher values make them more varied. Top-$p$ and
+top-$k$ remove low-probability tokens. The main experiments keep these filters
+fixed at $T=1.0$, top-$p=0.9$, and top-$k=50$; the temperature sweep varies
+$T$ only. Because the estimators depend on the sampled answers, temperature
+changes the amount of variation they can measure.
 
 Because the estimators read nothing but these samples, the temperature decides
 how much signal there is to measure at all.
@@ -227,9 +210,9 @@ changing any entailment judgment. An earlier implementation joined answers
 through such chains, but the released code does not. This thesis uses the
 released anchor scan throughout. Algorithm~\ref{alg:clustering} states the
 procedure exactly.
-The experiments do not measure the size of this order effect. Changing the
-entailment model, as in Section~\ref{sec:clustering-sensitivity}, tests a
-different factor and does not bound sensitivity to sample order.
+Appendix~\ref{app:robustness} measures this order effect on a fixed subset.
+Changing the entailment model, as in Section~\ref{sec:clustering-sensitivity},
+tests a different factor and does not replace that check.
 
 \begin{algorithm}
 \caption{Bidirectional-entailment clustering by order-dependent anchor scan,
@@ -376,9 +359,8 @@ Index & Sampled answer $y_i$ \\
 \end{tabular}
 \end{center}
 
-The example is intentionally small and intentionally a case in which the model
-is mostly right but somewhat uncertain, which makes it a useful check on the
-pipeline. The decoding settings of the recorded experiments are given in
+The example is intentionally small and illustrates a mostly correct but
+uncertain set of samples. The recorded decoding settings are in
 Section~\ref{sec:sampling-settings}.
 
 \paragraph{Step 1: Bidirectional entailment.}
@@ -408,16 +390,11 @@ Two answers belong to the same cluster when both off-diagonal cells are 1.
 Reading from Table~\ref{tab:entailment_example}: $y_1 \sim y_2$,
 $y_1 \sim y_5$ and $y_2 \sim y_5$, while $y_3$ and $y_4$ each stand alone.
 
-It is worth tracing the anchor scan of Algorithm~\ref{alg:clustering} rather
-than assuming the answer, since the scan and a connected-components grouping
-do not agree in general. Answer $y_1$ is unassigned, so it anchors cluster~0.
-The inner loop finds $y_2$ and $y_5$ mutually entailed with it and assigns
-both to cluster~0, and rejects $y_3$ and $y_4$. The scan moves on: $y_2$ is
-already assigned, $y_3$ is not and anchors cluster~1, matching nothing.
-$y_4$ anchors cluster~2, matching nothing, and $y_5$ is already assigned. The
-entailment relation here happens to be transitive on
-$\{y_1,y_2,y_5\}$, so no reassignment occurs and the scan returns the same
-partition a connected-components grouping would. This yields $K=3$ clusters:
+The anchor scan makes $y_1$ the first cluster anchor and assigns $y_2$ and
+$y_5$ to it. Answers $y_3$ and $y_4$ then become separate anchors. The
+relation happens to be transitive in this constructed example, so the scan
+returns the same partition as connected components would. This yields $K=3$
+clusters:
 \[
   c_1 = \{y_1, y_2, y_5\},\quad
   c_2 = \{y_3\},\quad
@@ -470,13 +447,12 @@ The example establishes what is being claimed, not that the claim holds.
 \section{Method contract}
 \label{sec:method-contract}
 
-The method takes a prompt $x$ and $M$ sampled answers. It may also receive each
-answer's length-normalized sequence log-likelihood. It clusters the \emph{raw}
-answers with the selected equivalence rule and does not normalize them first.
-In the question-conditioned setting, every entailment query includes $x$. The
-method returns cluster assignments and discrete semantic entropy, plus full
-semantic entropy when log-likelihoods are available. It separately normalizes
-the same answers to compute surface entropy.
+The method takes a prompt $x$ and $M$ sampled answers, and optionally their
+length-normalized sequence log-likelihoods. It clusters the \emph{raw} answers;
+in the question-conditioned setting, each entailment query also includes
+$x$. It returns cluster assignments and discrete semantic entropy, plus full
+semantic entropy when likelihoods are available. Surface entropy is computed
+separately from normalized copies of the same answers.
 
 Correctness labeling and evaluation use these outputs but are not part of the
 method. Sections~\ref{sec:backends} and~\ref{sec:correctness} specify which

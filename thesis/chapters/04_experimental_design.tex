@@ -16,15 +16,14 @@ estimator and temperature, a \emph{cell} is one dataset--generator--seed
 combination. The three seed cells for one dataset--generator pair form one
 statistical resampling \emph{unit}.
 
-The thesis also reports a separate long-form biography evaluation. Its setup is
-documented in Appendix~\ref{app:longform-details}, and its results are
-reported in Section~\ref{sec:longform-results}. It uses biography prompts, a binary reference-consistency verdict and a single
-judge, so it is a second setting alongside the
-short-answer grid rather than a longer condition within it. Its paired AUROC
-differences have records-only 95\,\% intervals from 2{,}000 resamples within
-each run, with generators and seeds held fixed. With one dataset and three
-dataset--generator units, this arm uses neither unit nor hierarchical resampling.
-Its intervals do not measure uncertainty across new datasets and generators.
+The thesis also reports a separate long-form biography evaluation. It uses
+biography prompts, one binary reference-consistency verdict, and one judge; it
+is a second setting rather than a longer short-answer condition. Its paired
+AUROC differences use records-only 95\,\% intervals from 2{,}000 resamples
+within each run, with generators and seeds fixed. These intervals do not
+measure uncertainty across new datasets and generators. The protocol is in
+Appendix~\ref{app:longform-details} and the results in
+Section~\ref{sec:longform-results}.
 
 \section{The experimental grid at a glance}
 \label{sec:grid-at-a-glance}

@@ -20,6 +20,7 @@ by the product of its two multiplicities. Seeds are averaged within pairs.
 Only three levels of each factor are observed; the crossed ranges are a
 sensitivity check, not precise guarantees of population-level coverage.
 
+Table~\ref{tab:robustness-bootstrap} reports these bootstrap comparisons.
 \input{includes/t_robustness_bootstrap.tex}
 
 With crossed resampling, Qwen entailment retains a positive sentence-answer
@@ -99,6 +100,7 @@ within each subset; simply selecting the original cluster IDs would not
 reproduce the algorithm. Entropy contributions are summed in sorted count
 order to preserve ties across cluster-ID permutations. At $M=10$, the original answers were used once.
 
+Table~\ref{tab:robustness-samples} reports the resulting AUROCs.
 \input{includes/t_robustness_samples.tex}
 
 On this subset, using ten answers improves discrimination over using two

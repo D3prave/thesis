@@ -43,14 +43,12 @@ entailment model, sampling settings, and grading rule.
 The decomposition provides a supporting explanation. Normalizing answer
 strings gives the most consistent improvement across the four method steps.
 With the tested DeBERTa cross-encoders, semantic grouping adds no detectable
-benefit over surface entropy under LLM grading. This does not establish
-equivalence or rule out a small benefit.
+benefit over surface entropy under LLM grading.
 
-Semantic entropy is a useful detector in this evaluation, but it does not
-consistently outperform every comparator. The strongest conclusion concerns
-the conditions in which it helps: sentence-length answers relative to naive
-entropy, and the tested Qwen entailment model relative to normalized-string
-counting under LLM grading.
+The practical interpretation is that normalized-string entropy is a strong,
+cheap baseline. Semantic entropy is most useful when answers are long and the
+entailment model groups meanings reliably; it is not consistently better than
+every comparator.
 
 The study contributes a comparison with Farquhar et al.'s baselines, the
 normalized-string comparator, tests of evaluation choices, and a documented
@@ -72,7 +70,8 @@ its resampling units. Repeated
 seeds and more question records do not provide the same evidence as testing
 more datasets and generating models. The study can therefore report that it
 did not detect a benefit in some conditions, but cannot rule out small
-improvements or generalize to all language-model tasks.
+improvements or generalize to all language-model tasks. An interval that
+includes zero does not establish equivalence.
 
 Further limits include different answer lengths from the original study,
 different token limits for uncertainty samples and graded answers,
