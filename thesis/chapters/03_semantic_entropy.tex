@@ -86,7 +86,7 @@ model and only read what it produces. None of them changes its weights.
 
 These are the three stages of the pipeline. Chapter~\ref{ch:results} uses a
 separate four-step ladder to compare this estimator with progressively different
-baselines; that ladder is an analysis of the method, not a fourth computational
+baselines. That ladder is an analysis of the method, not a fourth computational
 stage. Correctness labeling and decisions based on the uncertainty score belong to the
 \emph{evaluation}, not to the method. Chapter~\ref{ch:experimental_design}
 handles them separately. Clustering reuses stored samples, so the entailment
@@ -102,7 +102,7 @@ configuration, giving $Y(x) = \{y_1,\ldots,y_M\}$. At each generation step,
 temperature rescales the model's token probabilities: lower values make
 samples more similar, while higher values make them more varied. Top-$p$ and
 top-$k$ remove low-probability tokens. The main experiments keep these filters
-fixed at $T=1.0$, top-$p=0.9$, and top-$k=50$; the temperature sweep varies
+fixed at $T=1.0$, top-$p=0.9$, and top-$k=50$, and the temperature sweep varies
 $T$ only. Because the estimators depend on the sampled answers, temperature
 changes the amount of variation they can measure.
 Because the estimators read nothing but these samples, the temperature decides
@@ -121,7 +121,7 @@ Normalization is each dataset's standard answer-cleaning step. For the
 question-answering datasets it lowercases, strips punctuation and the articles
 \emph{a\,/\,an\,/\,the}, and collapses whitespace, following the TriviaQA
 evaluation protocol, so ``The Eiffel Tower!'' and ``eiffel tower'' become the
-same string. For the arithmetic dataset it extracts the first numeric value;
+same string. For the arithmetic dataset it extracts the first numeric value.
 when an answer contains an equals sign, it searches the text after the final
 equals sign if that tail contains a number. Thus ``The answer is 7 apples''
 and ``3 + 4 = 7'' both become ``7''. This is a surface grouping: it collapses
@@ -334,7 +334,7 @@ completion each time. Suppose the five sampled answers are:
 Index & Sampled answer $y_i$ \\
 \hline
 1 & \emph{Canberra} \\
-2 & \emph{Canberra is the capital city of Australia} \\
+2 & \emph{Canberra is the capital of Australia} \\
 3 & \emph{Sydney} \\
 4 & \emph{Melbourne} \\
 5 & \emph{Canberra} \\
@@ -401,7 +401,7 @@ clusters:
 \paragraph{The clustering-free comparator.}
 The same five samples also provide a baseline without semantic grouping. It
 treats each distinct normalized string as its own outcome. With strings
-$\{$\emph{Canberra}$\times 2$, \emph{Canberra is the capital city of
+$\{$\emph{Canberra}$\times 2$, \emph{Canberra is the capital of
 Australia}$\times 1$, \emph{Sydney}$\times 1$, \emph{Melbourne}$\times 1\}$,
 the surface entropy is
 \begin{align*}
@@ -415,7 +415,7 @@ strings coincide, because no two of the five samples differ only in case or
 punctuation. Chapter~\ref{ch:results} keeps them apart as \emph{surface
 entropy} and \emph{naive sample entropy}, since on the recorded data they do
 not always agree. The surface score is higher (1.33 against 0.95) because it treats the
-paraphrase ``Canberra is the capital city of Australia'' as a different answer
+paraphrase ``Canberra is the capital of Australia'' as a different answer
 from ``Canberra'', inflating the apparent uncertainty. After semantic
 clustering the correct answer class accounts for 60\,\% of the samples, and
 the entropy is correspondingly lower. This is the mechanism the method is
@@ -428,9 +428,8 @@ The example establishes what is being claimed, not that the claim holds.
 \label{sec:method-contract}
 
 The method takes a prompt $x$ and $M$ sampled answers, and optionally their
-length-normalized sequence log-likelihoods. It clusters the \emph{raw} answers;
-in the question-conditioned setting, each entailment query also includes
-$x$. It returns cluster assignments and discrete semantic entropy, plus full
+length-normalized sequence log-likelihoods. It clusters the \emph{raw} answers.
+In the question-conditioned setting, each entailment query also includes $x$. It returns cluster assignments and discrete semantic entropy, plus full
 semantic entropy when likelihoods are available. Surface entropy is computed
 separately from normalized copies of the same answers. Correctness labeling
 and evaluation use these outputs but are not part of the

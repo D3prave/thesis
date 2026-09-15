@@ -23,7 +23,7 @@
   name={temperature},
   description={a sampling parameter that rescales token logits before they
     become probabilities. Lower values concentrate probability on likely
-    tokens; higher values flatten the distribution}
+    tokens, while higher values flatten the distribution}
 }
 
 \newglossaryentry{nli}{
@@ -49,14 +49,14 @@
 \newglossaryentry{semanticcluster}{
   name={semantic cluster},
   description={a group of sampled answers treated as sharing a meaning.
-    The implemented anchor scan uses mutual entailment; its assignments
+    The implemented anchor scan uses mutual entailment, and its assignments
     depend on answer order and do not enforce transitivity}
 }
 
 \newglossaryentry{semanticentropy}{
   name={semantic entropy},
   description={Shannon entropy over semantic clusters of repeated answers.
-    The discrete version uses sample counts; the full version uses normalized
+    The discrete version uses sample counts, while the full version uses normalized
     cluster likelihood weights. A high value indicates varied meanings,
     not necessarily incorrectness}
 }
@@ -92,7 +92,7 @@
 \newglossaryentry{accuracyprobe}{
   name={accuracy probe},
   description={a linear classifier on fixed model hidden states, trained on
-    judged correctness rather than semantic entropy; also called
+    judged correctness rather than semantic entropy, also called
     \emph{embedding regression}}
 }
 

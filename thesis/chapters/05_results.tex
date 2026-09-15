@@ -154,7 +154,7 @@ and Figure~\ref{fig:longform-comparison}. Every records-only interval for these
 generator-level comparisons excludes zero. The two smaller entailment settings
 behave differently. Exact matching places every differing paragraph in its own
 group after normalization, so it equals surface entropy here. Raw-string
-naive sample entropy differs slightly; both string baselines are nearly saturated. The base model
+naive sample entropy differs slightly, and both string baselines are nearly saturated. The base model
 exceeds the string baselines for Mistral-7B, at 0.628 against 0.500, but falls
 below them for both Llama generators, so it does not show the advantage
 consistently.
@@ -163,7 +163,7 @@ consistently.
 
 With the two larger entailment models, the semantic-grouping score is higher
 for paragraphs rejected by the reference-based judge. Specific facts absent
-from the reference are rejected even if they may be true elsewhere; vague
+from the reference are rejected even if they may be true elsewhere, while vague
 responses without a contradiction can pass. The verdict measures support
 from that reference, not independently verified factual truth.
 
@@ -227,8 +227,8 @@ step over all 24 configuration entries.
 One step is clear. Normalizing the answer strings before counting them adds
 $0.0398$ AUROC on average. The difference is positive and its interval excludes
 zero in all 24 configuration entries. Because the two string scores do not
-use entailment, these entries repeat 12 distinct condition--grader contrasts;
-all 12 are positive. The mean weights the two original prompting conditions
+use entailment, these entries repeat 12 distinct condition--grader contrasts,
+and all 12 are positive. The mean weights the two original prompting conditions
 three times each and the added conditions once each. Giving the 12 distinct
 contrasts equal weight yields $+0.0372$ AUROC. Normalization is also the only step whose AUROC difference
 exceeds the seed-variation reference of 0.0245.
@@ -280,7 +280,7 @@ a released cross-encoder with an LLM correctness judge, no interval excludes
 zero. Appendix~\ref{app:all-comparisons} gives all 24 paired differences and
 intervals.
 
-\section{Comparison with Farquhar's baselines and semantic entropy probes}
+\section{Comparison with Farquhar et al.'s baselines and semantic entropy probes}
 \label{sec:paper-baselines}
 
 Table~\ref{tab:paper-baselines} gives the AUROC difference between discrete
@@ -368,8 +368,9 @@ samples used to estimate uncertainty change.
 \centering
 \includegraphics[width=0.86\linewidth]{temperature.pdf}
 \caption{AUROC against sampling temperature, sentence-length answers, default
-  entailment model, Qwen judge. The graded answers and their correct/incorrect
-  decisions stay fixed while the samples used to estimate uncertainty change.}
+  entailment model, Qwen judge. The graded answers and their correct or
+  incorrect decisions stay fixed while the samples used to estimate uncertainty
+  change.}
 \label{fig:temperature}
 \end{figure}
 
@@ -421,7 +422,7 @@ accuracy comparisons and exclusion checks in full.
 The comparisons answer two different questions. The original baseline tests
 rank complete estimators, while the decomposition examines which steps add
 value. The entailment-model and grading checks change that ranking on identical
-answers; the temperature sweep changes the samples used to estimate uncertainty.
+answers, while the temperature sweep changes the samples used to estimate uncertainty.
 Chapter~\ref{ch:discussion} explains what these distinctions imply for the
 value of semantic grouping.
 \clearpage

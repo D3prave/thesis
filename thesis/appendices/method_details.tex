@@ -23,7 +23,7 @@ The accompanying \texttt{thesis-source-supplement.zip} includes
 \path{docs/reproduction.md} with build instructions.
 \path{docs/reproducibility_manifest.json} records the input hashes, recovered
 protocol metadata, and locations of separately stored research artifacts.
-The source supplement regenerates tables from exports; the larger raw
+The source supplement regenerates tables from exports. The larger raw
 artifacts are stored separately.\par}
 
 \section{Long-form biography records}
@@ -41,7 +41,7 @@ recorded at collection time.
 One paragraph per prompt is graded: the most frequent exact normalized
 surface form, with ties resolved by first occurrence. Qwen2.5-72B-Instruct
 returns one \texttt{CORRECT}/\texttt{INCORRECT} verdict for that paragraph.
-Specific facts must be supported by the reference; vague text without a
+Specific facts must be supported by the reference, while vague text without a
 contradiction is permitted. The reported acceptance rate is the fraction of
 selected paragraphs receiving \texttt{CORRECT}.
 
@@ -49,7 +49,7 @@ The recorded comparisons cluster normalized paragraphs into connected
 components. DeBERTa uses answer-only input and requires entailment in both
 directions. Qwen receives the question and asks whether both paragraphs convey
 the same factual claims, requiring agreement in both response orders. This is
-the biography pipeline's grouping rule;
+the biography pipeline's grouping rule.
 the short-answer pipeline uses the raw-answer anchor scan in
 Section~\ref{sec:clustering}. The four settings are exact matching,
 DeBERTa-v3-base~\cite{sentence_transformers_nli_deberta_v3_base_2022},
@@ -151,7 +151,7 @@ separate factors.
 
 A record resample with only one correctness class has undefined AUROC and is
 omitted from that draw's average. This can matter when few answers are labeled
-correct. Omission rates were not retained in the original export; the additional
+correct. Omission rates were not retained in the original export. The additional
 analyses in Appendix~\ref{app:robustness} report them explicitly. The original
 intervals and bootstrap tail
 proportions are conditional on these choices and are not adjusted for
@@ -187,7 +187,7 @@ and a maximum of 2{,}000 optimizer iterations. The retained training source
 uses the \texttt{lbfgs} solver without feature standardization. All saved fits
 report convergence. Feature dimensions are 4{,}096 for the two smaller
 models and 8{,}192 for Llama-3.1-70B. The legacy feature field calls the answer
-``greedy''; the collection metadata records sampling at $T=0.1$, as described
+``greedy'', while the collection metadata records sampling at $T=0.1$, as described
 in Section~\ref{sec:sampling-settings}.
 
 The accuracy probe learns the stored training correctness labels. Re-evaluating
@@ -195,10 +195,10 @@ its saved scores with another judge does not retrain it. Those input records
 lack an explicit per-label judge provenance field, so the training judge is
 not inferred from the evaluation-grader name. The manifest distinguishes
 current prepared-input hashes from the metadata's upstream entropy-source
-hashes; the latter do not identify the exact serialized fit inputs.
+hashes. The latter do not identify the exact serialized fit inputs.
 
 For the NQ-Open Llama-3.1-70B short-phrase run with seed 42, both saved models
 report 399 training examples and one excluded prompt. This is consistent
 with the one missing feature found in that input cell. All retained evaluation
 records have saved features. The exclusion count is established by the saved
-fits; reproducing the exact fit additionally requires its original input bytes.
+fits. Reproducing the exact fit additionally requires its original input bytes.
