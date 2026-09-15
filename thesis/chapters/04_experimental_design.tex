@@ -124,8 +124,9 @@ SVAMP & \texttt{ChilleD/SVAMP} & 700 / 300 \\
   reference answers for each task. These are not records sampled from the
   evaluation sets. They illustrate the format only. TriviaQA and NQ-Open
   prompts are the raw question string, and NQ-Open questions are real search
-  queries that keep their original lowercase form. SVAMP prompts concatenate
-  the \texttt{Body} and \texttt{Question} fields. TriviaQA and NQ-Open
+  queries that keep their original lowercase form. SVAMP places the
+  \texttt{Body} on a separate \texttt{Context:} line before the
+  \texttt{Question}. TriviaQA and NQ-Open
   reference answers include accepted aliases, separated here by slashes.
   SVAMP reference answers are a single number.}
 \label{tab:dataset-samples}

@@ -348,9 +348,10 @@ with the longest answers, Llama-3.1-8B at 667 mean characters, has the smallest
 difference at $+0.012$, while the two short-answer generators sit at $+0.026$
 and $+0.029$. Substituting the 72B entailment model inverts the ordering: the
 same generator now has the largest difference at $+0.132$, against $+0.067$ and
-$+0.062$. Under the Qwen judge the ordering is the same on both entailment
-models, at $+0.006$, $+0.022$ and $+0.033$, then $+0.121$, $+0.068$ and
-$+0.071$. The generations are identical across the entailment-model columns.
+$+0.062$. Under the Qwen judge, the same reversal appears. The differences are
+$+0.006$, $+0.022$ and $+0.033$ with the default entailment model, and
+$+0.121$, $+0.068$ and $+0.071$ with Qwen-72B.
+The generations are identical across the entailment-model columns.
 
 \input{includes/t_backend_by_model.tex}
 
