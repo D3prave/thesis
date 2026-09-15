@@ -475,6 +475,9 @@ compare it with the differences between methods.
 \section{Where this study differs from the original}
 \label{sec:deviation-register}
 
+% Two extra lines here keep the last five lines of the chapter off an
+% otherwise empty page. Check this if the surrounding text changes.
+\enlargethispage{2\baselineskip}
 The main validity concerns are stated in the sections where they matter. This
 study uses open models in place of proprietary judges, has no human correctness
 labels, and evaluates three of the original five question sets. It also adds
@@ -487,14 +490,11 @@ behavior on verbose answers is quantified in
 Appendix~\ref{sec:correctness-comparison}, and the TriviaQA split contamination
 described in Section~\ref{sec:datasets}.
 
-\section{Implementation and provenance}
+\paragraph{Implementation and provenance.}
 \label{sec:hpc-execution}
-
 The code stores generation, clustering and grading outputs separately. Jobs
 record the code revision and experiment settings, and check the requested
 clustering settings before accepting an output. This makes it possible to
 repeat an analysis without generating new answers.
-
-Appendix~\ref{app:schema} describes the
-measurement package and the limits of what it can reproduce without the
-underlying record files.
+Appendix~\ref{app:schema} describes the measurement package and the limits of
+what it can reproduce without the underlying record files.
