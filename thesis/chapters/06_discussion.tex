@@ -4,8 +4,8 @@
 Beating the original baselines is weaker evidence for semantic grouping than
 beating normalized-string counting. The original baselines differ from semantic
 entropy in several ways at once, so an advantage over them cannot be traced to
-any single step. Normalized-string counting differs in one step only, which
-makes it the comparison that carries information about grouping. In the
+any single step. Normalized-string counting tests grouping more directly,
+subject to the raw-versus-normalized input difference. In the
 sentence-answer comparisons under LLM grading, the tested Qwen entailment model
 clears that stronger comparison, whereas no additional benefit is detected with
 the tested DeBERTa models. The entailment model is therefore central to
@@ -28,8 +28,8 @@ equal weight still yields $+0.0372$.
 
 Normalization is also the only step whose
 difference exceeds the seed-variation reference of 0.0245, which means it is
-the only step that moves AUROC further than rerunning the same configuration
-under a different sampling seed. What it does is mechanical rather than
+the only step whose mean improvement exceeds that mean cross-seed range.
+What it does is mechanical rather than
 semantic: it merges differences in capitalization, punctuation, articles, and
 spacing without calling another language model.
 
@@ -130,9 +130,9 @@ normalized strings with the default entailment model.
 The long-form biography evaluation shows the largest recorded gap in the study:
 0.670 with large DeBERTa and 0.708 with Qwen, against 0.497 for surface and
 naive sample entropy. The reason is visible in the inputs. Nearly every sampled
-paragraph is a distinct string, so every string-based group holds one sample,
-the frequencies are equal, and the string entropy is constant and near chance
-by construction.
+paragraph is a distinct string. When every string-based group holds one sample,
+the frequencies are equal and the string entropy is constant. The nearly
+saturated string scores therefore provide little discrimination here.
 
 Meaning-based grouping restores variation in the score
 (Section~\ref{sec:longform-results}), and the pooled gaps are $+0.174$ with
@@ -149,9 +149,8 @@ the size and the direction of a method comparison. They are also different kinds
 of choice. The entailment and grading checks reuse the same stored answers, so
 the generated text is held fixed and only the analysis moves. The temperature
 experiment instead changes the uncertainty samples while keeping the graded
-answer and its LLM correctness label fixed. Neither should be described as a
-change made to one fixed generation set, because only the first leaves the
-samples untouched.
+answer and its LLM correctness label fixed. Only the entailment and grading
+checks leave the entire generation set untouched.
 
 \subsection{The entailment model is part of the method}
 
@@ -231,7 +230,8 @@ comparisons and on the similar performance of the two semantic estimators.
 Discrete semantic entropy leads P(True) by 0.025 on average over six
 comparisons, the semantic entropy probe by 0.051, and the accuracy probe by
 0.049, and it leads all three in every comparison where each was measured.
-These are the comparisons the original study makes, and they reproduce here.
+The measured original-baseline comparisons agree with Farquhar et al.
+The semantic entropy probe is a later comparator from Kossen et al.
 
 The agreement is limited to the configurations tested. Farquhar et
 al.~\cite{semantic_entropy_nature_2024} report that P(True) tends to improve
