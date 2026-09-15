@@ -166,7 +166,13 @@ def t_sentence_length():
         nm = PRETTY[m]
         if m == 'surface_entropy':
             nm = r'\textbf{' + nm + '}'
-        rows.append(f'{nm} & {fmt(mu)} & [{fmt(lo)}, {fmt(hi)}] & {len(s)//3} \\\\')
+        # The unit count is the same for every row, so the caption states it and
+        # this check keeps that claim true instead of a constant column.
+        units = len(s) // 3
+        if units != 9:
+            raise SystemExit(
+                f'tab:sentence-length: {m} covers {units} units, caption says nine')
+        rows.append(f'{nm} & {fmt(mu)} & [{fmt(lo)}, {fmt(hi)}] \\\\')
         AUDIT.append(('5.1 sentence-length', m, b, round(mu, 4)))
     return table(
         'Sentence-length answers (\\texttt{chat\\_0shot}), Qwen judge, $T=1.0$. AUROC '
@@ -175,8 +181,8 @@ def t_sentence_length():
         'Methods that need entailment clusters use the released-code default '
         '\\texttt{deberta-v2-xlarge-mnli}. Both probes use '
         '\\texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.',
-        'tab:sentence-length', '@{}lccr@{}',
-        'Method & AUROC & 95\\,\\% CI & Statistical units \\\\', rows)
+        'tab:sentence-length', '@{}lcc@{}',
+        'Method & AUROC & 95\\,\\% CI \\\\', rows)
 
 
 # ---------------------------------------------------------------- 5.2 short-phrase

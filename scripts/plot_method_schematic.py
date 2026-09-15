@@ -59,11 +59,14 @@ answers = [(1, 16, "Canberra"), (19, 28, "Canberra is the\ncapital of Australia.
 for x, width, label in answers:
     box(x, 79, width, 12, "#F3F6F8")
     text(x + width / 2, 85, label, size=8.0, ha="center")
-# Both branches use the same five sampled answers.
-ax.plot([50, 50], [78, 75], color=LINE, lw=.9)
-ax.plot([25, 75], [75, 75], color=LINE, lw=.9)
-arrow(25, 75, 25, 71.5, BLUE)
-arrow(75, 75, 75, 71.5, TEAL)
+# Both branches use the same five sampled answers, so every box feeds the rail.
+for x, width, _ in answers:
+    ax.plot([x + width / 2, x + width / 2], [79, 75.5], color=LINE, lw=.9)
+first_centre = answers[0][0] + answers[0][1] / 2
+last_centre = answers[-1][0] + answers[-1][1] / 2
+ax.plot([min(first_centre, 25), max(last_centre, 75)], [75.5, 75.5], color=LINE, lw=.9)
+arrow(25, 75.5, 25, 71.5, BLUE)
+arrow(75, 75.5, 75, 71.5, TEAL)
 
 for x, color, fill, title, subtitle in [
     (1, BLUE, "#F1F5FA", "2a  Count normalized wordings", "4 groups · paraphrases stay separate"),

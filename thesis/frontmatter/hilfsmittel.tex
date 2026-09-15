@@ -2,13 +2,13 @@
 \addcontentsline{toc}{chapter}{List of aids used}
 
 \begingroup
-\RedeclareSectionCommand[beforeskip=1.2\baselineskip,afterskip=0.4\baselineskip]{section}
+\RedeclareSectionCommand[beforeskip=0.9\baselineskip,afterskip=0.3\baselineskip]{section}
 
 \section*{Literature access and reference verification}
 
 arXiv, ACL Anthology, OpenReview and publisher websites were used to access
 research papers and check publication details. Individual papers are cited
-where their content is used and listed in the bibliography.
+where used and listed in the bibliography.
 
 \section*{Published method and code}
 
@@ -17,23 +17,21 @@ al.~\cite{semantic_entropy_nature_2024}. The reference implementation is the
 authors' released code~\cite{kossen_semantic_uncertainty_code_2024}, which was
 used as the specification for clustering, prompting, P(True) scoring and
 question selection. Deviations from it are recorded in
-Section~\ref{sec:deviation-register}.
-The reference implementation was accessed through GitHub; its archived
-release on Zenodo is identified by the accompanying code citation.
+Section~\ref{sec:deviation-register}. It was accessed through GitHub, and its
+archived Zenodo release is identified by the accompanying code citation.
 
 \section*{Datasets}
 
 TriviaQA~\cite{joshi_triviaqa_2017}, NQ-Open~\cite{lee_nq_open_2019} and
 SVAMP~\cite{patel_svamp_2021}, prepared using a reimplementation of the
 released loading and selection procedure. The biography prompts follow the
-FActScore subject format~\cite{min_factscore_2023}.
-Hugging Face Hub was used to obtain model checkpoints and datasets and to
-consult model cards.
+FActScore subject format~\cite{min_factscore_2023}. Hugging Face Hub supplied
+model checkpoints, datasets and model cards.
 
 \section*{Models}
 
 \begin{itemize}
-  \raggedright
+  \raggedright\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}
   \item \emph{Answer generation}, at the pinned revisions given in
     Table~\ref{tab:generators}: \texttt{Mistral-7B-Instruct-v0.3},
     \texttt{Llama-3.1-8B-Instruct} and \texttt{Llama-3.1-70B-Instruct}.
@@ -50,24 +48,22 @@ consult model cards.
 Python with \texttt{PyTorch}, \texttt{Transformers}, \texttt{vLLM},
 \texttt{NumPy}, \texttt{pandas}, \texttt{scikit-learn}, \texttt{Matplotlib},
 \texttt{datasets} and \texttt{pytest}. Environments were managed with
-\texttt{uv}, revision control with \texttt{Git}. The thesis was typeset in
-\LaTeX\ using the \texttt{kaobook} class, with \texttt{Biber} and
-\texttt{biblatex} for the bibliography. Builds were managed with
-\texttt{latexmk}.
+\texttt{uv} and revision control with \texttt{Git}. The thesis was typeset in
+\LaTeX\ with the \texttt{kaobook} class, \texttt{Biber} and \texttt{biblatex}
+for the bibliography, and \texttt{latexmk} for builds.
 
 \section*{Computing resources}
 
 The NHR@FAU Alex GPU cluster for answer generation and language-model judging,
-and the NHR@FAU Fritz cluster for post-hoc cross-encoder clustering, scheduled
-with \texttt{Slurm}.
+and the NHR@FAU Fritz cluster for post-hoc cross-encoder clustering, both
+scheduled with \texttt{Slurm}.
 
 \section*{Artificial-intelligence assistants}
 
 Claude Code (Anthropic) and Codex (OpenAI) were both used as coding assistants
 in the accompanying repository and to generate the figures and tables in this
-thesis from the recorded measurements. As stated in the declaration, these
-tools were not used
-as a source of claims, results or citations. Every reported number was checked
-against the recorded measurements.
+thesis from the recorded measurements. As stated in the declaration, they were
+not used as a source of claims, results or citations, and every reported number
+was checked against the recorded measurements.
 \par
 \endgroup

@@ -24,26 +24,60 @@ The smaller short-phrase ranges include zero under crossed resampling.
 The separate biography evaluation shows where string counting loses its
 usefulness: nearly every sampled paragraph is distinct. The two larger
 entailment models produce informative scores in this setting and the largest
-recorded gaps over the string baselines. This supports testing semantic
-grouping on varied paragraph answers, although the changed task and grading
-target prevent attributing the gap to length alone.
+recorded gaps over the string baselines. The changed task and grading target
+prevent attributing those gaps to length alone.
 
-The practical lesson is to compare semantic entropy with normalized-string
-counting on the intended task and report the entailment model, sampling
-temperature, and correctness rule. These choices change the observed ranking.
-The documented implementation and evaluation make those comparisons traceable.
+The comparison that carries information about semantic grouping is the one
+against normalized-string counting, and its outcome depends on the entailment
+model, the sampling temperature, and the correctness rule. Each of the three
+changes the observed ranking inside the recorded grid, and the spread they
+produce is larger than the spread between the estimators themselves. This study
+varies all three and reports every result with the setting it came from. It
+does not identify a best setting, because that would need a reference the study
+does not have: correctness and equivalence labels checked by people rather than
+by models, on a grid wider than three datasets and three generators.
 
-\section{Limitations and next steps}
+\section{Limitations}
 \label{sec:conclusion-limitations}
 
-Human validation is the first priority. The LLM judges may share errors with
-each other and with semantic clustering. Human correctness labels for a sample
-of the existing answers would allow the estimator comparison to be repeated
-against an independent assessment.
+\paragraph{Correctness labels and shared errors.}
+Every accuracy and AUROC estimate depends on token overlap or LLM judgments
+without human validation. Agreement between judges establishes consistency
+only. Both entailment and LLM grading compare meanings, so shared preferences
+or errors could favor semantic entropy. Re-grading preserves the main
+entailment-model ranking, reducing concern about one model serving both roles,
+but shared errors across models remain possible.
 
-Broader dataset--model coverage is the next priority. Repeated seeds and more
-records cannot replace new datasets and generators when testing
-generalization. The biography result is particularly restricted: it uses one
-dataset and one Qwen judge, and its intervals hold generators and seeds fixed.
-The full account of statistical, protocol, normalization, and clustering-order
-limits is in Section~\ref{sec:threats}.
+\paragraph{Statistical units and generalization.}
+Seeds repeat runs within dataset--generator pairs. The hierarchical analysis
+resamples these pairs and their records, and the additional checks in
+Appendix~\ref{app:robustness} address shared datasets, generators, and questions.
+Three datasets and three generators still limit generalization, and repeated
+seeds or more records do not widen that range. An interval that includes zero
+does not establish equivalence or rule out a small benefit. The biography
+result is the most restricted: it uses one dataset and one Qwen judge, and its
+intervals resample records while holding generators and seeds fixed.
+
+\paragraph{Input and protocol differences.}
+Surface entropy counts normalized answers, whereas semantic clustering receives
+raw answers. The fixed-subset check in Appendix~\ref{app:robustness} finds many
+partition changes after normalization despite small mean AUROC changes.
+The sentence condition produces longer answers than the original study, and
+graded answers and uncertainty samples use different token limits. The
+biography protocol uses one dataset and one Qwen judge, also used for entailment
+in one setting. Its different task, prompts, and reference-consistency target
+prevent a pure length comparison. Neither answer-length comparison reproduces
+the paper's separate claim-level passage analysis.
+
+\paragraph{Benchmark and computational scope.}
+Probe-training holdouts may overlap with pretraining data, and historical
+references may omit later changes. End-to-end computational cost was not
+benchmarked. String counting needs no entailment calls, while semantic grouping
+adds pair comparisons to repeated generation, so the results do not quantify
+an accuracy--runtime tradeoff.
+
+\paragraph{Order-dependent clustering.}
+Changing answer order can change the groups with entailment judgments fixed.
+The permutation check in Appendix~\ref{app:robustness} covers a fixed subset
+with DeBERTa-v3-large. Its observed ranges do not bound all orders or establish
+the effect for other entailment models.
