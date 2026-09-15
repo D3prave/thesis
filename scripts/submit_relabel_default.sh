@@ -1,5 +1,5 @@
 #!/bin/bash
-# Relabel sentence-length cells with the LLM judge. UNTRACKED.
+# Relabel sentence-length cells with the LLM judge.
 set -euo pipefail
 
 ROOT="${ROOT:-results/replication}"

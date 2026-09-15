@@ -11,8 +11,6 @@
 # Input is the ladder output under the canonical backend rather than the raw
 # collection, so the final artifact carries clustering and P(True) together.
 #
-# Deliberately UNTRACKED.
-#
 # Usage:
 #   bash scripts/submit_ptrue.sh
 #   DRY_RUN=1 REGIMES=chat bash scripts/submit_ptrue.sh
@@ -68,7 +66,7 @@ PY
     # Refuse to guess. Two directories for one cell key means a rerun left its
     # predecessor in place, and the two may have been generated under different
     # prompts; silently taking the first would pair P(True) against an
-    # arbitrary one. Retire the loser with scripts/retire_stale_cells.py.
+    # arbitrary one. Retire the older directory first.
     if [ "${#train_dirs[@]}" -gt 1 ]; then
         echo "ERROR: ${#train_dirs[@]} train directories for ${regime}/${dataset}/${model}/s${seed}:" >&2
         printf '    %s\n' "${train_dirs[@]}" >&2

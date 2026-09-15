@@ -15,8 +15,7 @@ unset SLURM_EXPORT_ENV
 # ============================================================================
 # Recompute correctness labels with the LLM judge their code supports.
 #
-# One judge for every cell, so no model grades its own answers. Deliberately
-# UNTRACKED.
+# One judge for every cell, so no model grades its own answers.
 # ============================================================================
 set -euo pipefail
 

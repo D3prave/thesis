@@ -1,181 +1,91 @@
 # Detecting Hallucinations in Large Language Models Using Semantic Entropy
 
-Bachelor's thesis, Mathematical Institute for Machine Learning and Data Science,
-Katholische Universität Eichstätt-Ingolstadt.
+Bachelor's thesis by Jakub Wiśniewski, Mathematical Institute for Machine
+Learning and Data Science, Catholic University of Eichstätt-Ingolstadt, 2026.
 
-This repository holds the LaTeX source, the Python implementation, the Slurm
-batch scripts, and the generated result tables for a study of **semantic
-entropy** as a training-free hallucination-detection and selective-abstention
-signal.
+The thesis reimplements semantic entropy (Farquhar et al., Nature 2024,
+[doi:10.1038/s41586-024-07421-0](https://doi.org/10.1038/s41586-024-07421-0))
+and compares it with simpler uncertainty scores on TriviaQA, NQ-Open, SVAMP and
+a biography task. The answers come from Mistral-7B-Instruct-v0.3,
+Llama-3.1-8B-Instruct and Llama-3.1-70B-Instruct.
 
-The question is whether entropy over *meanings* separates incorrect answers
-from correct ones better than entropy over *surface forms*. It is evaluated on
-TriviaQA, NQ-Open, SVAMP and a FactScore-style biography task, with answers
-sampled from Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct and
-Llama-3.1-70B-Instruct, three seeds each (42/43/44).
+This repository holds the LaTeX source, the code that ran the experiments, and
+the measurement files that all tables and figures are built from.
 
-The method itself is due to [Farquhar et al.
-(2024)](https://doi.org/10.1038/s41586-024-07421-0). This work reimplements it
-on a smaller recorded grid, compares estimators, entailment models and graders,
-runs a decoding-temperature sweep, and adds a long-form biography evaluation.
+## Contents
 
-## What it found
-
-On sentence-length answers, discrete semantic entropy improves on the
-likelihood-based naive baseline, but its average gain over normalized surface
-entropy is smaller and depends on the entailment model and grader. On short
-phrases, the count-based estimators are close. On long-form biography answers,
-semantic entropy reaches a higher AUROC than the measured string baselines with
-the larger entailment models. These are findings about the recorded models and
-tasks, not a general ranking of all detectors.
-
-The thesis reports the full recorded comparisons in its Results chapter and
-appendices. It does not use human correctness labels. The biography evaluation
-grades one selected paragraph per prompt against a saved reference. Its grouping
-rule differs from both the short-answer pipeline and the original paragraph
-experiment.
-
-## Layout
-
-| Path | Contents |
+| Path | What it holds |
 |---|---|
-| `thesis/` | LaTeX source: 7 chapters, appendix, bibliography, figures |
-| `thesis/includes/` | 23 active generated table files, some with several tables |
-| `src/semantic_entropy/` | Python package: sampling, clustering, entropy scoring, metrics, probes, plotting |
-| `scripts/` | Data preparation, aggregation, table and figure builders, verification gates |
-| `slurm/` | Batch scripts for the NHR@FAU runs |
-| `tests/` | Test suite with synthetic fixtures |
-| `data/` | Small tracked fixture datasets |
+| `thesis/` | LaTeX source, figures and generated tables |
+| `data/` | Measurement files the tables are built from, see `data/README.md` |
+| `results/` | Paired bootstrap intervals and the outputs of the checks in Appendix C |
+| `src/semantic_entropy/` | Python package: sampling, clustering, entropy scores, P(True), probes, metrics |
+| `scripts/` | Data preparation, job submission, export, analysis, and the table and figure builders |
+| `slurm/` | Batch scripts used on the NHR@FAU Alex and Fritz clusters |
+| `tests/` | Tests for the package and the scripts |
+| `external/factscore/topics.json` | Subjects of the biography prompts |
 
-Raw generations, hidden states, model caches and the sealed result roots are
-bulky and live in cluster project storage, not in git.
+Raw generated answers, hidden states and model weights are not included.
 
-## Build the thesis
+## Rebuild the tables, figures and PDF
+
+This needs Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and TeX
+Live with `latexmk` and Biber. No GPU or model weights are needed.
 
 ```sh
+uv sync --locked --extra test --extra plot --extra sep
+uv run python scripts/build_thesis_tables.py data/measurements.csv thesis/includes
+uv run python scripts/build_robustness_tables.py
+uv run python scripts/plot_method_schematic.py
 cd thesis && latexmk -pdf main.tex
 ```
 
-Requires a full TeX Live (the document uses `kaobook`, `newpx`, `algorithm2e`,
-`biblatex`/`biber`). The output is `thesis/main.pdf`.
-
-## Run the tests
+To check the files:
 
 ```sh
-uv run pytest tests/ -q
+uv run python scripts/check_thesis_measurements.py     # complete grid, intervals match the measurements
+uv run python scripts/check_figure_table_freshness.py  # tables and figures match a fresh rebuild (needs pdftoppm)
+uv run pytest
 ```
 
-## Use the package
+## How the experiments were run
 
-Python ≥ 3.11, managed with [`uv`](https://docs.astral.sh/uv/). Dependencies are
-grouped as optional extras so a light install stays light:
+The experiments ran with Slurm on the NHR@FAU clusters. The launchers contain
+settings of those clusters (paths, model cache, accounts) and need changes to
+run elsewhere.
+
+Short-answer study:
+
+1. `scripts/prepare_replication_data.py` loads the datasets and selects the
+   questions the way the released code does.
+2. `scripts/submit_replication_grid.sh` generates the answers for the two
+   original prompting conditions, `scripts/submit_factorial.sh` for the two
+   added ones, and `scripts/submit_temp_sweep.sh` for the lower temperatures.
+3. `scripts/submit_ladder.sh` and `scripts/submit_ladder_sweep.sh` cluster the
+   stored answers with each entailment model.
+4. The `scripts/submit_relabel*.sh` scripts grade the answers with the LLM
+   judges.
+5. `scripts/submit_ptrue.sh` computes P(True).
+6. `scripts/submit_probes.sh` trains the probes and `scripts/apply_probes.sh`
+   scores the evaluation questions.
+7. `scripts/export_data_package_v2.py` writes the files in `data/`, and
+   `scripts/paired_bootstrap_hierarchical.py` computes the paired intervals.
+
+Biography study:
+
+1. `scripts/prepare_bio.py` builds the prompts and the Wikipedia references.
+2. `slurm/bio_v3_alex.sbatch` generates the answers, and
+   `scripts/dispatch_bio_v3_phase4.sh` submits the clustering and grading jobs.
+3. `scripts/join_and_summarize_bio_v3.py` joins the labels, and
+   `scripts/paired_bootstrap_bio_records.py` computes the intervals.
+
+Appendix C checks: `scripts/export_robustness_inputs.py`,
+`scripts/analyze_robustness.py`, `scripts/cache_robustness_pairs.py` and
+`scripts/analyze_clustering_robustness.py`. The clustering checks can be rerun
+from the files in `results/robustness/`:
 
 ```sh
-uv sync                 # core
-uv sync --extra test    # pytest, ruff
-uv sync --extra plot    # matplotlib
-uv sync --extra hf      # torch, transformers (generation and probes)
+uv run python scripts/analyze_clustering_robustness.py \
+  results/robustness/clustering_inputs.json.gz \
+  results/robustness/pair_cache.json.gz /tmp/clustering-check
 ```
-
-The full pipeline (`semantic-entropy-run-pipeline`) needs a GPU and model
-weights, but the scoring and metrics path runs on the committed synthetic
-fixture with no models at all:
-
-```sh
-export PYTHONPATH=src
-python3 -m semantic_entropy.fixtures tests/fixtures/synthetic_sampled_only.jsonl norm.jsonl
-python3 -m semantic_entropy.cli     norm.jsonl scored.jsonl
-python3 -m semantic_entropy.metrics scored.jsonl
-```
-
-That normalizes the sampled answers, clusters them by exact match, computes the
-entropy scores, and prints AUROC/AURAC. It uses the same code path as the cluster
-runs, with the NLI backend left at its default.
-
-`pyproject.toml` also installs these as console scripts
-(`semantic-entropy-score-jsonl`, `-metrics-jsonl`, `-normalize-fixture`,
-`-run-pipeline`, `-aggregate-results`, `-plot-curves`).
-
-## Reproducibility
-
-The active result tables are generated from the committed measurement package,
-auxiliary summaries, and paired comparisons. The shared builder also reads
-archived cross-dataset probe exports for inactive tables. Those transfer
-results are outside the thesis scope.
-The following checks validate the expected coverage and registered producers.
-They do not certify complete raw-data provenance:
-
-```sh
-python3 scripts/check_thesis_measurements.py
-python3 scripts/check_table_provenance.py
-```
-
-Regenerate the active tables and analysis figures locally, without model
-weights or new cluster runs:
-
-```sh
-python3 scripts/build_thesis_tables.py \
-  docs/independent_analysis/data/measurements.csv thesis/includes
-```
-
-The builder requires NumPy, pandas, and Matplotlib. The current cluster exporter
-is `scripts/export_data_package_v2.py`, which needs the original result trees.
-See `docs/independent_analysis/DESIGN.md` for what was run and
-`docs/independent_analysis/data/README.md` for coverage and field meanings.
-Older builders and results remain in the repository but do not supply the
-active thesis tables.
-
-For source packaging, artifact hashes, recovered protocol metadata, and the
-limits of reproducing historical runs, see `docs/reproduction.md` and
-`docs/reproducibility_manifest.json`. The additional checks in Appendix C are
-described in `docs/robustness_plan_2026-09-11.md` and
-`docs/robustness_results_2026-09-12.md`.
-
-## Published FactualBio labels
-
-The repository retains an importer for the human-annotated claims from the code
-release accompanying Farquhar et al. These labels are not used in the current
-thesis results. The source is pinned by commit and file hash:
-
-```sh
-curl -fL https://raw.githubusercontent.com/jlko/long_hallucinations/957b806033d0b769db34beb7ce34316bd498f373/data.py \
-  -o data/raw/factualbio_data_v1.0.0.py
-shasum -a 256 data/raw/factualbio_data_v1.0.0.py
-# Expected: b2ae5bc7fb86bc60c2c8ec189a510edb1d553ae573b9157a8832056ecc81f543
-
-PYTHONPATH=src python3 scripts/import_published_factualbio.py \
-  data/raw/factualbio_data_v1.0.0.py \
-  data/processed/factualbio_published_claims.jsonl \
-  data/processed/factualbio_published_labels.jsonl
-```
-
-Importing does not execute the upstream file. The importer requires exactly 21
-biographies, 150 claim annotations and the published 105 correct / 45 false
-split before writing anything. `src/semantic_entropy/label_provenance.py` keeps
-published human labels and locally generated LLM-judge labels distinct in a
-machine-checkable way, so an automated judgment cannot be mistaken for a human
-annotation.
-
-## Scope and caveats
-
-The detection target is *confabulation*: answers that are wrong and
-inconsistent across resampling. High-confidence systematic errors, where the
-model is wrong the same way every time, are outside it by construction.
-
-The main comparison is discrete semantic entropy against normalized surface
-entropy. Statistical summaries keep the three seeds nested within each
-dataset–generator pair. The thesis reports uncertainty in those comparisons
-and does not treat seeds as independent datasets.
-
-Correctness is assessed by token-F1 and two LLM graders for short answers, and
-by Qwen2.5-72B-Instruct for biographies. There is no human validation of these
-labels. The main temperature tables use only LLM labels of the fixed answer.
-Token-F1 sweep labels instead grade the modal sample and are not comparable.
-AURAC and cross-dataset probe transfer remain in the research archive, outside
-the active thesis results.
-
-## Citation
-
-Jakub Wiśniewski, *Detecting Hallucinations in Large Language Models Using
-Semantic Entropy*. Bachelor's thesis, Katholische Universität
-Eichstätt-Ingolstadt, 2026.

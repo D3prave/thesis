@@ -158,5 +158,4 @@ ls "${HF_HUB_CACHE}" 2>/dev/null | grep '^models--' | sed 's/^/  /' || true
 
 echo ""
 echo "All done. You can now submit GPU jobs:"
-echo "  sbatch --export=ALL,DATA_PATH=data/processed/triviaqa_val_500.jsonl \\"
-echo "      slurm/phase1_7b_alex.sbatch"
+echo "  bash scripts/submit_replication_grid.sh"

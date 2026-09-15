@@ -21,8 +21,6 @@ unset SLURM_EXPORT_ENV
 #
 # Takes the same variable names as replication_ladder_alex.sbatch so
 # scripts/submit_ladder.sh drives it unchanged via LAUNCHER=.
-#
-# Deliberately UNTRACKED during the frozen collection scope.
 # ============================================================================
 set -euo pipefail
 

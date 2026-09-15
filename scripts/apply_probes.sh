@@ -11,8 +11,6 @@
 #
 # CPU only: a dot product per record.
 #
-# Deliberately UNTRACKED.
-#
 # Usage:
 #   bash scripts/apply_probes.sh
 #   DRY_RUN=1 bash scripts/apply_probes.sh

@@ -103,10 +103,9 @@ for x, color, name, counts in [(1, BLUE, "Surface entropy", [2, 1, 1, 1]),
 text(50, 2.3, "Lower entropy means more agreement, not necessarily a correct answer.",
      size=8.0, color=MUTED, ha="center")
 
-for directory in (ROOT / "results/figures", ROOT / "thesis/figures"):
-    directory.mkdir(parents=True, exist_ok=True)
-    for extension in ("pdf", "png"):
-        fig.savefig(directory / f"method_schematic.{extension}", dpi=240,
-                    facecolor="white", metadata={"Creator": "Matplotlib"})
+directory = ROOT / "thesis/figures"
+directory.mkdir(parents=True, exist_ok=True)
+fig.savefig(directory / "method_schematic.pdf", dpi=240,
+            facecolor="white", metadata={"Creator": "Matplotlib"})
 plt.close(fig)
-print("Wrote method_schematic.pdf and method_schematic.png")
+print("Wrote thesis/figures/method_schematic.pdf")

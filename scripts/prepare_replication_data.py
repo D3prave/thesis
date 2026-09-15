@@ -29,8 +29,6 @@ A dataset revision can be supplied and is recorded. The retained collection
 manifests have no Hub revision ID; they preserve source fingerprints and the
 datasets version. Reuse the prepared inputs for exact question selection.
 
-This script was initially untracked during collection; it is now retained
-with the source for inspection.
 
 Usage:
     python scripts/prepare_replication_data.py --dataset trivia_qa

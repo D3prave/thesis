@@ -15,9 +15,9 @@ unset SLURM_EXPORT_ENV
 # ============================================================================
 # SEP v3 whole-paragraph biography LLM-judge clustering (4th backend).
 #
-# Wraps scripts/posthoc_llm_judge_jsonl.py with the v3 bindings the tracked
-# posthoc_llm_judge_alex.sbatch lacks, and pins two things that script leaves
-# to defaults and that would silently change the science:
+# Wraps scripts/posthoc_llm_judge_jsonl.py with the v3 bindings, and pins two
+# things the script leaves to defaults and that would silently change the
+# science:
 #
 #   MODE=equivalence  — the long-form rule ("do these two paragraphs convey the
 #                       same set of facts"). The default 'entailment' is the

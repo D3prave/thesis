@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "semantic-entropy-thesis"
 version = "0.1.0"
-description = "Minimal research scaffold for semantic entropy thesis experiments."
+description = "Code for the thesis Detecting Hallucinations in Large Language Models Using Semantic Entropy."
 requires-python = ">=3.11"
 dependencies = [
     "datasets>=4.8.5",
@@ -15,15 +15,12 @@ dependencies = [
 semantic-entropy-normalize-fixture = "semantic_entropy.fixtures:main"
 semantic-entropy-metrics-jsonl = "semantic_entropy.metrics:main"
 semantic-entropy-make-presampling-jsonl = "semantic_entropy.harness:main"
-semantic-entropy-plot-curves = "semantic_entropy.plotting:main"
-semantic-entropy-plot-extensions = "semantic_entropy.plotting_extensions:main"
 semantic-entropy-run-pipeline = "semantic_entropy.pipeline_cli:main"
 semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
-semantic-entropy-aggregate-results = "semantic_entropy.result_aggregator:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8", "ruff>=0.4"]
-# Data preparation scripts (prepare_triviaqa.py, prepare_nqopen.py, prepare_svamp.py).
+# Data preparation (scripts/prepare_replication_data.py).
 # Install with: uv pip install --extra prep  or  uv sync --extra prep
 prep = [
     # Datasets 5.0 / Hub 1.18 currently fail to resolve legacy Hub dataset IDs

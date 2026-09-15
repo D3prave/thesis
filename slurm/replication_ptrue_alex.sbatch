@@ -28,10 +28,6 @@ unset SLURM_EXPORT_ENV
 # if it would exceed the context limit, exactly as their
 # construct_few_shot_prompt does.
 #
-# Differs from score_ptrue_v3_alex.sbatch only in dropping the sealed v3
-# instance manifest, which the replication grid does not use.
-#
-# Deliberately UNTRACKED during the frozen collection scope.
 # ============================================================================
 set -euo pipefail
 

@@ -172,7 +172,7 @@ def _load_items(
         if data_path is None:
             raise DatasetError(
                 "dataset='nqopen' requires --data-path pointing to an NQ-Open JSONL "
-                "(see scripts/prepare_nqopen.py)."
+                "(see scripts/prepare_replication_data.py)."
             )
         items.extend(load_nqopen_records(Path(data_path)))
 

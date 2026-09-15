@@ -23,8 +23,6 @@
 # reassignment behaviour, raw generations as input, question-conditioning as
 # "{question} {answer}" with a bare space.
 #
-# Deliberately UNTRACKED.
-#
 # Usage:
 #   NLI_REV=<40hex> bash scripts/submit_ladder.sh
 #   REGIMES=chat DRY_RUN=1 NLI_REV=<40hex> bash scripts/submit_ladder.sh

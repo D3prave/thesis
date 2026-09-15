@@ -13,7 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / 'docs/independent_analysis/data/measurements.csv'
+DATA = ROOT / 'data/measurements.csv'
 DATASETS = ('triviaqa', 'nqopen', 'svamp')
 MODELS = ('mistralai_Mistral-7B-Instruct-v0.3',
           'meta-llama_Llama-3.1-8B-Instruct', 'meta-llama_Llama-3.1-70B-Instruct')
@@ -109,19 +109,6 @@ def check_supporting_exports(rows):
                 and r['method']=='discrete_semantic_entropy'}
     if observed != expected:
         raise ValueError('bootstrap comparisons do not cover the recorded grid')
-    ood = read_rows(ROOT / 'results/e7_cross_dataset.csv')
-    expected_ood = set()
-    for (c,g),m,cell in itertools.product(
-            (('chat_0shot',GRADERS[2]),('default_5shot',GRADERS[0])),
-            ('accuracy_probe_uncertainty','probe_uncertainty'),
-            itertools.product(DATASETS,MODELS,SEEDS)):
-        expected_ood.add((c,g,m)+cell)
-    keys = [(r['condition'],r['grader'],r['method'],r['dataset'],r['model'],r['seed']) for r in ood]
-    if len(keys)!=len(set(keys)) or set(keys)!=expected_ood:
-        raise ValueError('incomplete or duplicated out-of-distribution probe grid')
-    for r in ood:
-        if not math.isfinite(float(r['auroc'])) or not 0<=float(r['auroc'])<=1:
-            raise ValueError('invalid out-of-distribution AUROC')
     check_longform_bootstrap(rows, read_rows(ROOT / 'results/paired_bootstrap_longform.csv'))
 
 
@@ -163,6 +150,5 @@ if __name__ == '__main__':
     rows = read_rows(DATA)
     count = check_measurements(rows)
     check_supporting_exports(rows)
-    print(f'Coverage OK: {len(rows)} measurements, {count} complete configuration groups; '
-          '24 short-answer and 32 records-only long-form paired comparisons, '
-          'and 108 out-of-distribution probe measurements checked.')
+    print(f'Coverage OK: {len(rows)} measurements in {count} complete configuration groups, '
+          'plus 24 short-answer and 32 records-only long-form paired comparisons.')

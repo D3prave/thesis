@@ -23,7 +23,6 @@ formed over *distinct* answers and deduplicated globally by
 answers are labelled entailment without asking, exactly as the cross-encoder
 path does.
 
-Deliberately UNTRACKED.
 
 Usage:
     python scripts/posthoc_recluster_llm_judge.py IN.jsonl OUT.jsonl \

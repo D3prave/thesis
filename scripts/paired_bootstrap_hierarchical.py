@@ -157,7 +157,7 @@ def load_cell(
 ):
     """Return (left scores, right scores, incorrect flags) for one cell.
 
-    Record selection mirrors ``scripts/export_data_package.py`` exactly, because
+    Record selection mirrors ``scripts/export_data_package_v2.py`` exactly, because
     ``measurements.csv`` is the authoritative point estimate and any divergence
     here is a bug in this script rather than a finding.
 

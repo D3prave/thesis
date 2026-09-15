@@ -12,8 +12,6 @@
 # Training is CPU-bound logistic regression over a few hundred vectors, so this
 # runs on the login node rather than through Slurm.
 #
-# Deliberately UNTRACKED.
-#
 # Usage:
 #   bash scripts/submit_probes.sh
 #   DRY_RUN=1 bash scripts/submit_probes.sh

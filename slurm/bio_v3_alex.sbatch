@@ -26,7 +26,6 @@ unset SLURM_EXPORT_ENV
 # (SE_RETURN_LOGPROBS=0): the vLLM path exposes tempered/truncated logprobs,
 # while the protocol pins raw untempered log-softmax. Bio therefore reports the
 # count-based estimators only.
-# Untracked during the frozen collection scope; committed afterwards.
 # ============================================================================
 set -euo pipefail
 echo "=== v3 bio generation ${SLURM_JOB_ID} on $(hostname) ==="

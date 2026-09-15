@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export the analysis data package. Supersedes export_data_package.py.
+"""Export the measurement files in data/ from the result trees on the cluster.
 
 Fixes over v1:
   * probe rows under squad_token_f1 read correctness_label_squad, not the
@@ -15,7 +15,7 @@ from collections import defaultdict
 from pathlib import Path
 import numpy as np
 
-OUT = Path("docs/independent_analysis/data"); OUT.mkdir(parents=True, exist_ok=True)
+OUT = Path("data"); OUT.mkdir(parents=True, exist_ok=True)
 EXCL = set(json.loads(Path("results/dedup_triviaqa.json").read_text())["excluded_eval_prompts"])
 CELL = re.compile(r"repl-(chat|default)-(train|eval)-(\w+)-(.+)-s(4[234])-\d+$")
 ENTROPY = ["discrete_semantic_entropy","semantic_entropy_full","surface_entropy",

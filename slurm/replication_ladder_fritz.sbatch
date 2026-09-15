@@ -36,8 +36,6 @@ unset SLURM_EXPORT_ENV
 #
 # The surface-entropy baseline is scored over normalized strings regardless of
 # --cluster-source, so this study's own baseline survives the faithful run.
-#
-# Deliberately UNTRACKED during the frozen collection scope.
 # ============================================================================
 set -euo pipefail
 
@@ -71,7 +69,7 @@ source "${REPO_ROOT}/slurm/_common.sh"
 BACKEND_LABEL="$(printf '%s' "${NLI_MODEL}" | tr '/' '_')"
 mkdir -p "$(dirname "${OUTPUT_JSONL}")"
 
-# Same preflight contract as posthoc_recluster_fritz.sbatch: fail before the
+# Preflight: fail before the
 # model loads if an extra is missing, the NLI weights are not cached, or the
 # input artifact is absent. HF_HUB_OFFLINE is set by _common.sh, so an
 # uncached model would otherwise fail deep inside transformers.

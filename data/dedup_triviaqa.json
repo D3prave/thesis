@@ -1,0 +1,22 @@
+{
+  "reason": "TriviaQA-in-SQuAD-format repeats questions across context rows; train_test_split(seed=10) places copies in both splits",
+  "excluded_eval_prompts": [
+    "\"Who produces the perfumes \"\"Opium\"\" and \"\"Rive Gauche\"\"?\"",
+    "Aphasia is the medical term for the inability to use or understand what, resulting from damage to the brain?",
+    "If you had a Shiraz, a Baluch or a Bokhara in your house what would they be?",
+    "In which city were the 1984 Summer Olympics held?",
+    "Mitt Romney was Governor of which state 2003-7?",
+    "The 'Angel of Christian Charity' in London is more commonly known by what name?",
+    "Trick question: what was Eleanor Roosevelt's maiden name?",
+    "What does an entomologist study?",
+    "What is the French name for the English channel?",
+    "What substance, best known as a poison, was used in small doses in medications as a stimulant, as a laxative, and for enhancing performance in sports?",
+    "Which is the only mythical creature found in the Chinese zodiac?",
+    "Which of the seven wonders of the ancient world was thought to have straddled the harbour of a Greek island?",
+    "Which town is home to the University of Ulster?",
+    "Which town on the River Colne holds an annual Oyster Festival?",
+    "Who was the head of the German Ministry of Public Enlightenment and Propaganda from 1933 to 1945?",
+    "\u2018Quicksilver\u2019 is another name for which metallic element?"
+  ],
+  "n_excluded_eval_prompts": 16
+}

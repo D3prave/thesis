@@ -48,38 +48,31 @@ Chapter~\ref{ch:results} states which settings it covers.
 \label{tab:grid-at-a-glance}
 \begingroup
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{6.2cm}c@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{7.3cm}@{}}
 \toprule
-Factor & Levels & Count \\
+Factor & Levels \\
 \midrule
 Prompting condition &
   brief-sentence instruction and terse instruction, each with 0 and with 5
-  worked examples & 4 \\
+  worked examples \\
 Short-answer dataset &
-  TriviaQA, NQ-Open, SVAMP & 3 \\
+  TriviaQA, NQ-Open, SVAMP \\
 Generator &
-  Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct, Llama-3.1-70B-Instruct & 3 \\
+  Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct, Llama-3.1-70B-Instruct \\
 Run seed &
-  42, 43, 44, varying sampling only & 3 \\
+  42, 43, 44, varying sampling only \\
 Entailment model &
   \texttt{deberta-v2-xlarge-mnli} (released-code default),
-  \texttt{nli-deberta-v3-large}, \texttt{Qwen2.5-72B-Instruct} & 3 \\
+  \texttt{nli-deberta-v3-large}, \texttt{Qwen2.5-72B-Instruct} \\
 Correctness rule &
   SQuAD token-F1, and LLM judges Qwen2.5-72B-Instruct and
-  Llama-3.1-70B-Instruct & 3 \\
+  Llama-3.1-70B-Instruct \\
 Sampling temperature &
-  0.1, 0.3, 0.5, 0.7, 1.0 & 5 \\
+  0.1, 0.3, 0.5, 0.7, 1.0 \\
 \bottomrule
 \end{tabular}
 \endgroup
 \end{table}
-
-The short-answer study uses nine dataset--generator pairs as resampling
-units. The three random seeds are repeated runs within each pair,
-not separate independent observations. The main paired bootstrap accounts for
-both these pairs and the records within them. The limited grid and its shared
-datasets and models restrict generalization. Section~\ref{sec:statistics}
-states the resampling assumptions.
 
 \section{Datasets and question selection}
 \label{sec:datasets}
@@ -239,32 +232,13 @@ entailment model, so the full $2\times2$ comparison is limited to that setting.
 \section{Generators and decoding}
 \label{sec:sampling-settings}
 
-Three open instruction-tuned generators are used, at pinned revisions verified
-against the local weight cache before generation (Table~\ref{tab:generators}).
+Three open instruction-tuned generators are used:
+Mistral-7B-Instruct-v0.3~\cite{jiang_mistral_2023,mistral_instruct_v03_model_card},
+Llama-3.1-8B-Instruct and Llama-3.1-70B-Instruct~\cite{grattafiori_llama3_2024}.
 Farquhar et al.\ evaluate LLaMA-2 Chat at three sizes, Falcon Instruct at two,
 and Mistral Instruct at 7B. The grid here has fewer families but a comparable
 range of sizes, keeps Mistral 7B Instruct as a point of overlap, and adds a
 within-family size contrast in the two Llama models.
-
-\begin{table}[htb]
-\thisfloatsetup{capposition=above}
-\centering
-\small
-\caption{Generators and pinned revisions.}
-\label{tab:generators}
-\begingroup
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{4.6cm}@{}}
-\toprule
-Model & Revision \\
-\midrule
-\texttt{Mistral-7B-Instruct-v0.3}~\cite{jiang_mistral_2023,mistral_instruct_v03_model_card} & \texttt{c170c708c41dac9275d1}\allowbreak\texttt{5a8fff4eca08d52bab71} \\
-\texttt{Llama-3.1-8B-Instruct}~\cite{grattafiori_llama3_2024} & \texttt{0e9e39f249a16976918f}\allowbreak\texttt{6564b8830bc894c89659} \\
-\texttt{Llama-3.1-70B-Instruct}~\cite{grattafiori_llama3_2024} & \texttt{1605565b47bb9346c551}\allowbreak\texttt{5c34102e054115b4f98b} \\
-\bottomrule
-\end{tabular}
-\endgroup
-\end{table}
 
 \paragraph{The ten samples.} For each question the model is sampled $M=10$
 times at temperature $T=1.0$, top-$p$ $0.9$, top-$k$ $50$, under a budget of at
@@ -419,65 +393,39 @@ Raw answer accuracy is reported as context, not as detector performance.
 \section{Statistical procedure}
 \label{sec:statistics}
 
-\paragraph{Nine units, not twenty-seven cells.} A fixed short-answer setting
-has 27 cells: three datasets by three generators by three seeds. The seed cells
-within one dataset--generator pair are repeated samples, not independent
-observations. The analysis therefore uses \textbf{nine resampling units}, one
-for each dataset--generator pair. Treating all 27 cells as independent would
-overstate the amount of evidence. The numerical resampling check is reported
-with the Results in Section~\ref{sec:se-vs-surface}.
+The three seeds of a dataset--generator pair answer the same questions, so they
+are repeated runs and not independent results. The analysis therefore uses the
+nine dataset--generator pairs as its units. A mean first averages the three
+seeds within each pair and then averages the nine pairs.
 
-The bootstrap treats these pairs as independently resampled units, although
-they share datasets, generators, and question sets. It does not model those
-shared sources of dependence separately. Its intervals describe uncertainty
-under this resampling scheme, not all uncertainty about new tasks and models.
-Appendix~\ref{sec:bootstrap-assumptions} gives the implementation details.
-
-\paragraph{Paired tests resample units and records.} Three resampling methods
-are available, and they capture different sources of variation:
+All intervals are 95\,\% percentile intervals from 2{,}000 bootstrap resamples.
+A resample can draw the units, the questions inside each cell, or both:
 
 \begin{itemize}
-  \item \texttt{units}: resample the nine dataset--generator units with
-    replacement while holding prompts fixed. This captures only variation
-    between units.
-  \item \texttt{records}: hold units fixed and resample prompts within each
-    cell. The pairing ensures that both estimators always score the same
-    prompts. This captures only variation within cells.
-  \item \texttt{hier}: resample units and then prompts within each selected
-    cell. This captures both sources of variation.
+  \item \texttt{units}: draw the nine pairs and keep the questions fixed.
+  \item \texttt{records}: keep the pairs fixed and draw the questions.
+  \item \texttt{hier} (hierarchical): draw the pairs, then the questions inside
+    each selected pair.
 \end{itemize}
 
-We call the third scheme \emph{hierarchical resampling} because it samples
-dataset--generator units first and question records within the selected cells
-second.
+The summary tables use \texttt{units} intervals. The paired comparisons of two
+methods use hierarchical intervals, and both methods are scored on the same
+drawn questions. The biography evaluation has only one dataset, so its
+intervals draw records only. Section~\ref{sec:se-vs-surface} compares the three
+schemes on the same comparisons.
 
-For each method, the statistic first averages the paired AUROC difference over
-seeds within each unit and then averages over the nine units. The reported
-95\,\% percentile intervals use 2{,}000 hierarchical resamples. Resampling
-prompts alone does not include variation between dataset--generator units and
-cannot describe uncertainty across a wider population of tasks.
+If the interval of a paired difference contains zero, the data do not show
+which method is better. This is not evidence that the two methods are equal.
+The nine pairs also share datasets and generators, so the intervals describe
+this grid only, and they are not corrected for the number of comparisons.
+Appendix~\ref{sec:bootstrap-assumptions} gives the details.
 
-\paragraph{Other intervals.} The short-answer summary tables use 95\,\% bootstrap
-intervals from 2{,}000 resamples of dataset--generator units after averaging
-over seeds. They hold the question records fixed. The paired comparison tables
-instead use the hierarchical intervals described above. These are individual
-intervals, not simultaneous intervals adjusted for testing many comparisons.
-The released code uses 90\,\% bias-corrected and accelerated (BCa) intervals
-from 1{,}000 resamples, so its intervals are not directly comparable with those
-computed here.
-
-\paragraph{Cross-seed spread.} A $\pm$ value on a per-cell number is the
-standard deviation over the three run seeds. With three seeds that shows
-stability, not significance, and it is kept separate from the bootstrap
-intervals. Results report the observed range across seeds so that readers can
-compare it with the differences between methods.
+A $\pm$ value is the standard deviation over the three seeds. It shows how
+stable a number is, not whether a difference is significant.
 
 \section{Where this study differs from the original}
 \label{sec:deviation-register}
 
-% Two extra lines here keep the last five lines of the chapter off an
-% otherwise empty page. Check this if the surrounding text changes.
-\enlargethispage{2\baselineskip}
 The main validity concerns are stated in the sections where they matter. This
 study uses open models in place of proprietary judges, has no human correctness
 labels, and evaluates three of the original five question sets. It also adds
@@ -490,11 +438,8 @@ behavior on verbose answers is quantified in
 Appendix~\ref{sec:correctness-comparison}, and the TriviaQA split contamination
 described in Section~\ref{sec:datasets}.
 
-\paragraph{Implementation and provenance.}
+\paragraph{Implementation.}
 \label{sec:hpc-execution}
-The code stores generation, clustering and grading outputs separately. Jobs
-record the code revision and experiment settings, and check the requested
-clustering settings before accepting an output. This makes it possible to
-repeat an analysis without generating new answers.
-Appendix~\ref{app:schema} describes the measurement package and the limits of
-what it can reproduce without the underlying record files.
+The code stores generation, clustering and grading outputs separately, so an
+analysis can be repeated without generating new answers.
+Appendix~\ref{app:schema} describes the code and the data files.

@@ -12,7 +12,7 @@ unset SLURM_EXPORT_ENV
 # Pre-fetch all model weights to the vault HF cache before submitting GPU jobs.
 #
 # This is a CPU-only job — no GPU required.  Run it once; after completion
-# all compute scripts (phase1_7b, phase1_70b, phase2_nli, …) will find their
+# all compute scripts will find their
 # models cached and will not attempt any network access at runtime.
 #
 # Usage:
@@ -146,4 +146,4 @@ echo ""
 echo "=== Prefetch complete ==="
 echo "End time: $(date --iso-8601=seconds)"
 echo "You can now submit GPU jobs:"
-echo "  sbatch --export=ALL,DATA_PATH=data/processed/triviaqa_val_500.jsonl slurm/phase1_7b_alex.sbatch"
+echo "  bash scripts/submit_replication_grid.sh"

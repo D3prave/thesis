@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Build the Results and appendix tables from the recorded measurement package.
+"""Build the Results and appendix tables and figures from the measurement file.
 
-Main source: docs/independent_analysis/data/measurements.csv (10,350 rows).
-Auxiliary CSVs supply cluster counts, agreement, and seed variability.
-Previously computed hierarchical intervals and cross-dataset probe results
-are read from results/. Writes .tex fragments and an audit trail to stdout.
+Main source: data/measurements.csv (10,350 rows), with data/seed_variability.csv.
+The paired bootstrap intervals are read from results/. Writes .tex fragments
+and figures, and prints an audit trail.
+
+Usage: python scripts/build_thesis_tables.py data/measurements.csv thesis/includes
 
 Intervals: the `units` scheme of scripts/paired_bootstrap_hierarchical.py --
 resample the 9 (dataset, model) units with replacement, statistic = mean over
@@ -16,22 +17,20 @@ import sys, os
 import numpy as np
 import pandas as pd
 
-DATA = sys.argv[1] if len(sys.argv) > 1 else 'data/measurements.csv'
-OUT  = sys.argv[2] if len(sys.argv) > 2 else 'includes'
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, 'data', 'measurements.csv')
+OUT  = sys.argv[2] if len(sys.argv) > 2 else os.path.join(REPO, 'thesis', 'includes')
 os.makedirs(OUT, exist_ok=True)
 DDIR = os.path.dirname(os.path.abspath(DATA))
 aux = lambda n: os.path.join(DDIR, n)
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(DDIR)))
 
 
 def res(n):
-    """Locate a results file: repo-relative first, then beside the data file."""
-    for c in (os.path.join(REPO, 'results', n), aux(n)):
-        if os.path.exists(c):
-            return c
-    raise SystemExit(
-        f'missing required input: {n}\n'
-        f'  looked in {os.path.join(REPO, "results")} and {DDIR}')
+    """Locate a file in results/."""
+    path = os.path.join(REPO, 'results', n)
+    if not os.path.exists(path):
+        raise SystemExit(f'missing required input: {path}')
+    return path
 
 XL = 'microsoft_deberta-v2-xlarge-mnli'
 LG = 'cross-encoder_nli-deberta-v3-large'
@@ -72,7 +71,6 @@ lf = d[d.arm == 'long_form']
 T1 = sa[sa.temperature == 1.0]
 BOOT = pd.read_csv(res('paired_bootstrap_se_vs_surface.csv'))
 LONGFORM_BOOT = pd.read_csv(res('paired_bootstrap_longform.csv'))
-E7   = pd.read_csv(res('e7_cross_dataset.csv'))
 SEED_VARIABILITY = pd.read_csv(aux('seed_variability.csv'))
 SEED_REFERENCE = float(SEED_VARIABILITY.loc[
     SEED_VARIABILITY.method == 'discrete_semantic_entropy', 'mean_seed_range'].mean())
@@ -221,8 +219,7 @@ def t_canonical_eight():
                 continue
             r = r.iloc[0]
             rows.append(f'{COND[cond]} & {GRADER[g]} & {fmtpm(r.delta,4)} & '
-                        f'[{fmtpm(r.hier_lo,3)}, {fmtpm(r.hier_hi,3)}] & '
-                        f'includes zero \\\\')
+                        f'[{fmtpm(r.hier_lo,3)}, {fmtpm(r.hier_hi,3)}] \\\\')
             AUDIT.append(('5.3 canonical8', f'{cond}|{g}', 'delta/hier',
                           [round(float(r.delta), 4), round(float(r.hier_lo), 4),
                            round(float(r.hier_hi), 4)]))
@@ -233,8 +230,8 @@ def t_canonical_eight():
         'hierarchical '
         'paired bootstrap, which resamples both the nine (dataset, model) units and the '
         'records within them. Not one of the eight intervals excludes zero.',
-        'tab:canonical-eight', '@{}llccl@{}',
-        r'Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} & CI result \\',
+        'tab:canonical-eight', '@{}llcc@{}',
+        r'Condition & Judge & \makecell{AUROC\\difference} & \makecell{95\,\% CI\\(hierarchical)} \\',
         rows)
 
 
@@ -467,25 +464,6 @@ def t_backend_by_model():
         r'Generator & Mean chars & \texttt{xlarge} & \texttt{v3-large} & \texttt{Qwen-72B} \\', rows)
 
 
-def t_cluster_counts():
-    cc = pd.read_csv(aux('cluster_counts.csv'))
-    ba = pd.read_csv(aux('backend_agreement.csv'))
-    rows = []
-    for _, r in cc.iterrows():
-        rows.append(f'{COND[r.condition]} & {BACKEND[r.entailment_backend]} & '
-                    f'{r.mean_clusters_per_record:.2f} \\\\')
-    note = ('Agreement on cluster count over the records both processed: ' +
-            '. '.join(f'{BACKEND[r.backend_a]} vs {BACKEND[r.backend_b]} '
-                      f'{100*r.identical_cluster_count:.1f}\\,\\%'
-                      for _, r in ba.iterrows()) + '.')
-    return table(
-        'Mean clusters per record by entailment model, out of ten samples. The three '
-        'implementations of ``bidirectional entailment clustering\'\' do not agree on '
-        'how many meanings a set of samples contains.',
-        'tab:cluster-counts', '@{}llc@{}',
-        'Condition & Entailment model & Mean clusters \\\\', rows, note=note)
-
-
 # ---------------------------------------------------------------- 5.6 the 2x2
 def t_factorial():
     rows = []
@@ -653,86 +631,6 @@ def t_degenerate_cells():
         'Dataset & Generator & Seed & token-F1 accuracy & Correct / records \\\\', rows)
 
 
-# ---------------------------------------------------------------- 5.10 AUROC vs AURAC
-def t_aurac():
-    rows = []
-    for metric in ['auroc', 'aurac_paper', 'aurac_mean_retained']:
-        lead, margins = 0, []
-        for cond in ['chat_0shot', 'default_0shot', 'chat_5shot', 'default_5shot']:
-            for b in [XL, LG, QW]:
-                for g in [QJ, LJ, F1]:
-                    sub = T1[(T1.condition == cond) & (T1.entailment_backend == b) &
-                             (T1.grader == g)]
-                    diff = paired(sub, 'discrete_semantic_entropy', 'surface_entropy',
-                                  value=metric)
-                    if diff.empty:
-                        continue
-                    mu = unit_stat(diff)
-                    margins.append(mu)
-                    lead += int(mu > 0)
-        nm = {'auroc': r'\texttt{auroc}', 'aurac_paper': r'\texttt{aurac\_paper}',
-              'aurac_mean_retained': r'\texttt{aurac\_mean\_retained}'}[metric]
-        rows.append(f'{nm} & {lead} / {len(margins)} & {fmtpm(np.mean(margins),4)} \\\\')
-        AUDIT.append(('5.10 aurac', metric, 'slices led', f'{lead}/{len(margins)}'))
-    # correlation of aurac_paper with accuracy
-    z = T1[T1.method == 'discrete_semantic_entropy'][['accuracy', 'aurac_paper']].dropna()
-    r = float(np.corrcoef(z.accuracy, z.aurac_paper)[0, 1])
-    AUDIT.append(('5.10 aurac', 'aurac_paper~accuracy', 'r', round(r, 4)))
-    note = (f'Over the {len(z)} discrete-semantic-entropy short-answer results at '
-            f'$T=1.0$, '
-            f'\\texttt{{aurac\\_paper}} correlates with the generating model\'s own '
-            f'accuracy at $r={r:.3f}$. It is largely reporting how often the model is '
-            'right, not how well the detector ranks.')
-    return table(
-        'Secondary metric analysis of the same 24 comparisons. The table reports how '
-        'many favor discrete semantic entropy over surface entropy and the mean score '
-        'difference. With AUROC, most comparisons favor semantic entropy. With either '
-        'rejection-accuracy summary, most favor surface entropy.',
-        'tab:aurac', '@{}lcc@{}',
-        'Metric & Comparisons favoring SE & Mean score difference \\\\', rows, note=note)
-
-
-# ---------------------------------------------------------------- 5.11 probes
-def t_probes():
-    rows = []
-    for cond, lbl in [('chat_0shot', 'Sentence-length'),
-                      ('default_5shot', 'Short-phrase')]:
-        for g in [QJ, LJ, F1]:
-            sub = T1[(T1.condition == cond) & (T1.entailment_backend == LG) &
-                     (T1.grader == g)]
-            a = unit_stat(cells(sub[sub.method == 'accuracy_probe_uncertainty']))
-            p_ = unit_stat(cells(sub[sub.method == 'probe_uncertainty']))
-            rows.append(f'{lbl} & {GRADER[g]} & {fmt(a,4)} & {fmt(p_,4)} \\\\')
-            AUDIT.append(('5.11 probes ID', f'{cond}|{g}', 'acc/sep',
-                          [round(float(a), 4), round(float(p_), 4)]))
-    id_table = table(
-        "The semantic entropy probe's training targets come from "
-        "\\texttt{nli-deberta-v3-large}. The accuracy probe uses correctness labels. "
-        'In distribution, the probe is trained and scored on disjoint question '
-        'sets from the same task. Values are mean AUROC over the nine '
-        'dataset--generator units, each averaged over three seeds.',
-        'tab:probes', '@{}llcc@{}',
-        'Condition & Grader & Accuracy probe & SEP \\\\', rows)
-    rows = []
-    for cond, g, lbl in [('chat_0shot', LJ, 'Sentence-length'),
-                         ('default_5shot', F1, 'Short-phrase')]:
-        e = E7[(E7.condition == cond) & (E7.grader == g)]
-        vals = [unit_stat(cells(e[e.method == m])) for m in
-                ['accuracy_probe_uncertainty', 'probe_uncertainty']]
-        rows.append(f'{lbl} & {GRADER[g]} & ' +
-                    ' & '.join(fmt(v,4) for v in vals) + r' \\')
-        AUDIT.append(('5.11 probes OOD', f'{cond}|{g}', 'acc/sep', vals))
-    return id_table + '\n' + table(
-        'Available out-of-distribution probe evaluations. Each probe is trained '
-        'on the other two datasets and tested on the held-out dataset, with the '
-        'same nine units and three seeds. These are the only recorded '
-        'condition--grader combinations: sentence-length answers under Qwen or '
-        'token-F1 and short phrases under either LLM judge were not evaluated. '
-        'The two rows use different graders and are not directly comparable.',
-        'tab:probes-ood', '@{}llcc@{}',
-        'Condition & Grader & Accuracy probe & SEP \\\\', rows)
-
-
 def t_complete_t1():
     """Cover every recorded short-answer method/backend/grader group at T=1."""
     tables = []
@@ -869,13 +767,10 @@ if __name__ == '__main__':
     write('t_backend.tex',           t_backend())
     write('t_grader_check.tex',      t_backend_grader_check())
     write('t_backend_by_model.tex', t_backend_by_model())
-    write('t_cluster_counts.tex',    t_cluster_counts())
     write('t_factorial.tex',         t_factorial())
     write('t_temperature.tex',       t_temperature())
     write('t_correctness.tex',       t_correctness())
     write('t_degenerate_cells.tex',  t_degenerate_cells())
-    write('t_aurac.tex',             t_aurac())
-    write('t_probes.tex',            t_probes())
     write('t_complete_t1.tex',       t_complete_t1())
     write('t_complete_temperature.tex', t_complete_temperature())
     # Imported records-only intervals do not consume the shared unit-CI RNG.
@@ -960,46 +855,6 @@ def figures(outdir='figures'):
     longform_comparison_figure(outdir)
     INK, MUTE, HL = '#1a1a1a', '#8c8c8c', '#c1440e'
     SURF, ACCENT = '#fcfcfb', '#c1440e'
-
-    # --- forest plot of all 24 slices -------------------------------------
-    R = BOOT.rename(columns={'entailment_backend': 'b', 'grader': 'g',
-                             'delta': 'mu', 'hier_lo': 'lo', 'hier_hi': 'hi'})
-    R = R[['condition', 'b', 'g', 'mu', 'lo', 'hi']].rename(
-        columns={'condition': 'cond'}).copy()
-    R['grp'] = np.where(R.g == F1, 'token-F1 grading',
-                        np.where(R.b == QW, 'Qwen entailment model, LLM grading',
-                                 'DeBERTa cross-encoders, LLM grading'))
-    order = ['DeBERTa cross-encoders, LLM grading',
-             'Qwen entailment model, LLM grading',
-             'token-F1 grading']
-    R['k'] = R.grp.map({g: i for i, g in enumerate(order)})
-    R = R.sort_values(['k', 'mu']).reset_index(drop=True)
-    fig, ax = plt.subplots(figsize=(5.4, 5.0))
-    ax.axvline(0, color=MUTE, lw=0.8, zorder=1)
-    for i, r in R.iterrows():
-        resolved = (r.lo > 0) or (r.hi < 0)
-        c = HL if resolved else INK
-        ax.plot([r.lo, r.hi], [i, i], color=c, lw=1.1, alpha=0.9, zorder=2)
-        ax.plot([r.mu], [i], 'o', ms=3.4, color=c,
-                mfc=c if resolved else 'white', mew=0.9, zorder=3)
-    lab = [f"{r.cond.replace('_',chr(92)+'_')}  ·  "
-           f"{ {XL:'xlarge',LG:'v3-large',QW:'Qwen-72B'}[r.b] }  ·  "
-           f"{ {QJ:'Qwen',LJ:'Llama',F1:'token-F1'}[r.g] }" for _, r in R.iterrows()]
-    ax.set_yticks(range(len(R)))
-    ax.set_yticklabels([l.replace('\\_', '_') for l in lab], fontsize=6.4)
-    ax.set_ylim(-0.8, len(R) - 0.2)
-    ax.set_xlabel('discrete semantic entropy $-$ surface entropy (AUROC)')
-    prev = None
-    for i, r in R.iterrows():
-        if r.grp != prev:
-            if prev is not None:
-                ax.axhline(i - 0.5, color=MUTE, lw=0.5, ls=':')
-            ax.text(0.985, i + 0.05, r.grp, transform=ax.get_yaxis_transform(),
-                    ha='right', va='bottom', fontsize=6.6, color=MUTE, style='italic')
-            prev = r.grp
-    ax.tick_params(length=2)
-    fig.savefig(f'{outdir}/margin_forest.pdf'); plt.close(fig)
-    print(f'  wrote {outdir}/margin_forest.pdf')
 
     # --- method bars by dataset and generator ----------------------------
     method_order = [
@@ -1096,8 +951,7 @@ def figures(outdir='figures'):
     fig.savefig(f'{outdir}/backend_ladder.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/backend_ladder.pdf')
 
-    # ---- ladder and factor effects ----
-    from matplotlib.patches import Patch
+    # ---- ladder ----
     NOISE=SEED_REFERENCE
     # ---------------- Figure 1: the four-rung decomposition ----------------
     rungs=[('naive_sample_entropy','naive_entropy','count strings,\nnot likelihoods'),
@@ -1135,66 +989,6 @@ def figures(outdir='figures'):
     ax.tick_params(length=2, labelsize=9); ax.spines['left'].set_visible(False)
     fig.savefig(f'{outdir}/ladder.pdf'); plt.close(fig)
     print(f'  wrote {outdir}/ladder.pdf')
-
-    # ---------------- Figure 2: ranked factor effects ----------------
-    def m(**kw):
-        q=T1.copy()
-        for k,v in kw.items(): q=q[q[k]==v]
-        return q.auroc.mean()
-    base=dict(condition='chat_0shot',entailment_backend=XL,grader=QJ,
-              method='discrete_semantic_entropy')
-    sw=sa[(sa.condition=='chat_0shot')&(sa.entailment_backend==XL)&(sa.grader==QJ)&
-          (sa.method=='discrete_semantic_entropy')]
-    g=T1[(T1.condition=='chat_0shot')&(T1.entailment_backend==XL)&(T1.grader==QJ)&
-         (T1.method=='discrete_semantic_entropy')]
-    def step24(hi, lo):
-        """Mean AUROC change for one method step over all 24 comparisons.
-
-        This is the same basis as Table 5.7 (tab:ladder). The evaluation-choice
-        bars below are ranges within one reference slice instead, which the
-        caption states. Method steps previously used that single slice too,
-        which made clustering by meaning read 0.020 here against +0.0016 in
-        the table.
-        """
-        mus = []
-        for _, sub in T1.groupby(['condition', 'entailment_backend', 'grader']):
-            d = paired(sub, hi, lo)
-            if len(d) < 9:
-                continue
-            mus.append(d.groupby(level=[0, 1]).mean().mean())
-        return float(np.mean(mus))
-
-    eff=[('sampling temperature', sw[sw.temperature==1.0].auroc.mean()-sw[sw.temperature==0.1].auroc.mean(),'m'),
-         ('generator', g.groupby('model').auroc.mean().max()-g.groupby('model').auroc.mean().min(),'m'),
-         ('entailment model', m(**{**base,'entailment_backend':QW})-m(**{**base,'entailment_backend':LG}),'m'),
-         ('dataset', g.groupby('dataset').auroc.mean().max()-g.groupby('dataset').auroc.mean().min(),'m'),
-         ('answer normalization', step24('surface_entropy','naive_sample_entropy'),'s'),
-         ('prompting condition', m(**{**base,'condition':'default_5shot'})-m(**base),'m'),
-         ('normalized counts vs likelihoods', step24('surface_entropy','naive_entropy'),'s'),
-         ('clustering by meaning', step24('discrete_semantic_entropy','surface_entropy'),'s'),
-         ('correctness rule', m(**{**base,'grader':'llm_llama-3.1-70b'})-m(**{**base,'grader':'squad_token_f1'}),'m')]
-    eff=sorted(eff,key=lambda x:-abs(x[1]))
-    fig,ax=plt.subplots(figsize=(5.2,3.3))
-    y=np.arange(len(eff))[::-1]
-    for yy,(lab,v,kind) in zip(y,eff):
-        step = kind=='s'
-        ax.barh(yy, v, height=0.56, color=ACCENT if step else INK,
-                edgecolor=SURF, linewidth=1.0,
-                hatch='////' if step else None, zorder=3)
-        ax.text(v+0.003, yy, f'{v:.3f}', va='center', ha='left', fontsize=7.4,
-                color=ACCENT if step else INK, zorder=4)
-    ax.axvline(NOISE, color=MUTE, lw=0.9, ls=(0,(4,2)), zorder=2)
-    ax.text(NOISE+0.002, len(eff)-0.35, f'mean seed range {NOISE:.4f}', fontsize=6.6,
-            color=MUTE, va='bottom', ha='left')
-    ax.set_yticks(y); ax.set_yticklabels([e[0] for e in eff], fontsize=7.4)
-    ax.set_xlim(0, 0.225); ax.set_xlabel('AUROC change in the indicated comparison')
-    ax.tick_params(length=2); ax.spines['left'].set_visible(False)
-    ax.legend(handles=[Patch(facecolor=ACCENT,hatch='////',edgecolor=SURF,label='a step of the method'),
-                       Patch(facecolor=INK,edgecolor=SURF,label='a measurement or data choice')],
-              frameon=False, fontsize=6.8, loc='lower right')
-    fig.savefig(f'{outdir}/factor_effects.pdf'); plt.close(fig)
-    print(f'  wrote {outdir}/factor_effects.pdf')
-    for lab,v,k in eff: AUDIT.append(('6.x factor effects', lab, k, round(float(v),4)))
 
 
 if __name__ == '__main__':

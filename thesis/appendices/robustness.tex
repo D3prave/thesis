@@ -2,12 +2,10 @@
 \label{app:robustness}
 
 These supplementary checks reuse the recorded answers and correctness labels.
-The analysis choices were recorded before inspecting the sensitivities, and
-results were preserved in commits \texttt{643f047} and \texttt{edc22f0}. No answers were regenerated
-and no probes were retrained. Full outputs, input hashes, and reproduction
-instructions are in \path{results/robustness_20260911/} and
-\path{docs/robustness_results_2026-09-12.md}. All 3,564 corresponding saved AUROCs
-were reproduced to their six-decimal export precision.
+The analysis choices were fixed before the results were inspected. No answers
+were regenerated and no probes were retrained. The full outputs are in
+\path{results/robustness/}. All 3,564 corresponding saved AUROCs were
+reproduced to six decimals.
 
 \section{Shared questions and statistical units}
 
@@ -63,20 +61,20 @@ effect. Counts and all grader-specific diagnostics remain in the exports.
 
 The 54 saved SEP evaluation cells were also checked against their intended
 high/low entropy target. Each target uses DSE greater than or equal to its
-saved training threshold. Fit hashes, training-only threshold provenance,
-dataset, generator, seed, and evaluation entropy-source hashes all match.
+saved training threshold. Each saved probe matches its evaluation cell in
+dataset, generator, seed and entropy source.
 No threshold was selected on evaluation questions. Mean target AUROC is
 0.7103 for sentences and 0.8389 for short phrases. Balanced accuracy at
 probability 0.5 is 0.6457 and 0.7324. Corresponding Qwen-graded incorrectness
 AUROCs are 0.6723 and 0.7651. Predicting entropy is therefore distinct from
-predicting correctness. This check does not validate factual labels or resolve
-the accuracy probe's historical training-label provenance.
+predicting correctness. This check does not validate the correctness labels,
+and it does not show which judge produced the accuracy probe's training labels.
 
 \section{Normalization and answer order}
 
 A bounded check selected 30 questions per dataset by a fixed hash rule,
 shared across three generators and the two original conditions, at seed 42:
-540 records in total. DeBERTa-v3-large at the recorded revision labeled raw
+540 records in total. DeBERTa-v3-large labeled raw
 and normalized answer pairs. All 540 raw-answer partitions were reproduced
 exactly. Normalization changed the original-order partition for 138 of 270
 sentence records and 33 of 270 short-phrase records. Thus small aggregate
@@ -110,7 +108,7 @@ that ten is optimal nor measures performance above ten. The fixed subset,
 single seed, and single entailment model also limit extrapolation to the
 complete experiment. Both LLM graders retain all nine cells, while token-F1 omits
 one single-class sentence cell. All three graders, per-cell eligibility,
-replicates, and ranges are retained in the result package.
+replicates, and ranges are in the result files.
 
 The bounded entailment job evaluated 31,498 unique directed pairs after
 exact-duplicate elimination and completed in 5 minutes 19 seconds on one

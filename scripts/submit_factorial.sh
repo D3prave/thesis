@@ -19,8 +19,6 @@
 # Llama-3.1-70B needs four 80GB cards. On a single 40GB card device_map spills
 # to CPU and the job reaches roughly 20 of 100 prompts in four hours.
 #
-# Deliberately UNTRACKED: it is a driver, not part of the published record.
-#
 # Usage:
 #   bash scripts/submit_replication_grid.sh            # submit everything
 #   DRY_RUN=1 bash scripts/submit_replication_grid.sh  # print, submit nothing

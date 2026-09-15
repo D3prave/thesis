@@ -20,7 +20,6 @@ substitution already made for the entailment rung.
 The original label is preserved as `correctness_label_squad` so the two can be
 compared, which is itself a reportable result.
 
-Deliberately UNTRACKED.
 
 Usage:
     python scripts/relabel_with_llm_judge.py IN.jsonl OUT.jsonl \

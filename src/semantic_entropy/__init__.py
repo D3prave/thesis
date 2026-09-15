@@ -74,27 +74,6 @@ from semantic_entropy.probes import (
 )
 from semantic_entropy.pipeline_cli import load_callable
 from semantic_entropy.normalization import normalize_answer, normalize_answers
-try:
-    from semantic_entropy.plotting_extensions import (
-        generate_all_plots,
-        plot_accuracy_vs_auroc,
-        plot_method_comparison_by_dataset,
-        plot_phase_comparison,
-    )
-except ImportError:
-    # matplotlib is an optional dependency; plotting functions unavailable
-    # when it is not installed.  Install with: uv pip install matplotlib
-    generate_all_plots = None  # type: ignore[assignment]
-    plot_accuracy_vs_auroc = None  # type: ignore[assignment]
-    plot_method_comparison_by_dataset = None  # type: ignore[assignment]
-    plot_phase_comparison = None  # type: ignore[assignment]
-from semantic_entropy.result_aggregator import (
-    MetricRow,
-    aggregate_results,
-    scan_results_directory,
-    write_metric_summary_csv,
-    write_metric_summary_json,
-)
 from semantic_entropy.schema import SchemaError, validate_record
 from semantic_entropy.scoring import (
     discrete_semantic_entropy,
@@ -107,7 +86,6 @@ __all__ = [
     "DatasetError",
     "EmbeddingFn",
     "KNOWN_DATASETS",
-    "MetricRow",
     "ModelFn",
     "ModelFnWithStates",
     "PromptItem",
@@ -123,7 +101,6 @@ __all__ = [
     "NLI_ENTAILMENT",
     "NLI_NEUTRAL",
     "NliFn",
-    "aggregate_results",
     "check_cluster_consistency",
     "check_jsonl_cluster_consistency",
     "compute_kle",
@@ -131,7 +108,6 @@ __all__ = [
     "evaluate_correctness",
     "exact_match_cluster",
     "exact_match_entailment_fn",
-    "generate_all_plots",
     "load_callable",
     "load_svamp_records",
     "load_triviaqa_records",
@@ -150,18 +126,12 @@ __all__ = [
     "normalize_answers_for_dataset",
     "normalize_svamp_answer",
     "normalize_triviaqa_answer",
-    "plot_accuracy_vs_auroc",
-    "plot_method_comparison_by_dataset",
-    "plot_phase_comparison",
     "run_pipeline",
     "sample_record",
-    "scan_results_directory",
     "score_probe",
     "score_probe_for_record",
     "score_record",
     "surface_entropy",
     "train_probe",
     "validate_record",
-    "write_metric_summary_csv",
-    "write_metric_summary_json",
 ]

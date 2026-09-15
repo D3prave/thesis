@@ -89,10 +89,12 @@ def main():
     ap.add_argument('inputs', type=Path)
     ap.add_argument('out', type=Path)
     ap.add_argument('--resamples', type=int, default=2000)
+    ap.add_argument('--probe-fits', type=Path, required=True,
+                    help='JSON file listing the saved probe fits under "probe_fits"')
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     data = load_inputs(args.inputs)
-    measurements = pd.read_csv('docs/independent_analysis/data/measurements.csv')
+    measurements = pd.read_csv('data/measurements.csv')
     verified = verify_point_estimates(data, measurements)
     verified.to_csv(args.out / 'point_estimate_verification.csv', index=False)
     print(f'VERIFIED {len(verified)} saved AUROCs', flush=True)
@@ -152,7 +154,7 @@ def main():
                 row[name + '_surface_auroc'] = auc(surface[mask], y[mask])
             diagnostics.append(row)
     pd.DataFrame(diagnostics).to_csv(args.out / 'length_truncation.csv', index=False)
-    manifest = json.loads(Path('docs/reproducibility_manifest.json').read_text())
+    manifest = json.loads(args.probe_fits.read_text())
     fits = {f['sha256']: f for f in manifest['probe_fits']}
     for d in data:
         if d['type'] != 'probe':

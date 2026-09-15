@@ -35,9 +35,6 @@ unset SLURM_EXPORT_ENV
 # this script asserts on mean answer length after generation and fails the job
 # if the regime does not match. Their published figures are 95.6 +/- 69.6
 # characters for sentence-length and 15.9 +/- 21.8 for short-phrase.
-#
-# Deliberately UNTRACKED during the frozen collection scope so it cannot move
-# HEAD; commit it afterwards for the record.
 # ============================================================================
 set -euo pipefail
 

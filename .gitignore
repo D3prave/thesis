@@ -1,27 +1,12 @@
-# ===========================================================================
-# Operating system / editor cruft
-# ===========================================================================
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-desktop.ini
-*~
-*.swp
-*.swo
-*.bak
-*.orig
-.idea/
-.vscode/
-*.sublime-project
-*.sublime-workspace
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
 
-# ===========================================================================
-# LaTeX auxiliary / build files
-# ===========================================================================
+# LaTeX build files
 *.aux
 *.bbl
 *.bcf
@@ -32,163 +17,18 @@ desktop.ini
 *.out
 *.run.xml
 *.synctex.gz
-*.synctex(busy)
 *.toc
-*.lof
-*.lot
-*.xdv
 *.mw
-*.idx
-*.ilg
-*.ind
-*.ist
-*.acn
-*.acr
-*.alg
 *.glg
 *.glo
 *.gls
 *.glsdefs
-*.nlo
-*.nls
-*.fdb_latexmk
-*.pdf
-!thesis/logos/*.pdf
-thesis/seminar_report.*
+*.ist
+thesis/main.pdf
 
-# ===========================================================================
-# Python
-# ===========================================================================
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-*.egg
-build/
-dist/
-.eggs/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
-.ipynb_checkpoints/
-
-# ===========================================================================
-# Environments
-# ===========================================================================
-.venv/
-venv/
-env/
-.env
-.python-version
-
-# ===========================================================================
-# Large data, model weights, and regenerable outputs
-# ===========================================================================
-data/raw/*
-data/processed/*
-# Generated experiment outputs and thesis figures stay local for now.
-results/
-thesis/figures/*
-!thesis/figures/*.pdf
-!thesis/figures/*.png
-outputs/
-checkpoints/
-models/
-*.ckpt
-*.safetensors
-*.bin
-*.pt
-*.pth
-*.csv
-*.tsv
-*.json
-*.jsonl
-*.jpg
-*.jpeg
-*.png
-*.webp
-*.gif
-
-!data/raw/triviaqa_stub.jsonl
-!data/raw/svamp_stub.jsonl
-!tests/fixtures/*.jsonl
-!external/factscore/topics.json
-!thesis/logos/*.png
-
-# Slurm / cluster transient logs
+# Cluster logs
 logs/
-*.slurm.out
 slurm-*.out
 
-# Temp scratch files
-tmp*.tmp
-*.tmp
-.~lock.*
-
-# ===========================================================================
-# Local working files (kept local, not in public repo)
-# ===========================================================================
-MANIFEST_REORG.md
-CLEANUP_GUIDE.md
-CLEANUP_SUMMARY.md
-*.doc
-*.docx
-*.md
-!/README.md
-docs/
-external/notes/
-external/papers/
-external/templates_original/
-finalize_history_rewrite.sh
-_figure_vault/
-
-# Office binaries (large; share out-of-band rather than via git)
-*.pptx
-*.ppt
-*.xlsx
-
-# Pulled analysis-layer results (regenerable; large) — stay local
-results_rerun_20260604/
-results_rerun_20260604
-results_T*
-
-# Local seminar report — not part of the thesis repo
-seminar_report/
-
-# Local archive of reviews, old exports, and other working material
-_local/
-
-# Local supervisor excerpt (editable source and generated preview; never track)
-thesis/excerpt/
-
-# --- thesis inputs: exempted so a clone can rebuild the PDF ---
-# The blanket ignores above keep bulky artifacts out. These specific files are
-# inputs the thesis depends on, so they are tracked.
-!docs/
-docs/*
-!docs/reproduction.md
-!docs/reproducibility_manifest.json
-!docs/robustness_plan_2026-09-11.md
-!docs/robustness_results_2026-09-12.md
-!docs/independent_analysis/
-docs/independent_analysis/*
-!docs/independent_analysis/DESIGN.md
-!docs/independent_analysis/data/
-!docs/independent_analysis/data/*.csv
-!docs/independent_analysis/data/*.json
-!docs/independent_analysis/data/README.md
-!results/
-results/*
-!results/paired_bootstrap_se_vs_surface.csv
-!results/e7_cross_dataset.csv
-!thesis/figures/
-!thesis/includes/
-
-# local scratch
-_to_delete/
+# System files
+.DS_Store

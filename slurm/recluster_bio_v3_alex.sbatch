@@ -14,12 +14,12 @@ unset SLURM_EXPORT_ENV
 # ============================================================================
 # SEP v3 whole-paragraph biography NLI reclustering.
 #
-# Wraps scripts/posthoc_recluster_jsonl.py the way phase2_bio_nli_fritz.sbatch
-# does — deliberately NOT question-conditioned, because the existing bio family
-# was clustered answer-only and the reseal may not change methodology — but adds
-# the v3 bindings that script lacks: pinned code commit, pinned NLI model and
-# tokenizer revisions, master-protocol SHA, and verification of the SOURCE
-# artifact before consuming it.
+# Wraps scripts/posthoc_recluster_jsonl.py. It is deliberately NOT
+# question-conditioned, because the existing bio family was clustered
+# answer-only and the reseal may not change methodology. It adds the v3
+# bindings: pinned code commit, pinned NLI model and tokenizer revisions,
+# master-protocol SHA, and verification of the SOURCE artifact before
+# consuming it.
 #
 # Runs on GPU rather than Fritz CPU purely for wall-clock; the clustering rule
 # (--clustering strict, the script default) is unchanged.
