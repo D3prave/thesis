@@ -172,12 +172,13 @@ thesis/excerpt/
 # inputs the thesis depends on, so they are tracked.
 !docs/
 docs/*
-!docs/*.md
-!docs/pairwise_register.csv
+!docs/reproduction.md
+!docs/reproducibility_manifest.json
+!docs/robustness_plan_2026-09-11.md
+!docs/robustness_results_2026-09-12.md
 !docs/independent_analysis/
 docs/independent_analysis/*
 !docs/independent_analysis/DESIGN.md
-!docs/independent_analysis/README.md
 !docs/independent_analysis/data/
 !docs/independent_analysis/data/*.csv
 !docs/independent_analysis/data/*.json
@@ -189,5 +190,5 @@ results/*
 !thesis/figures/
 !thesis/includes/
 
-# session scratch
+# local scratch
 _to_delete/

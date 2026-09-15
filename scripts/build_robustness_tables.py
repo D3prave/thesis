@@ -43,7 +43,7 @@ def main():
             rows.append(f'{name} & {model} & ${r.point_delta:+.3f}$ & ' + ' & '.join(entries))
     (args.output / 't_robustness_bootstrap.tex').write_text(table(
         'Additional semantic-minus-surface AUROC checks under Qwen grading. '
-        'Both schemes share question draws across generators and seeds; the crossed '
+        'Both schemes share question draws across generators and seeds. The crossed '
         r'scheme also varies dataset and generator multiplicities. Entries are 95\,\% '
         'percentile ranges from 2,000 draws, with only three levels of each factor.',
         'tab:robustness-bootstrap', 'llccc',
@@ -61,7 +61,7 @@ def main():
         rows.append(str(m) + ' & ' + ' & '.join(values))
     (args.output / 't_robustness_samples.tex').write_text(table(
         'Sample-count sensitivity on 270 fixed records per condition, DeBERTa-v3-large, '
-        'Qwen grading. Raw and normalized columns use DSE; surface counts normalized strings. '
+        'Qwen grading. Raw and normalized columns use DSE. Surface counts normalized strings. '
         'Values average nine cell AUROCs and, for $M<10$, 50 answer-subset replicates. '
         'All cells have both correctness classes. These are conditional subset results.',
         'tab:robustness-samples', 'crrrrrr',

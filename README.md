@@ -15,31 +15,32 @@ sampled from Mistral-7B-Instruct-v0.3, Llama-3.1-8B-Instruct and
 Llama-3.1-70B-Instruct, three seeds each (42/43/44).
 
 The method itself is due to [Farquhar et al.
-(2024)](https://doi.org/10.1038/s41586-024-07421-0); the contribution here is a
-reimplementation on a smaller recorded grid, comparisons of estimators,
-entailment models and graders, and a decoding-temperature sweep. A separate
-whole-paragraph experiment is exploratory.
+(2024)](https://doi.org/10.1038/s41586-024-07421-0). This work reimplements it
+on a smaller recorded grid, compares estimators, entailment models and graders,
+runs a decoding-temperature sweep, and adds a long-form biography evaluation.
 
 ## What it found
 
 On sentence-length answers, discrete semantic entropy improves on the
 likelihood-based naive baseline, but its average gain over normalized surface
 entropy is smaller and depends on the entailment model and grader. On short
-phrases, the count-based estimators are close. These are findings about the
-recorded models and tasks, not a general ranking of all detectors.
+phrases, the count-based estimators are close. On long-form biography answers,
+semantic entropy reaches a higher AUROC than the measured string baselines with
+the larger entailment models. These are findings about the recorded models and
+tasks, not a general ranking of all detectors.
 
 The thesis reports the full recorded comparisons in its Results chapter and
-supporting appendix. It does not use human correctness labels. The long-form
-experiment measures paragraph acceptance against a saved reference, using a
-different grouping protocol from the original paragraph experiment. It is
-exploratory rather than a central replication result.
+appendices. It does not use human correctness labels. The biography evaluation
+grades one selected paragraph per prompt against a saved reference. Its grouping
+rule differs from both the short-answer pipeline and the original paragraph
+experiment.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
 | `thesis/` | LaTeX source: 7 chapters, appendix, bibliography, figures |
-| `thesis/includes/` | 23 active generated table files; some contain several tables |
+| `thesis/includes/` | 23 active generated table files, some with several tables |
 | `src/semantic_entropy/` | Python package: sampling, clustering, entropy scoring, metrics, probes, plotting |
 | `scripts/` | Data preparation, aggregation, table and figure builders, verification gates |
 | `slurm/` | Batch scripts for the NHR@FAU runs |
@@ -88,8 +89,8 @@ python3 -m semantic_entropy.metrics scored.jsonl
 ```
 
 That normalizes the sampled answers, clusters them by exact match, computes the
-entropy scores, and prints AUROC/AURAC — the same code path the cluster runs
-use, with the NLI backend left at its default.
+entropy scores, and prints AUROC/AURAC. It uses the same code path as the cluster
+runs, with the NLI backend left at its default.
 
 `pyproject.toml` also installs these as console scripts
 (`semantic-entropy-score-jsonl`, `-metrics-jsonl`, `-normalize-fixture`,
@@ -99,10 +100,10 @@ use, with the NLI backend left at its default.
 
 The active result tables are generated from the committed measurement package,
 auxiliary summaries, and paired comparisons. The shared builder also reads
-archived cross-dataset probe exports for inactive tables; those transfer
+archived cross-dataset probe exports for inactive tables. Those transfer
 results are outside the thesis scope.
-The following checks validate the expected coverage and registered producers;
-they do not certify complete raw-data provenance:
+The following checks validate the expected coverage and registered producers.
+They do not certify complete raw-data provenance:
 
 ```sh
 python3 scripts/check_thesis_measurements.py
@@ -118,21 +119,17 @@ python3 scripts/build_thesis_tables.py \
 ```
 
 The builder requires NumPy, pandas, and Matplotlib. The current cluster exporter
-is `scripts/export_data_package_v2.py`; it needs the original result trees.
-See `docs/independent_analysis/data/README.md` for coverage and field meanings,
-and `docs/cluster_coverage_audit_2026-09-05.md` for the raw-artifact audit.
+is `scripts/export_data_package_v2.py`, which needs the original result trees.
+See `docs/independent_analysis/DESIGN.md` for what was run and
+`docs/independent_analysis/data/README.md` for coverage and field meanings.
 Older builders and results remain in the repository but do not supply the
 active thesis tables.
 
 For source packaging, artifact hashes, recovered protocol metadata, and the
 limits of reproducing historical runs, see `docs/reproduction.md` and
-`docs/reproducibility_manifest.json`. The September 11 correction register is
-`docs/audit_resolution_2026-09-11.md`.
-
-For the editable thesis handoff, see `docs/submission_checklist.md`. The final
-result audit is in `docs/final_consistency_audit_2026-09-05.md`; the literature
-claim checks and their access limits are in
-`docs/reading_notes/source_claim_audit_2026-09-05.md`.
+`docs/reproducibility_manifest.json`. The additional checks in Appendix C are
+described in `docs/robustness_plan_2026-09-11.md` and
+`docs/robustness_results_2026-09-12.md`.
 
 ## Published FactualBio labels
 
@@ -161,7 +158,7 @@ annotation.
 
 ## Scope and caveats
 
-The detection target is *confabulation* — answers that are wrong and
+The detection target is *confabulation*: answers that are wrong and
 inconsistent across resampling. High-confidence systematic errors, where the
 model is wrong the same way every time, are outside it by construction.
 
@@ -172,11 +169,10 @@ and does not treat seeds as independent datasets.
 
 Correctness is assessed by token-F1 and two LLM graders for short answers, and
 by Qwen2.5-72B-Instruct for biographies. There is no human validation of these
-labels. The main temperature tables use only LLM labels of the fixed answer;
-token-F1 sweep labels instead grade the modal sample and are not comparable.
-Prompting and long-form analyses are secondary or exploratory. AURAC and
-cross-dataset probe transfer remain in the research archive, outside the active
-thesis results.
+labels. The main temperature tables use only LLM labels of the fixed answer.
+Token-F1 sweep labels instead grade the modal sample and are not comparable.
+AURAC and cross-dataset probe transfer remain in the research archive, outside
+the active thesis results.
 
 ## Citation
 
