@@ -32,14 +32,30 @@ and cached entailment labels so those checks can be rerun without inference.
 
 This needs Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and TeX
 Live with `latexmk` and Biber. No GPU or model weights are needed.
+Run the commands from the repository root.
 
 ```sh
 uv sync --locked --extra plot --extra sep
 uv run python scripts/build_thesis_tables.py data/measurements.csv thesis/includes
 uv run python scripts/build_robustness_tables.py
 uv run python scripts/plot_method_schematic.py
-cd thesis && latexmk -pdf main.tex
+(cd thesis && latexmk -pdf main.tex)
 ```
+
+The PDF is written to `thesis/main.pdf`. The builders regenerate the tables in
+`thesis/includes/` and the figures in `thesis/figures/` from these inputs:
+
+| Reported results | Included inputs |
+|---|---|
+| Main and supporting result tables and figures | `data/measurements.csv`, `data/seed_variability.csv`, `data/label_agreement.csv` |
+| Short-answer paired comparison intervals | `results/paired_bootstrap_se_vs_surface.csv` |
+| Biography paired comparison intervals | `results/paired_bootstrap_longform.csv` |
+| Appendix C robustness summaries | `results/robustness/*.csv` |
+
+This rebuild uses the recorded measurements and intervals. Recomputing the
+full experiment's scores and bootstrap intervals requires the original scored
+answers. The cached clustering analysis below is the subset that can be
+recomputed directly from included answer records.
 
 ## How the experiments were run
 
@@ -86,3 +102,9 @@ uv run python scripts/analyze_clustering_robustness.py \
   results/robustness/clustering_inputs.json.gz \
   results/robustness/pair_cache.json.gz /tmp/clustering-check
 ```
+
+This writes `clustering_records.csv`, `clustering_replicates.csv`,
+`clustering_eligibility.csv`, and `clustering_summary.csv` to `/tmp/clustering-check`,
+along with a record of the analysis settings. The four CSVs correspond to the
+files with the same names in `results/robustness/` and cover normalization,
+answer order, and the number of sampled answers in Appendix C.
