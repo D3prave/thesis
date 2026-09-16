@@ -3,8 +3,7 @@
 
 These supplementary checks reuse the recorded answers and correctness labels.
 The analysis choices were fixed before the results were inspected. No answers
-were regenerated and no probes were retrained. The full outputs are in
-\path{results/robustness/}. All 3,564 corresponding saved AUROCs were
+were regenerated and no probes were retrained. All 3,564 corresponding saved AUROCs were
 reproduced to six decimals.
 
 \section{Shared questions and statistical units}
@@ -72,7 +71,7 @@ and it does not show which judge produced the accuracy probe's training labels.
 
 \section{Normalization and answer order}
 
-A bounded check selected 30 questions per dataset by a fixed hash rule,
+A bounded check selected 30 questions per dataset by a deterministic selection rule,
 shared across three generators and the two original conditions, at seed 42:
 540 records in total. DeBERTa-v3-large labeled raw
 and normalized answer pairs. All 540 raw-answer partitions were reproduced

@@ -86,8 +86,8 @@ example records.
 
 Each is loaded exactly as the released \texttt{data/data\_utils.py} loads it,
 including the loader's incidental behavior: a question mark is appended to
-every NQ-Open question, the record identifier is an md5 hash of the question
-text, and SVAMP's \texttt{Body} field becomes a separate \texttt{Context:}
+every NQ-Open question, record identifiers are derived from question text,
+and SVAMP's \texttt{Body} field becomes a separate \texttt{Context:}
 line. Table~\ref{tab:dataset-sources} gives the sources and split sizes.
 
 \begin{table}[htb]
