@@ -4,7 +4,7 @@
 \thisfloatsetup{capposition=above}
 \centering
 \footnotesize
-\caption{Sentence-length answers (\texttt{chat\_0shot}), Qwen judge, $T=1.0$. AUROC against answer incorrectness, averaged over nine dataset--model combinations. These combinations are the statistical units resampled for the intervals. Methods that need entailment clusters use the released-code default \texttt{deberta-v2-xlarge-mnli}. Both probes use \texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.}
+\caption{Sentence-length answers (\texttt{chat\_0shot}), Qwen judge, $T=1.0$. AUROC against answer incorrectness, averaged over nine dataset--model combinations. These combinations are the statistical units resampled for the intervals. Methods that need entailment clusters use the released-code default \texttt{deberta-v2-xlarge-mnli}. Both probes use \texttt{nli-deberta-v3-large}.}
 \label{tab:sentence-length}
 \begingroup
 \setlength{\tabcolsep}{3pt}
@@ -14,7 +14,7 @@ Method & AUROC & 95\,\% CI \\
 \midrule
 Semantic entropy, likelihood-weighted & 0.758 & [0.714, 0.801] \\
 Discrete semantic entropy & 0.757 & [0.711, 0.800] \\
-\textbf{Surface entropy} & 0.736 & [0.686, 0.784] \\
+Surface entropy & 0.736 & [0.686, 0.784] \\
 Accuracy probe & 0.718 & [0.667, 0.774] \\
 P(True) & 0.714 & [0.647, 0.778] \\
 Naive predictive entropy & 0.694 & [0.655, 0.728] \\

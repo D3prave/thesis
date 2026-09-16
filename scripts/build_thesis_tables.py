@@ -162,8 +162,6 @@ def t_sentence_length():
         s = cells(sl[(sl.method == m) & (sl.entailment_backend == b)])
         mu, lo, hi = unit_ci(s)
         nm = PRETTY[m]
-        if m == 'surface_entropy':
-            nm = r'\textbf{' + nm + '}'
         # The unit count is the same for every row, so the caption states it and
         # this check keeps that claim true instead of a constant column.
         units = len(s) // 3
@@ -178,7 +176,7 @@ def t_sentence_length():
         'These combinations are the statistical units resampled for the intervals. '
         'Methods that need entailment clusters use the released-code default '
         '\\texttt{deberta-v2-xlarge-mnli}. Both probes use '
-        '\\texttt{nli-deberta-v3-large}. The clustering-free comparator is set in bold.',
+        '\\texttt{nli-deberta-v3-large}.',
         'tab:sentence-length', '@{}lcc@{}',
         'Method & AUROC & 95\\,\\% CI \\\\', rows)
 
