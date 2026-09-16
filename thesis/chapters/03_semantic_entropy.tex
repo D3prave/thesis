@@ -6,9 +6,7 @@ answers rather than their wording, following
 Farquhar et al.~\cite{semantic_entropy_nature_2024} and
 Kuhn et al.~\cite{kuhn_semantic_uncertainty_2023}. The implementation details below describe the main short-answer experiment.
 The separate biography protocol is specified in
-Appendix~\ref{app:longform-details}. When the published description and released
-code~\cite{kossen_semantic_uncertainty_code_2024} disagree, this thesis follows
-the code.
+Appendix~\ref{app:longform-details}.
 
 \section{Entropy as a measure of uncertainty}
 \label{sec:entropy-measure}
@@ -21,7 +19,7 @@ entropy is
 It is small when almost all the mass sits on one outcome and large when the
 mass spreads over many. The maximum is $\log K$, at the uniform distribution.
 Changing the logarithm base rescales every entropy value but leaves their order
-unchanged, so it cannot affect AUROC. This thesis uses the natural logarithm,
+unchanged, so it cannot affect AUROC. The natural logarithm is used throughout,
 so values are in nats.
 Entropy is used because it is the quantity this literature defines and
 reports~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
@@ -468,7 +466,7 @@ A twenty-shot prefix drawn from the training split comes first. The released
 ``true'' option, \texttt{A}. The final uncertainty score is
 $1-\exp(\log P(\texttt{A})) = 1-P(\texttt{A})$, so larger values mean
 greater uncertainty. This probability is not renormalized over the two answer
-options. This thesis follows that scoring procedure.
+options.
 P(True) reuses the stored samples and needs no probe training.
 
 \textbf{Embedding regression} is a close cousin of the SEP probe: the same kind

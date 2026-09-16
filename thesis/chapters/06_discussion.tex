@@ -46,7 +46,7 @@ counting and is positive in 14 of 24 comparisons, with seven intervals favoring
 normalized-string counting. Weighting the meaning groups by likelihood adds
 0.0015. Both of these sit far below the normalization step and well inside the
 seed range, which explains why discrete semantic entropy performs so similarly
-to the likelihood-weighted version throughout this study.
+to the likelihood-weighted version.
 
 The comparison with surface entropy matters because the original baselines do
 not isolate grouping by meaning. Surface entropy also outperforms those
@@ -73,8 +73,8 @@ last has an interval that excludes zero.
 
 The stored answers are identical in
 all three cases, so the entailment model is the only factor that changed. The
-spread it produces, from 0.751 to 0.823, is larger than most of the method
-differences this thesis measures.
+spread it produces, from 0.751 to 0.823, is larger than most of the measured
+method differences.
 
 Two checks support reading this as an entailment-model effect rather than an
 artifact. Re-grading the same answers with Llama-3.1-70B leaves the ranking
@@ -127,7 +127,7 @@ excludes zero. Length therefore predicts how much semantic entropy gains over
 reading sequence likelihoods, and does not establish a gain over counting
 normalized strings with the default entailment model.
 
-The long-form biography evaluation shows the largest recorded gap in the study:
+The long-form biography evaluation shows the largest recorded gap:
 0.670 with large DeBERTa and 0.708 with Qwen, against 0.497 for surface and
 naive sample entropy. The reason is visible in the inputs. Nearly every sampled
 paragraph is a distinct string. When every string-based group holds one sample,
@@ -162,12 +162,12 @@ depending on which model reads them. A reader given only the label cannot tell
 where in that range a reported number sits, and cannot tell whether a gap over
 a string baseline reflects the estimator or the model chosen to support it.
 
-This thesis records all three for every comparison, which is what makes its
-entailment columns comparable to one another. What it does not record is an
+All three are recorded for every comparison, which is what makes the
+entailment columns comparable to one another. What is not recorded is an
 outside reference for the clustering rule itself. The rule is the one in the
 released code, including its order dependence, and it was kept unchanged so
-that the entailment-model comparison would isolate the model, so the study
-measures how much the rule's output moves and not how often it is right.
+that the entailment-model comparison would isolate the model. The results
+therefore show how much the rule's output moves and not how often it is right.
 
 \subsection{Sampling temperature changes which detector leads}
 \label{sec:diversity-vs-likelihood}

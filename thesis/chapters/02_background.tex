@@ -80,8 +80,8 @@ compare many of these methods on the same tasks~\cite{lm_polygraph_vashurin_2025
 \label{sec:calibration-abstention}
 
 An uncertainty score can help decide which answers to reject or check.
-This thesis evaluates ranking, not calibration: it asks whether incorrect
-answers receive higher uncertainty than correct ones.
+The evaluation covers ranking, not calibration: whether incorrect answers
+receive higher uncertainty than correct ones.
 
 Several related methods address the same problem without grouping by meaning.
 P(True)~\cite{kadavath_language_models_know_2022} asks the model whether its own
@@ -91,7 +91,8 @@ generates several responses and compares them without using an external
 database or token probabilities. Semantic entropy also compares samples, but it
 first groups answers that mean the same thing before calculating
 entropy~\cite{kuhn_semantic_uncertainty_2023,semantic_entropy_nature_2024}.
-This study measures whether that extra grouping step improves the result.
+Chapter~\ref{ch:results} measures whether that extra grouping step improves
+the result.
 
 A third family reads the model's \emph{hidden states} instead of its answers.
 These internal values can contain information about reliability that is not
@@ -119,14 +120,14 @@ This is a practical test for similar meaning, not a complete definition of it.
 
 Natural Language Inference (NLI) is the standard tool for this comparison. An
 NLI model reads two sentences and labels their relation as \emph{entailment}
-(the first implies the second), \emph{contradiction}, or \emph{neutral}. This
-thesis treats two answers as equivalent only when each entails the other.
+(the first implies the second), \emph{contradiction}, or \emph{neutral}. Two
+answers count as equivalent only when each entails the other.
 
 Two kinds of model make this judgment. The first is a \emph{cross-encoder}
 trained on inference data such as MultiNLI~\cite{williams_multinli_2018}. A
 cross-encoder reads both sentences together and compares them directly. The
-released code loads a DeBERTa model~\cite{he_deberta_2021}, and this thesis also
-uses the DeBERTa-v3-large cross-encoder~\cite{he_debertav3_2021,%
+released code loads a DeBERTa model~\cite{he_deberta_2021}, and the experiments
+also use the DeBERTa-v3-large cross-encoder~\cite{he_debertav3_2021,%
 sentence_transformers_nli_deberta_v3_large_2022}. A \emph{bi-encoder}, in contrast,
 reads each sentence separately. A cross-encoder must process each compared pair
 together. The second kind is a general instruction-tuned language model that
@@ -150,14 +151,13 @@ groups depend on the order in which the samples arrive.
 Earlier studies report that semantic entropy detects confabulations better than
 the methods used for comparison, and later work has adopted this
 result~\cite{semantic_entropy_nature_2024,kuhn_semantic_uncertainty_2023,%
-kossen_semantic_entropy_probes_2024}. This thesis examines three questions raised
-by those comparisons.
+kossen_semantic_entropy_probes_2024}. Those comparisons raise three questions.
 
 \paragraph{Retesting the method on selected open models.} The
 original study uses proprietary judges and older language models. Its released
 code~\cite{kossen_semantic_uncertainty_code_2024} also differs from the paper's
-description in several small ways. This thesis uses selected open models to test
-whether the reported improvement remains under its evaluation settings.
+description in several small ways. Running the method on selected open models
+tests whether the reported improvement remains under the settings used here.
 
 \paragraph{Separating the steps of the method.} The literature
 compares semantic entropy with entropy over sequence log-likelihoods,
@@ -182,8 +182,8 @@ tests the other steps one at a time.
 reported result depends on the entailment model, the correctness rule, and the
 sampling temperature. Recent work finds that semantic entropy weakens as
 one-sentence outputs become longer~\cite{nguyen_beyond_semantic_entropy_2025}
-and includes some temperature tests. This thesis studies these choices in one
-evaluation framework. Entailment models and correctness rules can be compared
+and includes some temperature tests. The experiments vary these choices within
+one evaluation framework. Entailment models and correctness rules can be compared
 on the same stored answers, so any change can
 be linked to the evaluation choice. Temperature changes the sampled answers and
 must therefore be tested in a separate experiment while the other settings are

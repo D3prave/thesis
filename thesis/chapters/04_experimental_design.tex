@@ -16,7 +16,7 @@ estimator and temperature, a \emph{cell} is one dataset--generator--seed
 combination. The three seed cells for one dataset--generator pair form one
 statistical resampling \emph{unit}.
 
-The thesis also reports a separate long-form biography evaluation. It uses
+The experiments also include a separate long-form biography evaluation. It uses
 biography prompts, one binary reference-consistency verdict, and one judge. It
 is a second setting rather than a longer short-answer condition. Its paired
 AUROC differences use records-only 95\,\% intervals from 2{,}000 resamples
@@ -175,8 +175,8 @@ introduced here.
 Farquhar et al.~\cite{semantic_entropy_nature_2024} report two prompting conditions, one giving \mbox{sentence-length}
 answers and one giving short phrases. They differ in two things at once: the
 instruction text and the number of worked examples. Any difference between them
-could come from either, or from both. This study collects all four
-combinations as a secondary analysis, on the same questions, models and seeds
+could come from either, or from both. All four combinations are collected
+as a secondary analysis, on the same questions, models and seeds
 (Table~\ref{tab:conditions}).
 
 The configuration names combine the instruction and the number of worked
@@ -318,7 +318,7 @@ still name the entailment model explicitly because the choice changes the score.
 A correctness label records whether an answer is graded correct or incorrect.
 Grading is a separate step applied to the finished most-likely answer, so the
 grading rule can change while the answer and its uncertainty scores stay fixed.
-This study uses three rules: token-F1 measures word overlap with a reference
+Grading uses three rules: token-F1 measures word overlap with a reference
 answer, while the Qwen and Llama language models judge correctness against the
 reference. Table~\ref{tab:graders} specifies the rules. They do not always agree.
 
@@ -359,7 +359,7 @@ LLM judge.
 
 No human correctness labels were collected. Farquhar et al.\ validate their
 judge against human annotation on 100 questions in Supplementary Note~6, but
-this study does not perform an equivalent check. Every accuracy and AUROC value
+no equivalent check was run. Every accuracy and AUROC value
 therefore depends on an unvalidated correctness rule.
 Section~\ref{sec:conclusion-limitations} discusses this limitation.
 
@@ -424,11 +424,11 @@ Appendix~\ref{sec:bootstrap-assumptions} gives the details.
 A $\pm$ value is the standard deviation over the three seeds. It shows how
 stable a number is, not whether a difference is significant.
 
-\section{Where this study differs from the original}
+\section{Differences from the original study}
 \label{sec:deviation-register}
 
 The main validity concerns are stated in the sections where they matter. This
-study uses open models in place of proprietary judges, has no human correctness
+thesis uses open models in place of proprietary judges, has no human correctness
 labels, and evaluates three of the original five question sets. It also adds
 string-based entropy baselines, multiple entailment models and correctness
 rules, four prompting combinations, five temperatures and three sampling
