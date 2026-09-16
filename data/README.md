@@ -50,3 +50,12 @@ under `deberta-v2-xlarge-mnli`. The biography rows use only the Qwen grader.
   so use it for the agreement rate only.
 - `dedup_triviaqa.json`: the TriviaQA questions removed because they appear in
   both splits or more than once.
+- `scored_answers.tar.gz`: a reduced copy of the scored answers on the cluster,
+  1,080 JSON Lines files with 407,304 records, one line per question. Every line
+  keeps the question id and text, the generator, the entailment model, the
+  uncertainty scores, the correctness label and the cluster that the entailment
+  model gave each of the ten sampled answers. Short-answer lines also keep the
+  most likely answer. The sampled answers themselves, token probabilities and
+  hidden states are not included. The TriviaQA files still contain the questions
+  listed in `dedup_triviaqa.json`. `RECORD_MANIFEST.json` lists every file with
+  its record count and SHA-256 checksum.

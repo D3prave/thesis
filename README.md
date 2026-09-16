@@ -17,7 +17,7 @@ the measurement files that all tables and figures are built from.
 | Path | What it holds |
 |---|---|
 | `thesis/` | LaTeX source, figures and generated tables |
-| `data/` | Measurement files the tables are built from, see `data/README.md` |
+| `data/` | Measurement files the tables are built from and the scored answers, see `data/README.md` |
 | `results/` | Paired bootstrap intervals and the outputs of the checks in Appendix C |
 | `src/semantic_entropy/` | Python package: sampling, clustering, entropy scores, P(True), probes, metrics |
 | `scripts/` | Data preparation, job submission, export, analysis, and the table and figure builders |
@@ -25,8 +25,10 @@ the measurement files that all tables and figures are built from.
 | `external/factscore/topics.json` | Subjects of the biography prompts |
 
 Full generation outputs, hidden states and model weights are not included.
-The Appendix C clustering checks include a small subset of 540 answer records
-and cached entailment labels so those checks can be rerun without inference.
+`data/scored_answers.tar.gz` holds a reduced copy of the scored answers that the
+measurements were computed from, see `data/README.md`. The Appendix C clustering
+checks include a small subset of 540 answer records and cached entailment labels
+so those checks can be rerun without inference.
 
 ## Rebuild the tables, figures and PDF
 
