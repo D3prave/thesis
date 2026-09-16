@@ -185,17 +185,13 @@ scan then moves to the next unassigned answer.
 
 Two properties matter. First, the outer loop checks whether an answer already
 has a cluster, but the inner loop does not. A later anchor can therefore
-overwrite an earlier assignment. The last matching anchor, rather than the
-first, decides the answer's final cluster. Second, the algorithm does not enforce transitivity. If A matches B and B
+overwrite an earlier assignment. The last matching anchor decides the
+answer's final cluster. Second, the algorithm does not enforce transitivity. If A matches B and B
 matches C, it does not automatically group A with C. Changing the order of the
 same answers can therefore change the clusters and their entropy without
-changing any entailment judgment. An earlier implementation joined answers
-through such chains, but the released code does not. This thesis uses the
-released anchor scan throughout. Algorithm~\ref{alg:clustering} states the
+changing any entailment judgment. Algorithm~\ref{alg:clustering} states the
 procedure exactly.
 Appendix~\ref{app:robustness} measures this order effect on a fixed subset.
-Changing the entailment model, as in Section~\ref{sec:clustering-sensitivity},
-tests a different factor and does not replace that check.
 
 \begin{algorithm}[htb]
 \caption{Bidirectional-entailment clustering by order-dependent anchor scan,
