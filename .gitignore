@@ -6,6 +6,10 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Local credentials
+.env
+.env.*
+
 # LaTeX build files
 *.aux
 *.bbl

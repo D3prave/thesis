@@ -92,8 +92,7 @@ from semantic_entropy.scoring import score_record
 class RunConfig:
     """Immutable bundle of run-level metadata for a Phase 1/2 experiment.
 
-    All fields except *run_id* have sensible defaults matching the Phase 1
-    smoke configuration described in ``docs/experiment_protocol.md``.
+    All fields except *run_id* have defaults for a small smoke run.
 
     Attributes:
         run_id: Unique identifier for this run, e.g. ``"smoke-001"`` or
@@ -259,8 +258,7 @@ def _extract_answer(raw: str, single_line: bool = True) -> str:
 
     Instruct models without stop sequences run past their answer into a fake
     new chat turn (``"<A>Davis</A>\\n\\n<s>[INST] ..."``); keeping that text
-    contaminates clustering, entropy, and the string-match correctness label
-    (see docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md). This unwraps
+    contaminates clustering, entropy, and the string-match correctness label. This unwraps
     answer tags, cuts at the first template marker, and — for short-answer
     datasets (``single_line=True``) — keeps only the first non-empty line.
     For paragraph tasks (biography) pass ``single_line=False`` so multi-line

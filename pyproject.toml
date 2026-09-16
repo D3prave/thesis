@@ -12,14 +12,12 @@ dependencies = [
 ]
 
 [project.scripts]
-semantic-entropy-normalize-fixture = "semantic_entropy.fixtures:main"
 semantic-entropy-metrics-jsonl = "semantic_entropy.metrics:main"
 semantic-entropy-make-presampling-jsonl = "semantic_entropy.harness:main"
 semantic-entropy-run-pipeline = "semantic_entropy.pipeline_cli:main"
 semantic-entropy-score-jsonl = "semantic_entropy.cli:main"
 
 [project.optional-dependencies]
-test = ["pytest>=8", "ruff>=0.4"]
 # Data preparation (scripts/prepare_replication_data.py).
 # Install with: uv pip install --extra prep  or  uv sync --extra prep
 prep = [
@@ -60,14 +58,3 @@ sep = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
-addopts = "-q --tb=short"
-
-[tool.ruff]
-line-length = 99
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "I"]

@@ -50,4 +50,3 @@ under `deberta-v2-xlarge-mnli`. The biography rows use only the Qwen grader.
   so use it for the agreement rate only.
 - `dedup_triviaqa.json`: the TriviaQA questions removed because they appear in
   both splits or more than once.
-- `raw/`: two tiny example datasets used by the tests.

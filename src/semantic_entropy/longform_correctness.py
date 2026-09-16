@@ -153,8 +153,7 @@ def _fixed_representative(record: dict[str, Any]) -> str:
     clustering backend used downstream. Grading the *majority-cluster*
     representative made the label depend on the backend (different clusters →
     different modal answer → different label), so the same record could be
-    graded correct under one NLI model and incorrect under another (see
-    docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md, §4.9).
+    graded correct under one NLI model and incorrect under another.
 
     This grades a fixed representative instead, in priority order:
     1. ``most_likely_answer`` — the single low-temperature answer (paper

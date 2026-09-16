@@ -1,9 +1,8 @@
 """Structural validation of semantic-entropy JSONL prompt records.
 
 A prompt record is the unit of analysis used throughout Phase 1 and Phase 2:
-one record per prompt, written as a single line of UTF-8 JSON. The canonical
-schema is specified in ``docs/experiment_protocol.md`` and mirrored in
-Chapter 4 of the thesis. This module enforces *structural* conformance only:
+one record per prompt, written as a single line of UTF-8 JSON. This module
+defines the record schema and enforces *structural* conformance only:
 required fields are present, value types are correct, enumerated fields take
 admissible values, and the cardinalities of the per-sample arrays
 (``sampled_answers``, ``normalized_answers``, ``semantic_clusters``) agree

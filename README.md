@@ -22,10 +22,11 @@ the measurement files that all tables and figures are built from.
 | `src/semantic_entropy/` | Python package: sampling, clustering, entropy scores, P(True), probes, metrics |
 | `scripts/` | Data preparation, job submission, export, analysis, and the table and figure builders |
 | `slurm/` | Batch scripts used on the NHR@FAU Alex and Fritz clusters |
-| `tests/` | Tests for the package and the scripts |
 | `external/factscore/topics.json` | Subjects of the biography prompts |
 
-Raw generated answers, hidden states and model weights are not included.
+Full generation outputs, hidden states and model weights are not included.
+The Appendix C clustering checks include a small subset of 540 answer records
+and cached entailment labels so those checks can be rerun without inference.
 
 ## Rebuild the tables, figures and PDF
 
@@ -33,26 +34,22 @@ This needs Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and TeX
 Live with `latexmk` and Biber. No GPU or model weights are needed.
 
 ```sh
-uv sync --locked --extra test --extra plot --extra sep
+uv sync --locked --extra plot --extra sep
 uv run python scripts/build_thesis_tables.py data/measurements.csv thesis/includes
 uv run python scripts/build_robustness_tables.py
 uv run python scripts/plot_method_schematic.py
 cd thesis && latexmk -pdf main.tex
 ```
 
-To check the files:
-
-```sh
-uv run python scripts/check_thesis_measurements.py     # complete grid, intervals match the measurements
-uv run python scripts/check_figure_table_freshness.py  # tables and figures match a fresh rebuild (needs pdftoppm)
-uv run pytest
-```
-
 ## How the experiments were run
 
-The experiments ran with Slurm on the NHR@FAU clusters. The launchers contain
-settings of those clusters (paths, model cache, accounts) and need changes to
-run elsewhere.
+The experiments ran with Slurm on the NHR@FAU clusters. The launchers and
+exporters document those runs; they are not a self-contained rerun workflow.
+They depend on cluster paths, model caches, accounts, and full generation
+outputs that are not included here. The biography launchers also require an
+unpublished protocol configuration and retain historical revision checks.
+Running them elsewhere requires adapting that setup. The table, figure, and
+PDF rebuild above uses only the included measurements and analysis outputs.
 
 Short-answer study:
 

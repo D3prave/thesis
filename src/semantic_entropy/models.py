@@ -1045,9 +1045,8 @@ def make_vllm_model(
     # Halt generation when an instruct model hallucinates a new chat turn.
     # Without these stops the model runs to max_tokens and emits template echo
     # or a fabricated next question; that contaminates the sampled answers, the
-    # exact-match clustering, and the string-match correctness label (see
-    # docs/DEEP_FINDINGS_REVERIFICATION_2026-06-15.md, generation-pollution
-    # finding). These are literal strings the model emits (not special tokens),
+    # exact-match clustering, and the string-match correctness label.
+    # These are literal strings the model emits (not special tokens),
     # so they are passed as string stops. "\n\n" is deliberately NOT included:
     # it would truncate paragraph-length biography answers.
     _STOP = [

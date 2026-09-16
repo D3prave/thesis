@@ -1,7 +1,6 @@
 """Entropy estimators for the discrete semantic-entropy baseline.
 
-This module implements the uncertainty signals required by the Phase 1
-experimental protocol (see ``docs/experiment_protocol.md``): a naive
+This module implements the uncertainty signals used in the experiments: a naive
 sampled-answer entropy over exact raw generations, a *surface-form* entropy
 over exact normalized answer strings, and a *discrete semantic entropy* over
 the cluster assignments produced by an entailment-based clustering step. All
@@ -177,7 +176,7 @@ def score_record(
     (captured at generation time), it additionally computes the two
     probability-weighted estimators (``naive_entropy`` and
     ``semantic_entropy_full``). They populate the ``scores`` sub-object of the
-    JSONL schema in ``docs/experiment_protocol.md``.
+    JSONL schema validated by ``semantic_entropy.schema``.
     """
 
     scores = {
