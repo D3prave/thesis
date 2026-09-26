@@ -9,6 +9,9 @@ description = "Code for the thesis Detecting Hallucinations in Large Language Mo
 requires-python = ">=3.11"
 dependencies = [
     "datasets>=4.8.5",
+    # Used directly by the table, figure and analysis scripts.
+    "numpy>=1.24",
+    "pandas>=2",
 ]
 
 [project.scripts]
