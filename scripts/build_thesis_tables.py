@@ -294,7 +294,6 @@ def t_all_slices():
 
 def t_ladder():
     """Compare four consecutive method changes, one change at a time."""
-    import itertools
     rungs = [('naive_sample_entropy', 'naive_entropy',
               'count strings instead of reading likelihoods'),
              ('surface_entropy', 'naive_sample_entropy',

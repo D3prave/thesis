@@ -41,7 +41,6 @@ import argparse
 import hashlib
 import json
 import random
-import sys
 from pathlib import Path
 
 # Their defaults, from utils.get_parser.
