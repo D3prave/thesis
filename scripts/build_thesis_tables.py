@@ -613,7 +613,7 @@ def t_degenerate_cells():
     sub = T1[(T1.condition == 'chat_0shot') & (T1.grader == F1) &
              (T1.method == 'discrete_semantic_entropy') & (T1.entailment_backend == XL)]
     rows = []
-    for _, r in sub[sub.accuracy < 0.05].sort_values('accuracy').iterrows():
+    for _, r in sub[sub.accuracy < 0.05].sort_values('accuracy', kind='stable').iterrows():
         mdl = r.model.split('_')[-1].replace('-Instruct', '')
         rows.append(f'{r.dataset} & \\texttt{{{mdl}}} & {int(r.seed)} & '
                     f'{r.accuracy:.4f} & {int(round(r.accuracy*r.n_records))} '
