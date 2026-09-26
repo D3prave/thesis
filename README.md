@@ -32,8 +32,8 @@ so those checks can be rerun without inference.
 
 ## Rebuild the tables, figures and PDF
 
-This needs Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and TeX
-Live with `latexmk` and Biber. No GPU or model weights are needed.
+This needs Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and a
+full TeX Live installation with `latexmk` and Biber. No GPU or model weights are needed.
 Run the commands from the repository root.
 
 ```sh
@@ -110,3 +110,13 @@ This writes `clustering_records.csv`, `clustering_replicates.csv`,
 along with a record of the analysis settings. The four CSVs correspond to the
 files with the same names in `results/robustness/` and cover normalization,
 answer order, and the number of sampled answers in Appendix C.
+
+## License
+
+The code in `src/`, `scripts/` and `slurm/` and the measurement files in
+`data/` and `results/` are released under the MIT License, see `LICENSE`. The
+questions and prompts inside the data come from TriviaQA, NQ-Open, SVAMP and
+FActScore and keep their original licenses. The thesis text and figures in
+`thesis/` are not covered by the MIT License. The kaobook files in
+`thesis/styles/` keep their LaTeX Project Public License, and the logos in
+`thesis/logos/` belong to their institutions.
