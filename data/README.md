@@ -12,7 +12,7 @@ One row per measurement, 10,350 rows in long format.
 |---|---|
 | `arm` | `short_answer` or `long_form` (the biography study) |
 | `condition` | prompting condition: `chat_0shot`, `default_0shot`, `chat_5shot`, `default_5shot`, or `paragraph` for biographies |
-| `instruction` | `chat` (brief sentence) or `default` (as briefly as possible) |
+| `instruction` | `chat` (brief sentence), `default` (as briefly as possible) or `bio` for biographies |
 | `n_demonstrations` | number of worked examples, 0 or 5 |
 | `split_role` | `eval` for short answers. In the biography rows it is not a split and can be ignored |
 | `dataset` | `triviaqa`, `nqopen`, `svamp` or `bio` |
